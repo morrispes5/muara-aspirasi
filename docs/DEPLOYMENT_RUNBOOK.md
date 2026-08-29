@@ -1,6 +1,6 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Tidak ada deploy, account linking, database provisioning, atau secret configuration yang dilakukan saat dokumen ini dibuat.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision secara terpisah pada free plan; schema, migration, deploy, account linking, dan secret configuration produksi belum dilakukan.
 
 ## 1. Tujuan dan ownership
 
@@ -20,7 +20,7 @@ Prinsip ownership:
 | ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`. |
 | Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                   |
-| Database          | Neon PostgreSQL                                                           | Belum diprovision.                                                  |
+| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; development/preview branch tersedia. |
 | ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Toolchain dipasang; schema/migration belum dibuat.                  |
 | Auth              | Better Auth pada Next.js                                                  | Belum dipasang.                                                     |
 | Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                |
@@ -103,7 +103,7 @@ npm run build
 
 Proposed sequence:
 
-1. buat Neon development branch;
+1. gunakan branch Neon `development` yang sudah tersedia (buat branch per-PR bila workflow preview berubah);
 2. isi local secret pada `.env.local`;
 3. generate migration melalui Drizzle Kit;
 4. review generated SQL dan data-loss statement;

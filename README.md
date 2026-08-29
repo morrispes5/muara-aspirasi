@@ -51,18 +51,18 @@ Credential untuk Better Auth, Cloudflare Turnstile, dan Cloudflare R2 baru ditam
 
 ## Command proyek
 
-| Kebutuhan          | Command                | Catatan                                                                                                            |
-| ------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| Development        | `npm run dev`          | Menjalankan Next.js development server.                                                                            |
-| Lint               | `npm run lint`         | Menjalankan ESLint dengan zero-warning policy.                                                                     |
-| Type-check         | `npm run typecheck`    | Menjalankan TypeScript tanpa menghasilkan file build.                                                              |
-| Test               | `npm test`             | Menjalankan test satu kali dengan Vitest.                                                                          |
-| Test watch         | `npm run test:watch`   | Menjalankan Vitest dalam watch mode.                                                                               |
-| Format             | `npm run format`       | Memformat file yang dikelola proyek dengan Prettier.                                                               |
-| Format check       | `npm run format:check` | Memeriksa format tanpa mengubah file.                                                                              |
-| Migration database | `npm run db:migrate`   | Masih placeholder aman; command Drizzle nyata disiapkan dalam Milestone 3 setelah schema dan branch Neon tersedia. |
-| Production build   | `npm run build`        | Membuat build Next.js untuk production.                                                                            |
-| Production start   | `npm run start`        | Menjalankan hasil production build secara lokal.                                                                   |
+| Kebutuhan          | Command                | Catatan                                                                                                                    |
+| ------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Development        | `npm run dev`          | Menjalankan Next.js development server.                                                                                    |
+| Lint               | `npm run lint`         | Menjalankan ESLint dengan zero-warning policy.                                                                             |
+| Type-check         | `npm run typecheck`    | Menjalankan TypeScript tanpa menghasilkan file build.                                                                      |
+| Test               | `npm test`             | Menjalankan test satu kali dengan Vitest.                                                                                  |
+| Test watch         | `npm run test:watch`   | Menjalankan Vitest dalam watch mode.                                                                                       |
+| Format             | `npm run format`       | Memformat file yang dikelola proyek dengan Prettier.                                                                       |
+| Format check       | `npm run format:check` | Memeriksa format tanpa mengubah file.                                                                                      |
+| Migration database | `npm run db:migrate`   | Masih placeholder aman; command Drizzle nyata disiapkan dalam Milestone 3 setelah schema direview dan koneksi lokal diisi. |
+| Production build   | `npm run build`        | Membuat build Next.js untuk production.                                                                                    |
+| Production start   | `npm run start`        | Menjalankan hasil production build secara lokal.                                                                           |
 
 ## Struktur utama
 

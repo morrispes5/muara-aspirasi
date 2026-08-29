@@ -1,6 +1,6 @@
 const message = [
-  "Database migration belum dikonfigurasi pada persiapan Milestone 3.",
-  "Tunggu project/branch Neon development, keputusan DATA_MODEL.md, dan review SECURITY_PRIVACY.md sebelum menjalankan migration Drizzle.",
+  "Database migration belum dikonfigurasi karena schema Drizzle belum dibuat.",
+  "Gunakan branch development/preview yang sudah disiapkan setelah schema DATA_MODEL.md direview dan koneksi lokal diisi secara aman.",
 ].join("\n");
 
 console.log(message);

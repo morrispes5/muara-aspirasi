@@ -75,12 +75,20 @@ Form harus memberi peringatan agar pelapor tidak memasukkan secret/OTP atau data
 
 ## 5. Anonimitas dan consent identity
 
-### Mode yang diusulkan
+### Mode yang dipilih untuk foundation Milestone 3
 
 1. **Confidential BEM only (default):** pelapor memberi nama dan NIM untuk verifikasi BEM. Hanya role berwenang dengan need-to-know yang dapat melihatnya; identity tidak dibagikan ke unit tujuan atau publik.
 2. **Consented limited share:** pelapor memberi consent eksplisit agar field identity minimum dapat disampaikan ke unit tujuan yang disebutkan untuk follow-up privat. Default tetap field minimum, bukan seluruh identity/report.
 
-Mode ini merupakan Proposed Default dari requirement consent PRD dan perlu dikonfirmasi owner sebelum UI/schema dibuat.
+Keputusan ini menjadi default implementasi untuk development/preview. Privacy notice final, batas kewajiban hukum, dan SOP serious-risk tetap memerlukan review owner sebelum production.
+
+Kontrak mode:
+
+- `CONFIDENTIAL_BEM_ONLY` adalah default dan berarti identity hanya tersedia untuk BEM berwenang dengan need-to-know.
+- `CONSENTED_LIMITED_SHARE` memerlukan consent eksplisit, tujuan/unit tujuan yang tercatat, dan hanya field identity minimum.
+- Tidak ada mode yang mengizinkan identity tampil pada publik atau public advocacy update.
+
+Foundation evidence default untuk development/preview adalah maksimal tiga file JPEG, PNG, atau PDF, dengan batas 5 MiB per file dan 10 MiB total. File harus lolos pemeriksaan extension, MIME, magic bytes, dan checksum, lalu tetap berada pada private/quarantine storage ketika Milestone 6 dikerjakan. Batas ini dapat diperketat setelah review operasional sebelum production.
 
 Aturan mutlak:
 

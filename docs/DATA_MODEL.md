@@ -453,6 +453,19 @@ Audit log tidak boleh menjadi salinan report atau log request mentah.
 | File allowlist dan size?              | Mulai sempit: image dan PDF terkontrol, total maksimum tiga file; angka byte final menunggu keputusan operasional.                                                            |
 | Category dikelola admin?              | Seed dan read-only pada MVP awal; pengubahan category memerlukan milestone policy setelah kebutuhan nyata terlihat.                                                           |
 
+## 10.1 Keputusan foundation Milestone 3
+
+Keputusan berikut berlaku untuk database development dan preview Muara Aspirasi. Ini mengunci kontrak implementasi Milestone 3 tanpa menganggap privacy notice, SOP hukum, atau batas production sudah final.
+
+| Area          | Keputusan foundation                                                                                                                                                                                                                               |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identity mode | `CONFIDENTIAL_BEM_ONLY` menjadi default. `CONSENTED_LIMITED_SHARE` hanya dengan consent eksplisit untuk unit tujuan tertentu; identity tidak pernah masuk projection publik.                                                                       |
+| Status        | Status awal `RECEIVED`; lifecycle resmi PRD dipakai apa adanya. Loop `NEEDS_CLARIFICATION` dan `UPDATE_AVAILABLE` pada state diagram diterima sebagai default operasional; reopen/archive/CANNOT_PROCESS wajib beralasan.                          |
+| Urgency       | Enum `LOW \| NORMAL \| HIGH \| ESCALATE`, default `NORMAL`. `ESCALATE` hanya flag internal sampai SOP serious-risk disetujui.                                                                                                                      |
+| Retention     | Report, contact, dan evidence dihapus/diarsipkan sesuai prosedur 180 hari setelah closure; audit metadata 365 hari; abuse signal maksimal 30 hari dan diminimalkan.                                                                                |
+| Evidence      | Maksimal 3 file; JPEG, PNG, dan PDF; maksimal 5 MiB per file dan 10 MiB total. Validasi extension, MIME, magic bytes, checksum, dan random object key; object tetap private/quarantine di R2.                                                      |
+| Permission    | Public hanya submit/track dengan code + token dan membaca projection publik. `EDITOR` hanya sanitized summary/konten. `ADVOCATE` menangani report/identity/evidence sesuai need-to-know. `ADMIN` memiliki approval, policy, role, dan audit penuh. |
+
 ## 11. Referensi implementasi masa depan
 
 - [Drizzle PostgreSQL migrations](https://orm.drizzle.team/docs/get-started/postgresql-existing)

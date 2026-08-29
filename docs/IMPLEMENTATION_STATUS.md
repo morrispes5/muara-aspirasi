@@ -94,7 +94,7 @@ Quality gate dijalankan ulang setelah persiapan toolchain Milestone 3 pada 29 Ag
 6. **Vitest dengan satu smoke test fondasi.** Test runner dan command CI sudah terbukti bekerja tanpa membuat test fitur yang belum ada.
 7. **Netlify auto-detection tanpa adapter manual.** Next.js dikenali oleh Netlify dan runtime Next disediakan otomatis, sehingga `netlify.toml` cukup menetapkan command build, output `.next`, dan versi Node.
 8. **Environment minimum.** Hanya URL aplikasi lokal/publik yang dideklarasikan. Nama credential vendor ditunda sampai kontrak arsitektur dan keamanan tersedia, agar tidak menebak nama atau pola secret.
-9. **Migration command berupa placeholder non-mutating.** README tetap memiliki command migration; toolchain Drizzle sudah dipasang sebagai persiapan, tetapi schema, migration, dan koneksi database belum dibuat sebelum target Neon disetujui.
+9. **Migration command berupa placeholder non-mutating.** README tetap memiliki command migration; toolchain Drizzle dan branch Neon sudah dipasang sebagai persiapan, tetapi schema, migration, dan koneksi runtime belum dibuat sebelum review schema selesai.
 10. **Aset kampus dipakai terbatas atas persetujuan pengguna.** Kelima file hanya disalin ke `public/images`, tidak dipindahkan dari `docs/assets`; foto memberi konteks hero, poster memberi jejak kampanye, dan identitas institusi hanya sebagai pendamping wordmark. Izin brand/foto untuk public launch tetap terbuka.
 11. **Modular monolith.** Satu Next.js application menjadi deployment unit, sedangkan domain, data access, authorization, dan provider adapters memiliki boundary terpisah untuk menghindari coupling UI ke database/vendor.
 12. **Server-first dan public/private projections terpisah.** Server Components menjadi default reads; Route Handlers dipakai untuk public submission/tracking dan integrations; seluruh action/handler sensitif tetap memvalidasi auth/permission/input server-side.
@@ -176,7 +176,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 
 ### Sengaja ditunda
 
-- Provisioning database, schema/migration, seed, dan koneksi Neon tetap khusus Milestone 3; toolchain Drizzle sudah disiapkan sebagai prasyarat.
+- Schema/migration, seed, dan koneksi runtime Neon tetap khusus Milestone 3; project dan branch non-production sudah diprovision, sedangkan toolchain Drizzle sudah disiapkan sebagai prasyarat.
 - Auth BEM dan area admin tetap khusus Milestone 4.
 - Form pengiriman, Turnstile, upload bukti, submit, kode/token pelacakan, serta timeline privat tetap khusus Milestone 5.
 - Konten nyata, filter, pagination, publication workflow, dan sumber/credit editorial terverifikasi tetap khusus Milestone 7 setelah ada approval BEM.
@@ -186,7 +186,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 - Privacy notice, etika pelaporan, contact resmi, dan SOP eskalasi masih draft; halaman statis tidak boleh dianggap siap public launch sebelum owner menyetujuinya.
 - Contoh update/informasi bukan konten BEM terverifikasi dan tidak boleh diganti dengan data nyata tanpa proses editorial.
 - Izin publikasi produksi untuk foto/logo kampus masih perlu konfirmasi tertulis walaupun pengguna menyetujui pemakaian lokal.
-- Project Neon baru belum dibuat. Neon MCP hanya melihat project `morrizstore`, yang sengaja tidak disentuh; database Muara Aspirasi wajib memakai project/branch terpisah.
+- Project Neon Muara Aspirasi sudah dibuat terpisah; `morrizstore` tidak disentuh. Region yang terpilih adalah AWS US East 1 (N. Virginia) karena endpoint create-project MCP tidak menyediakan parameter region; ini menjadi risiko latency untuk pengguna Indonesia dan perlu dievaluasi sebelum production.
 
 ### Validasi Milestone 2
 
@@ -202,22 +202,26 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 
 ### Rekomendasi setelah Milestone 2
 
-Jalankan Milestone 3 saja: putuskan owner/region/plan Neon, retention, dan keputusan data yang masih terbuka, lalu bangun schema Drizzle serta migration pada database development/preview yang kosong. Jangan membuka form atau authentication sebelum foundation tersebut lulus validasi.
+Jalankan Milestone 3 saja: gunakan project/branch Neon free yang tercatat di bawah, implementasikan schema Drizzle serta migration pada database development/preview yang kosong, lalu validasi repository dan transaction boundary. Jangan membuka form atau authentication sebelum foundation tersebut lulus validasi.
 
 ## Persiapan Milestone 3 — Toolchain dan handoff
 
-- Neon MCP dan skill `neon-postgres` tersedia serta berhasil dipakai untuk pemeriksaan baca-saja organisasi/project.
-- Organisasi yang terlihat adalah `morrizprogammer`; satu-satunya project yang terlihat adalah `morrizstore` (`rapid-star-49652334`). Tidak ada operasi create/update/SQL dijalankan terhadap project tersebut.
+- Neon MCP dan skill `neon-postgres` tersedia serta berhasil dipakai untuk pemeriksaan organisasi/project. MCP membuat project baru, sedangkan branch dibuat melalui console Neon karena connector create-branch memiliki mismatch parameter.
+- Project baru: `muara-aspirasi` (`divine-art-60321097`) di organisasi `morrizprogammer` (`org-frosty-river-44135012`), free plan, AWS US East 1 (N. Virginia), PostgreSQL 18, history retention default Neon 6 jam. Project `morrizstore` (`rapid-star-49652334`) tidak disentuh.
+- Branch tersedia dan ready: `main` (`br-sweet-pond-avowzbm3`, default), `development` (`br-super-pond-avlexrnx`), dan `preview` (`br-jolly-butterfly-avdafzzv`). Development/preview dibuat dari `main`, tanpa auto-delete, dan masih kosong.
 - Dependency lokal yang sudah disiapkan: `drizzle-orm@1.0.0-rc.4`, `drizzle-kit@1.0.0-rc.4`, `@neondatabase/serverless@1.1.0`, dan `dotenv@17.4.2`. Pasangan rc dipilih setelah versi stable Drizzle Kit memunculkan advisory esbuild transitive; audit setelah penggantian menjadi 0 vulnerability.
 - `.env.example` hanya menambahkan nama dan placeholder aman `DATABASE_URL` serta `DATABASE_URL_UNPOOLED`; connection string nyata tetap harus berada di `.env.local` yang di-ignore.
 - Tidak diperlukan akun Drizzle terpisah. Drizzle ORM/Kit adalah dependency npm; akun/resource yang diperlukan untuk database adalah Neon.
-- Validasi persiapan selesai: `npm ci`, `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=optional`, dan guard `npm run db:migrate` berhasil. Guard migration tetap non-mutating dan hanya mencetak blocker yang menunggu project/branch Neon serta keputusan data.
+- Validasi persiapan selesai: `npm ci`, `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=optional`, dan guard `npm run db:migrate` berhasil. Guard migration tetap non-mutating dan tidak menjalankan SQL.
 
-### Gate manual sebelum implementasi schema
+### Gate yang sudah dipenuhi dan keputusan foundation
 
-1. Owner membuat project Neon baru khusus Muara Aspirasi, bukan branch di `morrizstore`.
-2. Owner memilih organisasi, region, plan, nama database, serta branch development dan preview.
-3. Owner mengirim project/branch identifier non-secret; connection string disimpan lokal tanpa ditempel di chat atau commit.
-4. Owner mengonfirmasi identity mode, status/urgency transition, retention, evidence limit/MIME/bytes, serious-risk SOP, dan permission identity/evidence sesuai `DATA_MODEL.md` dan `SECURITY_PRIVACY.md`.
+1. Project dan branch Neon terpisah sudah dibuat. Connection string tidak disalin, ditampilkan, atau disimpan di repository.
+2. Identity default: `CONFIDENTIAL_BEM_ONLY`; opsi kedua `CONSENTED_LIMITED_SHARE` dengan tujuan/unit tercatat; identity tidak pernah publik.
+3. Status awal `RECEIVED`; status resmi PRD dipakai, termasuk loop klarifikasi/update yang sudah tercatat sebagai default operasional.
+4. Urgency `LOW | NORMAL | HIGH | ESCALATE`, default `NORMAL`; `ESCALATE` menunggu SOP serious-risk untuk production.
+5. Retention foundation: report/contact/evidence 180 hari setelah closure, audit metadata 365 hari, abuse signal maksimal 30 hari.
+6. Evidence foundation: maksimal tiga JPEG/PNG/PDF, 5 MiB per file, 10 MiB total, private/quarantine R2 saat milestone storage dikerjakan.
+7. Permission mengikuti matriks security: `EDITOR` sanitized-only, `ADVOCATE` need-to-know report/identity/evidence, `ADMIN` approval/policy/role/audit penuh.
 
-Setelah gate ini dipenuhi, Milestone 3 dapat dilanjutkan dengan schema, migration review, repository, health check, dan test hanya terhadap branch development/preview. Auth, form submission, upload, dan API bisnis tetap berada pada milestone berikutnya.
+Milestone 3 dapat dilanjutkan dengan schema, migration review, repository, health check, dan test hanya terhadap branch development/preview. Auth, form submission, upload, dan API bisnis tetap berada pada milestone berikutnya.
