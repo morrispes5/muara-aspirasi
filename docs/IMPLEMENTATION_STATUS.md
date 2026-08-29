@@ -11,7 +11,7 @@ Milestone 2 menambahkan halaman publik statis yang mengikuti PRD: alur kirim dan
 
 Pada 29 Agustus 2026, PRD direvisi ke v0.2 untuk mengunci alur aspirasi: nama dan NIM wajib untuk verifikasi BEM, `CONFIDENTIAL_BEM_ONLY` menjadi default, dan `CONSENTED_LIMITED_SHARE` hanya dapat dipilih dengan consent eksplisit untuk koordinasi privat ke unit FTI. Ini adalah perubahan requirement/dokumentasi; implementasi form tetap ditunda ke Milestone 5.
 
-Git telah diinisialisasi pada branch `main`, tetapi belum ada commit atau remote. Acceptance eksternal berupa CI pull request dan Netlify Deploy Preview belum dapat diverifikasi tanpa instruksi push/account linking.
+Git telah diinisialisasi pada branch `main`, memiliki commit awal, dan sudah terhubung ke repository privat `https://github.com/morrispes5/muara-aspirasi`. Branch `main` sudah dipush dan working tree bersih. Atas keputusan owner, perubahan proyek dilakukan langsung ke `main`; rekomendasi branch-per-milestone pada roadmap menjadi workflow ideal yang tidak dipakai untuk repository ini. Acceptance Netlify Deploy Preview masih belum diverifikasi.
 
 ## Milestone yang selesai
 
@@ -122,7 +122,7 @@ Quality gate dijalankan ulang setelah visual redesign homepage pada 29 Agustus 2
 - Konten profil/kontak resmi untuk public launch, serta privacy/ethics final yang telah direview owner.
 - Fitur pengiriman dan pelacakan aspirasi yang fungsional, termasuk validasi, status, token, dan feedback transaksi.
 - Instalasi shadcn/ui, pemeriksaan master asset resmi, dan persetujuan publikasi/brand sebelum deploy.
-- Commit, push GitHub, remote linking, Netlify Deploy Preview, atau resource production lainnya.
+- Netlify Deploy Preview atau resource production lainnya.
 
 ## Risiko, pertanyaan terbuka, dan blocker
 
@@ -142,7 +142,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 
 ### Risiko lain
 
-- Repository Git lokal sudah ada, tetapi belum memiliki commit/remote; workflow CI dan Netlify Deploy Preview belum bisa dibuktikan pada pull request.
+- Repository GitHub privat sudah terhubung dan `main` sudah dipush; workflow CI dapat berjalan setelah perubahan berikutnya, sedangkan Netlify Deploy Preview belum dikonfigurasi/diverifikasi.
 - Pengguna telah menyetujui pemakaian lokal kelima aset. Namun izin tertulis, versi master resmi, dan hak publikasi untuk logo/foto masih perlu dikonfirmasi sebelum deploy publik, sesuai open decision di PRD.
 - ESLint 9.39.5 sudah ditandai deprecated oleh npm, tetapi saat ini merupakan jalur kompatibel tanpa peer conflict untuk plugin transitif Next.js. Upgrade ke ESLint 10 perlu dilakukan setelah plugin Next.js terkait mendukungnya.
 - `npm ci` di Windows sempat memberi warning cleanup `EPERM` pada optional WASM package di `node_modules`. Instalasi tetap exit 0, audit tetap 0 vulnerability, dan seluruh quality gate lulus; `node_modules` juga tidak dilacak source control.
@@ -155,7 +155,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 2. Mulai **Milestone 2 — Content & IA**: setujui content model dan siapkan halaman update advokasi/informasi mahasiswa yang tetap statis atau CMS-ready tanpa membuka data laporan.
 3. Sebelum public launch, owner perlu menyetujui izin aset, contact/SOP darurat, privacy notice, dan etika pelaporan; aset yang sudah ada di UI lokal harus diganti dengan master resmi bila tersedia.
 4. Jangan menambahkan database, auth, API bisnis, atau form fungsional sebelum Milestone 3 dan keputusan security/data yang relevan disetujui.
-5. Hubungkan GitHub/Netlify hanya setelah owner memberi instruksi; repository saat ini tetap lokal dan tanpa commit.
+5. GitHub sudah terhubung pada `main`; langkah eksternal berikutnya adalah konfigurasi Netlify hanya jika owner menginstruksikannya.
 
 ## Pembaruan Milestone 2 — Halaman Publik Statis
 
