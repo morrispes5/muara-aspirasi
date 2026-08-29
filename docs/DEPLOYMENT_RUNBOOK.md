@@ -21,7 +21,7 @@ Prinsip ownership:
 | Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`. |
 | Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                   |
 | Database          | Neon PostgreSQL                                                           | Belum diprovision.                                                  |
-| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Belum dipasang.                                                     |
+| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Toolchain dipasang; schema/migration belum dibuat.                  |
 | Auth              | Better Auth pada Next.js                                                  | Belum dipasang.                                                     |
 | Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                |
 | Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                |
@@ -48,7 +48,7 @@ Aturan:
 
 ## 4. Environment variable terencana
 
-Daftar berikut hanya nama dan fungsi. Variable selain `NEXT_PUBLIC_APP_URL` belum harus ditambahkan ke `.env.example` sampai milestone integrasinya dimulai.
+Daftar berikut hanya nama dan fungsi. Placeholder database ditambahkan ke `.env.example` saat persiapan Milestone 3; value nyata tetap hanya berada di `.env.local`/secret store.
 
 | Nama                                   | Scope            | Fungsi                                                        |                            Secret? |
 | -------------------------------------- | ---------------- | ------------------------------------------------------------- | ---------------------------------: |

@@ -41,26 +41,28 @@ Versi Node yang dipakai proyek dicatat di `.nvmrc` dan `netlify.toml`.
 
 ## Environment variable
 
-| Nama                  | Wajib saat ini          | Keterangan                                                                                                                                                            |
-| --------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL` | Tidak untuk build lokal | Kontrak URL publik aplikasi; template menggunakan `http://localhost:3000`. Nilai ini aman diekspos ke browser dan akan dipakai saat metadata canonical dikonfigurasi. |
+| Nama                    | Wajib saat ini          | Keterangan                                                                                                     |
+| ----------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`   | Tidak untuk build lokal | Kontrak URL publik aplikasi; template menggunakan `http://localhost:3000`. Nilai ini aman diekspos ke browser. |
+| `DATABASE_URL`          | Belum                   | Template untuk pooled Neon connection runtime; isi hanya di `.env.local` setelah project development dibuat.   |
+| `DATABASE_URL_UNPOOLED` | Belum                   | Template untuk direct Neon connection migration; isi hanya di `.env.local` setelah project development dibuat. |
 
-Nama credential untuk Neon, Better Auth, Cloudflare Turnstile, dan Cloudflare R2 belum ditambahkan. Integrasi tersebut baru boleh dikonfigurasi pada milestone pemiliknya setelah dokumen arsitektur, data, dan keamanan tersedia. Jangan pernah memasukkan secret asli ke `.env.example` atau repository.
+Credential untuk Better Auth, Cloudflare Turnstile, dan Cloudflare R2 baru ditambahkan pada milestone pemiliknya. Jangan pernah memasukkan secret asli ke `.env.example` atau repository.
 
 ## Command proyek
 
-| Kebutuhan          | Command                | Catatan                                                                                                        |
-| ------------------ | ---------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Development        | `npm run dev`          | Menjalankan Next.js development server.                                                                        |
-| Lint               | `npm run lint`         | Menjalankan ESLint dengan zero-warning policy.                                                                 |
-| Type-check         | `npm run typecheck`    | Menjalankan TypeScript tanpa menghasilkan file build.                                                          |
-| Test               | `npm test`             | Menjalankan test satu kali dengan Vitest.                                                                      |
-| Test watch         | `npm run test:watch`   | Menjalankan Vitest dalam watch mode.                                                                           |
-| Format             | `npm run format`       | Memformat file yang dikelola proyek dengan Prettier.                                                           |
-| Format check       | `npm run format:check` | Memeriksa format tanpa mengubah file.                                                                          |
-| Migration database | `npm run db:migrate`   | Placeholder aman; migration nyata baru direncanakan pada Milestone 3 dan perintah ini tidak mengubah database. |
-| Production build   | `npm run build`        | Membuat build Next.js untuk production.                                                                        |
-| Production start   | `npm run start`        | Menjalankan hasil production build secara lokal.                                                               |
+| Kebutuhan          | Command                | Catatan                                                                                                            |
+| ------------------ | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Development        | `npm run dev`          | Menjalankan Next.js development server.                                                                            |
+| Lint               | `npm run lint`         | Menjalankan ESLint dengan zero-warning policy.                                                                     |
+| Type-check         | `npm run typecheck`    | Menjalankan TypeScript tanpa menghasilkan file build.                                                              |
+| Test               | `npm test`             | Menjalankan test satu kali dengan Vitest.                                                                          |
+| Test watch         | `npm run test:watch`   | Menjalankan Vitest dalam watch mode.                                                                               |
+| Format             | `npm run format`       | Memformat file yang dikelola proyek dengan Prettier.                                                               |
+| Format check       | `npm run format:check` | Memeriksa format tanpa mengubah file.                                                                              |
+| Migration database | `npm run db:migrate`   | Masih placeholder aman; command Drizzle nyata disiapkan dalam Milestone 3 setelah schema dan branch Neon tersedia. |
+| Production build   | `npm run build`        | Membuat build Next.js untuk production.                                                                            |
+| Production start   | `npm run start`        | Menjalankan hasil production build secara lokal.                                                                   |
 
 ## Struktur utama
 
@@ -81,7 +83,7 @@ Dokumen utama proyek berada di [`docs/PRD.md`](docs/PRD.md), [`docs/IMPLEMENTATI
 ## Status dan batas saat ini
 
 - Tidak ada autentikasi atau registrasi pengguna.
-- Tidak ada ORM, schema, migration nyata, koneksi database, atau seed.
+- Toolchain ORM Drizzle sudah dipasang sebagai persiapan Milestone 3, tetapi belum ada schema, migration nyata, koneksi database, atau seed.
 - Tidak ada API bisnis, form aspirasi aktif, tracking privat, dashboard, atau workflow publikasi berbasis data.
 - Route `/aspirasi/kirim` dan `/aspirasi/lacak` adalah preview yang secara eksplisit tidak mengumpulkan atau mengirim data.
 - Arsip Update Advokasi dan Info Mahasiswa berisi contoh tampilan berlabel jelas, bukan data BEM atau kampus yang nyata.

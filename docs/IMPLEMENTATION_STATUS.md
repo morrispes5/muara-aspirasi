@@ -45,7 +45,7 @@ Git telah diinisialisasi pada branch `main`, memiliki commit awal, dan sudah ter
 - `eslint.config.mjs` — aturan Next.js Core Web Vitals, TypeScript, Prettier compatibility, dan sorting import.
 - `.prettierrc.json`, `.prettierignore`, dan `.editorconfig` — format konsisten; dokumen sumber kebenaran asli dikecualikan dari rewrite otomatis.
 - `.gitignore` — mengecualikan dependency, build, cache, log, credential, environment lokal, dan output deployment.
-- `.env.example` — hanya memuat `NEXT_PUBLIC_APP_URL` dengan nilai localhost yang aman.
+- `.env.example` — memuat URL localhost serta placeholder aman `DATABASE_URL` dan `DATABASE_URL_UNPOOLED`; tidak ada credential nyata.
 - `.github/workflows/ci.yml` — baseline CI untuk format check, lint, type-check, test, dan build.
 - `netlify.toml` dan `.nvmrc` — build Netlify serta Node.js 22.16.0.
 - `scripts/db-migrate.mjs` — placeholder aman yang tidak mengubah database.
@@ -68,21 +68,21 @@ Git telah diinisialisasi pada branch `main`, memiliki commit awal, dan sudah ter
 
 ## Validasi terakhir
 
-Quality gate dijalankan ulang setelah visual redesign homepage pada 29 Agustus 2026. Tidak ada dependency, environment variable, database, credential, atau integrasi eksternal yang ditambahkan.
+Quality gate dijalankan ulang setelah persiapan toolchain Milestone 3 pada 29 Agustus 2026. Dependency Drizzle/Neon dan placeholder environment database sudah ditambahkan; tidak ada database, credential nyata, atau integrasi eksternal yang dibuat.
 
 | Command/pemeriksaan    | Hasil                                                                                                                                                                                                                                                                                                                                                    |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm ci`               | Lulus pada baseline; 403 paket diaudit dan 0 vulnerability ditemukan.                                                                                                                                                                                                                                                                                    |
+| `npm ci`               | Lulus dari kondisi bersih; 415 paket diaudit dan 0 vulnerability ditemukan.                                                                                                                                                                                                                                                                              |
 | `npm run format`       | Lulus; seluruh file yang dikelola telah diformat oleh Prettier.                                                                                                                                                                                                                                                                                          |
 | `npm run format:check` | Lulus; seluruh file yang dikelola sesuai format Prettier.                                                                                                                                                                                                                                                                                                |
 | `npm run lint`         | Lulus tanpa warning ESLint.                                                                                                                                                                                                                                                                                                                              |
 | `npm run typecheck`    | Lulus dalam TypeScript strict mode.                                                                                                                                                                                                                                                                                                                      |
-| `npm test`             | Lulus; 1 test file dan 1 test berhasil.                                                                                                                                                                                                                                                                                                                  |
+| `npm test`             | Lulus; 1 test file dan 2 test berhasil.                                                                                                                                                                                                                                                                                                                  |
 | `npm run build`        | Lulus; route `/`, `/_not-found`, `/aspirasi`, `/lacak`, `/masuk`, `/tentang`, dan `/transparansi` prerender statis.                                                                                                                                                                                                                                      |
 | Browser QA             | `npm run dev` di `http://localhost:3000`; route `/`, `/tentang`, `/aspirasi`, `/lacak`, `/transparansi`, dan `/masuk` masing-masing merender landmark `main`. Review desktop menegaskan hero kampus, wordmark, CTA, dan ilustrasi terbaca; review mobile 390px (viewport CSS 375px) menegaskan menu membuka enam link dan tidak ada horizontal overflow. |
-| Scan pola secret       | Lulus; pola API key, private key, dan URL database bercredential tidak ditemukan di source yang dikelola.                                                                                                                                                                                                                                                |
+| Scan pola secret       | Lulus; tidak ada secret nyata, API key, atau private key. URL database di `.env.example` hanya placeholder dokumentasi dan tidak digunakan runtime.                                                                                                                                                                                                      |
 | Audit aset             | Kelima aset disalin ke `public/images` tanpa mengubah sumber, lalu dipakai proporsional pada hero, poster, header, section kolaborasi, dan footer. Satu ilustrasi mahasiswa orisinal lokal juga ditambahkan; tidak ada aset eksternal.                                                                                                                   |
-| Status Git             | Repository lokal berada pada `main`, belum memiliki commit atau remote.                                                                                                                                                                                                                                                                                  |
+| Status Git             | Repository lokal berada pada `main`, terhubung ke remote GitHub privat `origin`, dan perubahan sebelumnya sudah dipush.                                                                                                                                                                                                                                  |
 
 ## Keputusan teknis dan alasan
 
@@ -94,7 +94,7 @@ Quality gate dijalankan ulang setelah visual redesign homepage pada 29 Agustus 2
 6. **Vitest dengan satu smoke test fondasi.** Test runner dan command CI sudah terbukti bekerja tanpa membuat test fitur yang belum ada.
 7. **Netlify auto-detection tanpa adapter manual.** Next.js dikenali oleh Netlify dan runtime Next disediakan otomatis, sehingga `netlify.toml` cukup menetapkan command build, output `.next`, dan versi Node.
 8. **Environment minimum.** Hanya URL aplikasi lokal/publik yang dideklarasikan. Nama credential vendor ditunda sampai kontrak arsitektur dan keamanan tersedia, agar tidak menebak nama atau pola secret.
-9. **Migration command berupa placeholder non-mutating.** README tetap memiliki command migration, tetapi tidak ada ORM, schema, atau koneksi database yang dibuat sebelum Milestone 3.
+9. **Migration command berupa placeholder non-mutating.** README tetap memiliki command migration; toolchain Drizzle sudah dipasang sebagai persiapan, tetapi schema, migration, dan koneksi database belum dibuat sebelum target Neon disetujui.
 10. **Aset kampus dipakai terbatas atas persetujuan pengguna.** Kelima file hanya disalin ke `public/images`, tidak dipindahkan dari `docs/assets`; foto memberi konteks hero, poster memberi jejak kampanye, dan identitas institusi hanya sebagai pendamping wordmark. Izin brand/foto untuk public launch tetap terbuka.
 11. **Modular monolith.** Satu Next.js application menjadi deployment unit, sedangkan domain, data access, authorization, dan provider adapters memiliki boundary terpisah untuk menghindari coupling UI ke database/vendor.
 12. **Server-first dan public/private projections terpisah.** Server Components menjadi default reads; Route Handlers dipakai untuk public submission/tracking dan integrations; seluruh action/handler sensitif tetap memvalidasi auth/permission/input server-side.
@@ -115,7 +115,7 @@ Quality gate dijalankan ulang setelah visual redesign homepage pada 29 Agustus 2
 ## Pekerjaan yang sengaja belum dikerjakan
 
 - Autentikasi Better Auth dan akun BEM.
-- Neon, Drizzle, schema, migration nyata, seed, dan koneksi database.
+- Project Neon Muara Aspirasi, schema Drizzle, migration nyata, seed, dan koneksi database.
 - Cloudflare Turnstile, R2, upload, dan pengelolaan media.
 - API bisnis, Server Actions bisnis, form kirim/lacak aspirasi, token tracking, dan workflow status.
 - Dashboard admin, role/permission, audit log, dan publikasi konten.
@@ -176,7 +176,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 
 ### Sengaja ditunda
 
-- Database, Drizzle, migration, seed, dan Neon tetap khusus Milestone 3.
+- Provisioning database, schema/migration, seed, dan koneksi Neon tetap khusus Milestone 3; toolchain Drizzle sudah disiapkan sebagai prasyarat.
 - Auth BEM dan area admin tetap khusus Milestone 4.
 - Form pengiriman, Turnstile, upload bukti, submit, kode/token pelacakan, serta timeline privat tetap khusus Milestone 5.
 - Konten nyata, filter, pagination, publication workflow, dan sumber/credit editorial terverifikasi tetap khusus Milestone 7 setelah ada approval BEM.
@@ -186,7 +186,7 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 - Privacy notice, etika pelaporan, contact resmi, dan SOP eskalasi masih draft; halaman statis tidak boleh dianggap siap public launch sebelum owner menyetujuinya.
 - Contoh update/informasi bukan konten BEM terverifikasi dan tidak boleh diganti dengan data nyata tanpa proses editorial.
 - Izin publikasi produksi untuk foto/logo kampus masih perlu konfirmasi tertulis walaupun pengguna menyetujui pemakaian lokal.
-- Repository GitHub privat menunggu autentikasi akun GitHub yang valid; tidak ada push dilakukan sebelum autentikasi tersedia.
+- Project Neon baru belum dibuat. Neon MCP hanya melihat project `morrizstore`, yang sengaja tidak disentuh; database Muara Aspirasi wajib memakai project/branch terpisah.
 
 ### Validasi Milestone 2
 
@@ -203,3 +203,21 @@ Setiap dokumen teknis mencatat Proposed Default agar pekerjaan dapat direncanaka
 ### Rekomendasi setelah Milestone 2
 
 Jalankan Milestone 3 saja: putuskan owner/region/plan Neon, retention, dan keputusan data yang masih terbuka, lalu bangun schema Drizzle serta migration pada database development/preview yang kosong. Jangan membuka form atau authentication sebelum foundation tersebut lulus validasi.
+
+## Persiapan Milestone 3 — Toolchain dan handoff
+
+- Neon MCP dan skill `neon-postgres` tersedia serta berhasil dipakai untuk pemeriksaan baca-saja organisasi/project.
+- Organisasi yang terlihat adalah `morrizprogammer`; satu-satunya project yang terlihat adalah `morrizstore` (`rapid-star-49652334`). Tidak ada operasi create/update/SQL dijalankan terhadap project tersebut.
+- Dependency lokal yang sudah disiapkan: `drizzle-orm@1.0.0-rc.4`, `drizzle-kit@1.0.0-rc.4`, `@neondatabase/serverless@1.1.0`, dan `dotenv@17.4.2`. Pasangan rc dipilih setelah versi stable Drizzle Kit memunculkan advisory esbuild transitive; audit setelah penggantian menjadi 0 vulnerability.
+- `.env.example` hanya menambahkan nama dan placeholder aman `DATABASE_URL` serta `DATABASE_URL_UNPOOLED`; connection string nyata tetap harus berada di `.env.local` yang di-ignore.
+- Tidak diperlukan akun Drizzle terpisah. Drizzle ORM/Kit adalah dependency npm; akun/resource yang diperlukan untuk database adalah Neon.
+- Validasi persiapan selesai: `npm ci`, `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run build`, `npm audit --omit=optional`, dan guard `npm run db:migrate` berhasil. Guard migration tetap non-mutating dan hanya mencetak blocker yang menunggu project/branch Neon serta keputusan data.
+
+### Gate manual sebelum implementasi schema
+
+1. Owner membuat project Neon baru khusus Muara Aspirasi, bukan branch di `morrizstore`.
+2. Owner memilih organisasi, region, plan, nama database, serta branch development dan preview.
+3. Owner mengirim project/branch identifier non-secret; connection string disimpan lokal tanpa ditempel di chat atau commit.
+4. Owner mengonfirmasi identity mode, status/urgency transition, retention, evidence limit/MIME/bytes, serious-risk SOP, dan permission identity/evidence sesuai `DATA_MODEL.md` dan `SECURITY_PRIVACY.md`.
+
+Setelah gate ini dipenuhi, Milestone 3 dapat dilanjutkan dengan schema, migration review, repository, health check, dan test hanya terhadap branch development/preview. Auth, form submission, upload, dan API bisnis tetap berada pada milestone berikutnya.
