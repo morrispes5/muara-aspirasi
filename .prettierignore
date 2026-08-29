@@ -1,0 +1,10 @@
+.next
+.netlify
+coverage
+node_modules
+out
+package-lock.json
+docs/assets
+docs/CODEX_HANDOFF.md
+docs/IMPLEMENTATION_ROADMAP.md
+docs/PRD.md

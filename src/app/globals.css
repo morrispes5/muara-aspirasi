@@ -1,0 +1,241 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-canvas: #f3efe6;
+  --color-surface: #fcfbf8;
+  --color-ink: #0b1930;
+  --color-muted: #4e5f76;
+  --color-night: #071529;
+  --color-night-raised: #102743;
+  --color-brand: #295aa9;
+  --color-brand-dark: #173d7d;
+  --color-brand-soft: #dce8fb;
+  --color-mist: #adc8f5;
+  --color-warm: #9c4c20;
+  --color-warm-soft: #f4e5cc;
+  --color-success: #17664d;
+  --color-success-soft: #dcefe7;
+  --color-warning: #835f10;
+  --color-warning-soft: #f8edca;
+  --color-danger: #a63832;
+  --color-danger-soft: #f8e2df;
+  --color-line: #d9d4ca;
+  --font-sans: var(--font-outfit), Arial, Helvetica, sans-serif;
+  --font-display: var(--font-fraunces), "Iowan Old Style", Baskerville, serif;
+  --radius-control: 0.5rem;
+  --radius-card: 1.25rem;
+  --shadow-card: 0 20px 45px rgba(11, 25, 48, 0.08);
+  --shadow-float: 0 22px 60px rgba(2, 12, 27, 0.28);
+}
+
+:root {
+  color-scheme: light;
+  --background: #f3efe6;
+  --foreground: #0b1930;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  overflow-x: hidden;
+  background: var(--background);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-outfit), Arial, Helvetica, sans-serif;
+  overflow-wrap: break-word;
+}
+
+.hero-media {
+  overflow: hidden;
+}
+
+.hero-media-image {
+  animation: kenburns 32s ease-in-out alternate infinite;
+  transform-origin: 58% 42%;
+  will-change: transform;
+}
+
+.hero-veil {
+  background: linear-gradient(
+    180deg,
+    rgba(7, 21, 41, 0.28) 0%,
+    rgba(7, 21, 41, 0.18) 38%,
+    rgba(7, 21, 41, 0.55) 72%,
+    rgba(7, 21, 41, 0.88) 100%
+  );
+}
+
+.hero-grain {
+  background-image: radial-gradient(
+    rgba(252, 251, 248, 0.22) 0.6px,
+    transparent 0.6px
+  );
+  background-size: 3px 3px;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+
+.hero-enter {
+  animation: fade-up 1.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.hero-enter-1 {
+  animation-delay: 0.08s;
+}
+
+.hero-enter-2 {
+  animation-delay: 0.18s;
+}
+
+.hero-enter-3 {
+  animation-delay: 0.3s;
+}
+
+.hero-enter-4 {
+  animation-delay: 0.42s;
+}
+
+.hero-enter-5 {
+  animation-delay: 0.56s;
+}
+
+.scroll-cue {
+  animation: float-y 2.4s ease-in-out infinite;
+}
+
+.student-scene {
+  animation: student-scene-drift 7s ease-in-out infinite;
+  transform-origin: center bottom;
+}
+
+.reveal-pending {
+  opacity: 0;
+  transform: translateY(28px);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.editorial-index {
+  font-family: var(--font-fraunces), "Iowan Old Style", Baskerville, serif;
+  font-variant-numeric: lining-nums;
+}
+
+.hairline {
+  background-color: color-mix(in srgb, currentColor 18%, transparent);
+}
+
+button,
+a,
+input,
+textarea,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+.mobile-only {
+  display: flex;
+}
+
+@media (min-width: 64rem) {
+  .mobile-only {
+    display: none;
+  }
+}
+
+:focus-visible {
+  outline: 3px solid #adc8f5;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #cfe0ff;
+  color: #102a43;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes kenburns {
+  from {
+    transform: scale(1.06) translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: scale(1.16) translate3d(-2%, -1.4%, 0);
+  }
+}
+
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(7px);
+  }
+}
+
+@keyframes student-scene-drift {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-10px) rotate(-0.45deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-media-image,
+  .hero-enter,
+  .hero-enter-1,
+  .hero-enter-2,
+  .hero-enter-3,
+  .hero-enter-4,
+  .hero-enter-5,
+  .scroll-cue {
+    animation: none;
+  }
+
+  .student-scene {
+    animation: none;
+  }
+
+  .reveal-pending,
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

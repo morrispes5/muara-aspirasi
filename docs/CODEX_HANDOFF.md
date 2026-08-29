@@ -1,0 +1,100 @@
+# Codex Handoff Guide — Muara Aspirasi
+
+This guide keeps implementation sessions focused. Send **one milestone at a time** to Codex. Do not ask it to build the full product in one prompt.
+
+## 1. Session rules
+
+At the beginning of a Codex session, provide:
+
+1. Repository path and current branch.
+2. Exact milestone/task from `IMPLEMENTATION_ROADMAP.md`.
+3. Documents it must read before editing.
+4. Instruction to inspect existing work and preserve unrelated changes.
+5. Required verification commands.
+
+Codex must not invent policy that conflicts with `PRD.md`, `DATA_MODEL.md`, or `SECURITY_PRIVACY.md`.
+
+## 2. Reusable master prompt
+
+```text
+You are implementing Muara Aspirasi, a BEM FTI advocacy and student-information portal.
+
+Before changing anything, read:
+- README.md
+- docs/PRD.md
+- docs/ARCHITECTURE.md
+- docs/DATA_MODEL.md
+- docs/SECURITY_PRIVACY.md
+- docs/UX_UI_DESIGN_SYSTEM.md
+- docs/IMPLEMENTATION_ROADMAP.md
+
+Current task: <INSERT ONE SPECIFIC MILESTONE TASK>
+
+Rules:
+1. Inspect the existing repository first and preserve unrelated work.
+2. Implement only the current task; do not start future milestones.
+3. Follow the locked stack: Next.js, TypeScript, Tailwind, shadcn/ui, Netlify, Neon, Drizzle, Better Auth, Cloudflare Turnstile, Cloudflare R2.
+4. Never expose secrets or private report data to client/public routes.
+5. Update the relevant docs if implementation decisions materially change.
+6. Run the relevant lint, type-check, test, and build commands.
+7. Return a concise summary: files changed, why, verification performed, and anything still blocked.
+```
+
+## 3. Milestone prompt add-ons
+
+### Milestone 0 add-on
+
+```text
+Bootstrap the repository only. Set up Next.js TypeScript, Tailwind, base lint/type-check/build scripts, Netlify config, GitHub workflow, .env.example, and the documentation/asset structure. Do not add auth, database, or production secrets yet.
+```
+
+### Milestone 1 add-on
+
+```text
+Implement the public UI shell and static pages from docs/UX_UI_DESIGN_SYSTEM.md. Use the supplied logo files. Use local placeholder content/media only; do not download unlicensed web images. Do not build data mutations or admin routes yet.
+```
+
+### Milestone 2 add-on
+
+```text
+Implement Neon + Drizzle schema/migrations and BEM-only Better Auth according to docs/DATA_MODEL.md and docs/SECURITY_PRIVACY.md. Add a protected admin shell and role tests. Do not implement the public report form yet.
+```
+
+### Milestone 3 add-on
+
+```text
+Implement public report submission and private tracking exactly as documented. Turnstile must be verified server-side. Store only a hash of the secret tracking token. No report content or identity may appear on public archive pages.
+```
+
+### Milestone 4 add-on
+
+```text
+Implement the BEM report workflow: filters, report detail, assignment history, safe status transitions, internal notes, reporter-visible updates, and audit events. Enforce roles server-side.
+```
+
+### Milestone 5 add-on
+
+```text
+Implement advocacy update and Info Mahasiswa draft/publish/archive workflows plus public archives/detail pages. Public updates must be independently authored summaries and cannot render original report content.
+```
+
+### Milestone 6 add-on
+
+```text
+Implement Cloudflare R2 media according to docs/SECURITY_PRIVACY.md. Evidence must remain private. Validate type, count, size, and authorization. Use environment variable names only; do not require real credentials for local tests.
+```
+
+### Milestone 7/8 add-on
+
+```text
+Implement and run the relevant tests/checklists. Treat docs/DEPLOYMENT_RUNBOOK.md as the release contract. Do not deploy or modify external production resources without explicit instruction from the project owner.
+```
+
+## 4. Definition of done for every Codex task
+
+- Scope matches the requested milestone.
+- No unrelated refactor or dependency bloat.
+- Relevant documentation is updated.
+- Validation/tests/build were actually run and results reported.
+- No secret/private data is committed.
+- Changes are ready for human review through a pull request and Netlify preview.
