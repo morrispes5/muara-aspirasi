@@ -39,5 +39,8 @@ jobs:
       - name: Test
         run: npm test
 
+      - name: Check database migrations
+        run: npm run db:check
+
       - name: Build
         run: npm run build

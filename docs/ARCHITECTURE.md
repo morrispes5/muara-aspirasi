@@ -43,8 +43,8 @@ Prinsip utama:
 | UI primitives        | shadcn/ui                  | Direncanakan, belum dipasang  | Roadmap meminta hanya komponen yang benar-benar dipakai.                                               |
 | Quality              | ESLint, Prettier, Vitest   | Sudah dipasang                | Quality gate lokal dan CI sudah tersedia.                                                              |
 | Hosting              | Netlify                    | Konfigurasi baseline tersedia | Mendukung Next.js App Router melalui adapter yang dikelola Netlify dan Deploy Preview.                 |
-| Database             | Neon PostgreSQL            | Direncanakan                  | PostgreSQL terkelola dengan branch terisolasi untuk development/preview.                               |
-| ORM/migration        | Drizzle ORM + Drizzle Kit  | Direncanakan                  | Schema TypeScript eksplisit dan migration SQL yang dapat direview.                                     |
+| Database             | Neon PostgreSQL            | Foundation M3 selesai         | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                      |
+| ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai         | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.          |
 | Admin authentication | Better Auth                | Direncanakan                  | Stack dikunci oleh handoff; mendukung integrasi Next.js dan kontrol akses berbasis role.               |
 | Anti-spam            | Cloudflare Turnstile       | Direncanakan                  | Validasi bot untuk form publik; token wajib diverifikasi server-side.                                  |
 | Object storage       | Cloudflare R2              | Direncanakan                  | Bukti privat dan media editorial dapat dipisahkan dari database.                                       |

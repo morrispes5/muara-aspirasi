@@ -1,7 +1,9 @@
 # Data Model — Muara Aspirasi
 
-> Status: model konseptual. Dokumen ini belum merupakan Drizzle schema, migration, atau database nyata.  
+> Status: model konseptual yang telah diimplementasikan sebagai foundation Drizzle pada Milestone 3.
 > Terminologi utama mengikuti `PRD.md`.
+
+Implementasi referensi: `src/server/db/schema/` dan migration `drizzle/20260829191548_milestone_3_foundation/`. Dokumen ini tetap menjadi kontrak produk/data; Better Auth, service mutation, authorization runtime, R2, dan public projection belum diimplementasikan.
 
 ## 1. Tujuan model
 

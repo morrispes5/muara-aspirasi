@@ -1,6 +1,23 @@
-const message = [
-  "Database migration belum dikonfigurasi karena schema Drizzle belum dibuat.",
-  "Gunakan branch development/preview yang sudah disiapkan setelah schema DATA_MODEL.md direview dan koneksi lokal diisi secara aman.",
-].join("\n");
+import { spawnSync } from "node:child_process";
 
-console.log(message);
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED;
+
+if (!databaseUrl) {
+  console.error(
+    "DATABASE_URL_UNPOOLED belum diatur. Tambahkan hanya ke .env.local atau secret store sebelum menjalankan migrasi.",
+  );
+  process.exitCode = 1;
+} else {
+  const result = spawnSync(
+    process.execPath,
+    [
+      "node_modules/drizzle-kit/bin.cjs",
+      "migrate",
+      "--config=drizzle.config.ts",
+      `--url=${databaseUrl}`,
+    ],
+    { stdio: "inherit" },
+  );
+
+  process.exitCode = result.status ?? 1;
+}

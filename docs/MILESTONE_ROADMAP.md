@@ -89,6 +89,8 @@ Menyediakan informasi program yang lengkap tanpa database atau mutation.
 
 ## Milestone 3 — Database dan ORM foundation
 
+> Status implementasi: **selesai pada 30 Agustus 2026** untuk branch Neon `development` dan `preview`. Lihat `IMPLEMENTATION_STATUS.md` untuk migration, seed, dan hasil validasi. Tidak ada branch database production yang diubah.
+
 ### Tujuan
 
 Mengimplementasikan Neon + Drizzle schema/migration dari `DATA_MODEL.md` pada environment non-production.

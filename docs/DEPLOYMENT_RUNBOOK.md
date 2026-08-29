@@ -1,6 +1,6 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision secara terpisah pada free plan; schema, migration, deploy, account linking, dan secret configuration produksi belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision secara terpisah pada free plan; schema, migration, dan seed sintetis Milestone 3 telah diverifikasi pada keduanya. Deploy, account linking, credential runtime, dan seluruh konfigurasi production belum dilakukan.
 
 ## 1. Tujuan dan ownership
 
@@ -16,17 +16,17 @@ Prinsip ownership:
 
 ## 2. Platform target
 
-| Kebutuhan         | Rekomendasi                                                               | Status                                                              |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`. |
-| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                   |
-| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; development/preview branch tersedia. |
-| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Toolchain dipasang; schema/migration belum dibuat.                  |
-| Auth              | Better Auth pada Next.js                                                  | Belum dipasang.                                                     |
-| Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                |
-| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                |
-| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                            |
-| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                    |
+| Kebutuhan         | Rekomendasi                                                               | Status                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`.                                    |
+| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                      |
+| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis. |
+| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                   |
+| Auth              | Better Auth pada Next.js                                                  | Belum dipasang.                                                                                        |
+| Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                                                   |
+| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                   |
+| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                               |
+| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                       |
 
 Netlify mendukung App Router/Server Components melalui adapter Next.js yang dikelola platform. Tidak perlu menambahkan adapter manual kecuali dokumentasi Netlify versi yang dipakai meminta perubahan.
 
@@ -97,18 +97,18 @@ npm test
 npm run build
 ```
 
-`npm run db:migrate` saat ini hanya placeholder non-mutating. Jangan menganggap database siap.
+`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3 sudah diuji di branch Neon `development` dan `preview`; jangan menjalankannya ke production tanpa approval terpisah.
 
-### Setelah database milestone
+### Setelah database milestone (status M3)
 
 Proposed sequence:
 
 1. gunakan branch Neon `development` yang sudah tersedia (buat branch per-PR bila workflow preview berubah);
 2. isi local secret pada `.env.local`;
-3. generate migration melalui Drizzle Kit;
-4. review generated SQL dan data-loss statement;
-5. apply hanya ke development branch;
-6. run migration/permission/integration tests;
+3. gunakan `npm run db:generate`, review SQL serta data-loss statement, lalu `npm run db:check`;
+4. apply melalui `npm run db:migrate` hanya ke branch development;
+5. jalankan `npm run db:seed` hanya dengan `DATABASE_ENVIRONMENT=development` atau `preview`;
+6. uji migration/constraint/transaction pada development, lalu ulangi di preview;
 7. jangan memakai `push` langsung ke production.
 
 ## 6. Pull request dan Deploy Preview

@@ -16,17 +16,17 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 
 ## 2. Status implementasi kontrol
 
-| Kontrol                                                    | Status saat dokumen dibuat |
-| ---------------------------------------------------------- | -------------------------- |
-| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia             |
-| TypeScript strict, lint, test, production build            | Sudah tersedia             |
-| Authentication, session, role enforcement                  | Belum diimplementasikan    |
-| Database/schema/migration                                  | Belum diimplementasikan    |
-| Tracking token generation/hash                             | Belum diimplementasikan    |
-| Turnstile, honeypot, rate limiting                         | Belum diimplementasikan    |
-| R2 upload/download validation                              | Belum diimplementasikan    |
-| Security headers, CSP, production monitoring               | Belum diimplementasikan    |
-| Retention/deletion automation                              | Belum diimplementasikan    |
+| Kontrol                                                    | Status saat dokumen dibuat                                                |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                            |
+| TypeScript strict, lint, test, production build            | Sudah tersedia                                                            |
+| Authentication, session, role enforcement                  | Belum diimplementasikan                                                   |
+| Database/schema/migration                                  | Foundation M3 selesai pada Neon development/preview; production belum ada |
+| Tracking token generation/hash                             | Belum diimplementasikan                                                   |
+| Turnstile, honeypot, rate limiting                         | Belum diimplementasikan                                                   |
+| R2 upload/download validation                              | Belum diimplementasikan                                                   |
+| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                   |
+| Retention/deletion automation                              | Belum diimplementasikan                                                   |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
