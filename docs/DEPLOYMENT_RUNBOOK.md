@@ -155,6 +155,14 @@ M6 tidak memerlukan `npm run db:migrate`: tabel `aspiration_reports`, `reporter_
 
 Deploy Preview tidak boleh terhubung ke production database atau evidence bucket.
 
+Catatan setup 31 Agustus 2026: project `muaraaspirasi` sudah terhubung ke
+GitHub `morrispes5/muara-aspirasi`, tetapi Netlify team saat ini menolak Deploy
+Preview dengan `Unrecognized Git contributor` sampai akun/commit author GitHub
+terverifikasi sebagai anggota team. Verifikasi contributor di Netlify sebelum
+retry PR. `netlify.toml` memakai `next build --webpack` karena Netlify CLI
+Windows gagal membundel proxy Edge dengan artefak Turbopack; build remote Linux
+tetap merupakan jalur preview yang direkomendasikan.
+
 ## 7. Production release process
 
 ### Gate sebelum merge
