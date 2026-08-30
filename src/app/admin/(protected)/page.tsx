@@ -17,6 +17,10 @@ const foundations = [
     "Tindakan terlacak",
     "Perubahan status, PIC, catatan, dan arsip menghasilkan audit tanpa menyalin isi sensitif.",
   ],
+  [
+    "Publikasi terkontrol",
+    "Update advokasi dan info mahasiswa melewati draf, review, approval Admin, lalu projection publik.",
+  ],
 ] as const;
 
 export default function AdminPage() {
@@ -54,7 +58,7 @@ async function AdminHome({
             Yang sudah aktif
           </p>
           <h2 className="text-ink mt-2 text-2xl font-bold" id="fondasi-akses">
-            Case management
+            Case management dan publikasi
           </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -72,11 +76,14 @@ async function AdminHome({
           Buka daftar laporan untuk meninjau konteks, menetapkan PIC, mencatat
           koordinasi internal, dan mengirim pembaruan yang aman kepada pelapor.
         </p>
-        {canViewReports ? (
-          <ButtonLink className="mt-5" href="/admin/laporan">
-            Buka antrean laporan
+        <div className="mt-5 flex flex-wrap gap-3">
+          {canViewReports ? (
+            <ButtonLink href="/admin/laporan">Buka antrean laporan</ButtonLink>
+          ) : null}
+          <ButtonLink href="/update" variant="outline">
+            Lihat halaman publik
           </ButtonLink>
-        ) : null}
+        </div>
       </Card>
     </div>
   );

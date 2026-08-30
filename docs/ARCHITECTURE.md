@@ -1,7 +1,9 @@
 # Architecture — Muara Aspirasi
 
-> Status: M6 case management inti sudah diimplementasikan pada source; publication publik, R2, notifikasi eksternal, dan production masih direncanakan.
+> Status: M6 case management inti dan M7 publication publik sudah tersedia pada source; R2, notifikasi eksternal, dan production masih direncanakan.
 > Sumber kebenaran produk: `PRD.md`. Bila dokumen ini bertentangan dengan PRD, PRD yang berlaku.
+
+> Addendum 31 Agustus 2026: publication service, protected admin publication surface, dan public `PUBLISHED` projection untuk M7 sudah tersedia pada source. R2, scheduler, notifikasi eksternal, dan production tetap berada di milestone/gate berikutnya.
 
 ## 1. Tujuan sistem
 

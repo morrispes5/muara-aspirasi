@@ -2,6 +2,8 @@
 
 > Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M6 tidak menambah migration dan quality gate source sudah lulus. Deployment dan seluruh konfigurasi production belum dilakukan.
 
+> Addendum 31 Agustus 2026: M7 source sekarang memiliki admin/public publication routes dan regression tests. Preview deploy boleh dilakukan setelah quality gates lulus; jangan menjalankan migration baru, memasukkan credential production, atau mempublikasikan konten nyata sebelum owner approval.
+
 ## 1. Tujuan dan ownership
 
 Runbook ini menetapkan cara membawa aplikasi dari development ke preview lalu production tanpa mencampur data/credential atau melewati quality gate.

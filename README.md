@@ -110,10 +110,10 @@ Dokumen utama proyek berada di [`docs/PRD.md`](docs/PRD.md), [`docs/MILESTONE_RO
 - M4 auth foundation aktif di `/admin/login`, `/admin`, dan `/api/auth/*`; public signup tetap nonaktif dan permission diperiksa server-side. M6 menambahkan `/admin/laporan`, `/admin/laporan/[id]`, `/api/admin/reports`, dan `/api/admin/reports/[id]` dengan guard yang sama.
 - Neon project `muara-aspirasi` memiliki branch non-production `development` dan `preview`. Migration M3, M4, dan M5, serta akun ADMIN sintetis M4, telah diterapkan pada keduanya; M6 tidak mengubah schema sehingga tidak membuat migration baru. Branch Neon `main` belum disentuh.
 - `src/server/db` menyediakan schema Drizzle, repository awal, internal health probe, dan batas transaksi. Tidak ada Route Handler/API bisnis yang mengeksposnya.
-- Submission/tracking publik M5 dan dashboard kasus BEM M6 sudah aktif pada source. Workflow publication berbasis data, R2, notifikasi eksternal, dan production deployment masih berada di milestone berikutnya.
+- Submission/tracking publik M5, dashboard kasus BEM M6, dan workflow publication M7 berbasis data sudah tersedia pada source. R2, notifikasi eksternal, dan production deployment tetap berada di milestone berikutnya.
 - Route `/aspirasi/kirim` dan `/aspirasi/lacak` memakai endpoint privat yang sudah dilindungi validasi, Turnstile, rate limit, idempotency, dan projection reporter-safe.
 - Arsip Update Advokasi dan Info Mahasiswa berisi contoh tampilan berlabel jelas, bukan data BEM atau kampus yang nyata.
 - Lima gambar di `docs/assets` telah disalin ke `public/images` atas persetujuan pengguna untuk UI lokal; sumbernya tidak dipindahkan atau diubah dan izin publikasi produksi tetap perlu dikonfirmasi.
 - Migration auth M4 dan migration additive M5 sudah diterapkan serta diverifikasi pada Neon development/preview. M6 hanya memanfaatkan schema yang telah ada; tidak ada deployment aplikasi atau perubahan resource production dari milestone ini.
 
-Milestone berikutnya adalah **Milestone 7 — Public Publishing, notifikasi, dan polish**. Sebelum mulai, owner perlu mengonfirmasi approver publikasi, copy kebijakan/kontak, izin aset, keputusan scheduler, dan apakah smoke test M6 berbasis data sintetis akan dijalankan pada Neon non-production.
+Milestone berikutnya adalah **Milestone 8 — Security hardening, media R2, dan production readiness**. Sebelum mulai, owner perlu mengonfirmasi izin aset, keputusan scheduler/notifikasi, environment production, dan apakah smoke test M7 berbasis data sintetis akan dijalankan pada Neon non-production.
