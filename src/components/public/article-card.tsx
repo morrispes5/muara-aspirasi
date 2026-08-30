@@ -1,11 +1,11 @@
-import type { PublicArticle } from "@/lib/public-content";
+import type { PublicArticleSummary } from "@/lib/public-content";
 
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 
 type ArticleCardProps = {
-  article: PublicArticle;
+  article: PublicArticleSummary;
   basePath: "/info-mahasiswa" | "/update";
 };
 
@@ -27,7 +27,7 @@ export function ArticleCard({ article, basePath }: ArticleCardProps) {
           className="text-brand hover:text-brand-dark rounded-control py-1 focus-visible:outline-none"
           href={`${basePath}/${article.slug}`}
         >
-          Baca contoh
+          Baca selengkapnya
         </Link>
       </div>
     </Card>

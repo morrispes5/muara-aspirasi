@@ -1,13 +1,13 @@
 # Implementation Status — Muara Aspirasi
 
-> Terakhir diperbarui: 30 Agustus 2026
-> Milestone aktif: **Milestone 6 selesai pada source; M7 berikutnya. M6 tidak membutuhkan migration baru dan Neon main/production tidak disentuh**
+> Terakhir diperbarui: 31 Agustus 2026
+> Milestone aktif: **Milestone 7 selesai pada source; R2, scheduler, notifikasi eksternal, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
 
 ## Ringkasan status
 
 Milestone 0, Documentation Gate, Milestone 1 (UI foundation), Milestone 2 (halaman publik statis), Milestone 3 (database/ORM), **Milestone 4 (BEM auth/roles/admin foundation)**, **Milestone 5 (kirim dan lacak aspirasi)**, dan **Milestone 6 (moderasi dan admin case management)** selesai pada source. Acceptance M4/M5 lulus pada aplikasi lokal serta Neon development/preview dengan identitas sintetis. M6 memakai schema report yang sudah tersedia dari M3, menambahkan runtime queue/detail/workflow tanpa migration baru; smoke mutasi Neon M6 masih membutuhkan izin eksplisit owner.
 
-M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. M6 menambahkan dashboard kasus BEM dengan filter, detail privacy-aware, status workflow, assignment, internal note, reporter-visible message, archive/reopen, concurrency guard, dan audit. Database production, R2/evidence binary, workflow publikasi, dan notifikasi eksternal belum dibuat.
+M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. M6 menambahkan dashboard kasus BEM dengan filter, detail privacy-aware, status workflow, assignment, internal note, reporter-visible message, archive/reopen, concurrency guard, dan audit. M7 menambahkan publication service untuk Update Advokasi dan Info Mahasiswa, workflow approval, archive/detail/filter/pagination publik berbasis projection database, serta feedback UI. Database production, R2/evidence binary, scheduler, dan notifikasi eksternal tetap belum diaktifkan.
 
 Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project Neon `morrizstore` tidak disentuh.
 
@@ -100,6 +100,40 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 - `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run db:check`, dan `npm run build` lulus pada working tree ini.
 - Smoke mutation end-to-end terhadap Neon non-production belum dijalankan pada sesi ini karena memerlukan explicit approval owner untuk membuat dan membersihkan report sintetis. Neon main/production tetap tidak disentuh.
 
+## Implementasi Milestone 7
+
+### Publication workflow
+
+- `src/server/content/publication.ts` menjadi boundary domain untuk validasi, slug uniqueness, status transition, optimistic concurrency, audit, admin list/detail, dan public projection.
+- Workflow yang aktif adalah `DRAFT -> IN_REVIEW -> PUBLISHED -> ARCHIVED` untuk kedua jenis konten. Editor dapat mengelola Info Mahasiswa; Advocate dapat mengelola kedua jenis sesuai permission; hanya Admin dengan `APPROVE_PUBLICATION` yang dapat publish/archive.
+- Student info mendukung kategori PRD dan pin. Scheduler tidak ditawarkan karena belum tersedia; direct publish setelah approval adalah satu-satunya jalur.
+- `save_draft` pada konten yang sedang review/terbit kembali ke `DRAFT`, sehingga perubahan baru selalu melewati review lagi. Setiap submit, edit, publish, dan archive menulis audit metadata tanpa body/PII.
+
+### Public projection dan privacy
+
+- `/update` dan `/info-mahasiswa` membaca hanya baris `PUBLISHED`, dengan filter kategori, pagination, empty state, dan error state.
+- Detail publik mengambil slug yang `PUBLISHED` saja dan merender body sebagai teks biasa; query publik tidak mengakses join `advocacy_update_reports`, identity, evidence, note, assignment, atau audit privat.
+- R2 editorial, cover upload, external email/WhatsApp, dan scheduled publish sengaja ditunda ke milestone terpisah sesuai keputusan owner.
+
+### Admin surface
+
+- `/admin/update` dan `/admin/info-mahasiswa` memakai protected shell dan guard permission server-side, menyediakan editor draf, submit review, approval publish, archive confirmation, source attribution, dan pin.
+- `POST/PATCH /api/admin/content/[kind]` memvalidasi origin, session, role, input, status transition, slug conflict, dan `expectedUpdatedAt`; response admin selalu no-store/noindex.
+
+### Validasi Milestone 7
+
+- Unit regression publication mencakup lifecycle tanpa scheduler, enum parsing, slug/category normalization, URL protocol, pin type, plain-text body, dan status guard.
+- Quality gates source: `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, `npm run db:check`, dan `npm run build` harus lulus sebelum deploy preview.
+- Tidak ada migration baru atau mutation Neon yang dijalankan untuk M7; schema content dari M3 sudah mencukupi. Neon `main`/production tetap tidak disentuh.
+
+### File Milestone 7
+
+- `src/server/content/publication.ts` dan `src/server/content/publication.test.ts` — service, projection, workflow, audit boundary, dan regression tests.
+- `src/app/api/admin/content/` — route handler list/create/detail/mutation dengan session, permission, CSRF-origin, validation, dan safe errors.
+- `src/components/admin/content-manager.tsx` dan `content-manager-page.tsx` — admin editor dan server page guard.
+- `src/app/admin/(protected)/update/page.tsx`, `info-mahasiswa/page.tsx`, shell/navigation changes — admin publication surface.
+- `src/app/update/`, `src/app/info-mahasiswa/`, `src/components/public/content-pagination.tsx`, dan `src/lib/public-content.ts` — database-backed public archive/detail projection.
+
 ## File penting dibuat atau diubah
 
 - `drizzle.config.ts` — konfigurasi Drizzle Kit tanpa credential hardcoded.
@@ -169,8 +203,8 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 
 ## Pekerjaan milestone berikutnya
 
-- Milestone 7: workflow draft/review/publish/archive untuk Update Advokasi dan Info Mahasiswa, public archive/detail/filter/pagination berbasis projection database, serta polish empty/loading/error/accessibility.
-- Keputusan owner sebelum M7: publication approver, content/copy kebijakan dan kontak, izin aset, scheduler, serta apakah notifikasi eksternal diperlukan.
+- Milestone 8: security, privacy, accessibility, release testing, dan production-readiness gate.
+- Keputusan owner untuk M8: izin aset editorial, scheduler/notifikasi eksternal, environment production, dan prosedur release/retention.
 - Milestone storage berikutnya: R2 private, upload evidence, scan file, signed URL, dan authorized binary read; jangan mengaktifkan dari M7 tanpa scope terpisah.
 - Database/credential/deployment production, Netlify integration, domain resmi, MFA production, retention/deletion SOP, dan escalation SOP tetap menjadi launch gate.
 
@@ -186,4 +220,4 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 
 ## Rekomendasi milestone berikutnya
 
-Lanjutkan ke Milestone 7: public publishing dan polish, tanpa melemahkan boundary M6. Public update harus ditulis sebagai projection independen yang disetujui; original report, identity, internal note, route, evidence object, dan tracking secret tidak boleh masuk response publik. Mahasiswa tetap tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, dan Neon main/production tidak boleh disentuh tanpa approval terpisah.
+Lanjutkan ke Milestone 8: security hardening dan production readiness, tanpa melemahkan boundary M6/M7. Public update tetap harus ditulis sebagai projection independen yang disetujui; original report, identity, internal note, route, evidence object, dan tracking secret tidak boleh masuk response publik. Mahasiswa tetap tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, dan Neon main/production tidak boleh disentuh tanpa approval terpisah.

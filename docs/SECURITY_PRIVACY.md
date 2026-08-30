@@ -3,6 +3,8 @@
 > Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end M5 development lulus dengan data sintetis yang dibersihkan otomatis. Kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
+> Addendum 31 Agustus 2026: M7 publication guard, audit metadata, plain-text validation, dan public projection isolation sudah tersedia pada source. Editorial R2, scheduler, notifikasi eksternal, security headers/CSP, dan production review tetap belum selesai.
+
 ## 1. Tujuan
 
 Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman pribadi, dan evidence. Keamanan MVP harus mengutamakan:
