@@ -1,0 +1,124 @@
+import { type Database, getDatabase } from "@/server/db/client";
+import { publicRateLimitBuckets } from "@/server/db/schema";
+
+import { lt, sql } from "drizzle-orm";
+
+import { hashOpaqueValue } from "@/server/aspirations/tracking";
+
+export class RateLimitConfigurationError extends Error {
+  constructor() {
+    super("PUBLIC_ABUSE_SIGNAL_SECRET belum diatur.");
+    this.name = "RateLimitConfigurationError";
+  }
+}
+
+export class PublicRateLimitError extends Error {
+  constructor(public readonly retryAfterSeconds: number) {
+    super("Public rate limit exceeded.");
+    this.name = "PublicRateLimitError";
+  }
+}
+
+type RateLimitRule = {
+  limit: number;
+  scope: string;
+  windowSeconds: number;
+};
+
+export const submissionRateLimit: RateLimitRule = {
+  limit: 5,
+  scope: "submission-ip",
+  windowSeconds: 60 * 60,
+};
+
+export const trackingIpRateLimit: RateLimitRule = {
+  limit: 20,
+  scope: "tracking-ip",
+  windowSeconds: 15 * 60,
+};
+
+export const trackingCodeRateLimit: RateLimitRule = {
+  limit: 8,
+  scope: "tracking-code",
+  windowSeconds: 15 * 60,
+};
+
+export const submissionCircuitBreaker: RateLimitRule = {
+  limit: 150,
+  scope: "submission-global",
+  windowSeconds: 60 * 60,
+};
+
+function startOfWindow(now: Date, windowSeconds: number) {
+  const milliseconds = windowSeconds * 1000;
+  return new Date(Math.floor(now.getTime() / milliseconds) * milliseconds);
+}
+
+function getSignalSecret() {
+  const secret = process.env.PUBLIC_ABUSE_SIGNAL_SECRET?.trim();
+  if (!secret) {
+    throw new RateLimitConfigurationError();
+  }
+  return secret;
+}
+
+export function getRequestNetworkSignal(request: Request) {
+  return (
+    request.headers.get("x-nf-client-connection-ip")?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown"
+  );
+}
+
+export async function consumePublicRateLimit(
+  rule: RateLimitRule,
+  rawSignal: string,
+  database: Database = getDatabase(),
+  now = new Date(),
+) {
+  const windowStartedAt = startOfWindow(now, rule.windowSeconds);
+  const expiresAt = new Date(
+    windowStartedAt.getTime() + rule.windowSeconds * 1000,
+  );
+  const signalHash = hashOpaqueValue(rawSignal, getSignalSecret());
+
+  await database
+    .delete(publicRateLimitBuckets)
+    .where(lt(publicRateLimitBuckets.expiresAt, now));
+
+  const [bucket] = await database
+    .insert(publicRateLimitBuckets)
+    .values({ expiresAt, scope: rule.scope, signalHash, windowStartedAt })
+    .onConflictDoUpdate({
+      set: {
+        attemptCount: sql`${publicRateLimitBuckets.attemptCount} + 1`,
+        updatedAt: sql`now()`,
+      },
+      target: [
+        publicRateLimitBuckets.scope,
+        publicRateLimitBuckets.signalHash,
+        publicRateLimitBuckets.windowStartedAt,
+      ],
+    })
+    .returning({ attemptCount: publicRateLimitBuckets.attemptCount });
+
+  if (!bucket || bucket.attemptCount > rule.limit) {
+    throw new PublicRateLimitError(
+      Math.max(1, Math.ceil((expiresAt.getTime() - now.getTime()) / 1000)),
+    );
+  }
+}
+
+export async function consumeTrackingRateLimits(
+  request: Request,
+  trackingCode: string,
+  database: Database = getDatabase(),
+) {
+  await consumePublicRateLimit(
+    trackingIpRateLimit,
+    getRequestNetworkSignal(request),
+    database,
+  );
+  await consumePublicRateLimit(trackingCodeRateLimit, trackingCode, database);
+}

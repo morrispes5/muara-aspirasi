@@ -2,6 +2,7 @@
 .netlify
 coverage
 node_modules
+next-env.d.ts
 out
 package-lock.json
 docs/assets

@@ -22,6 +22,7 @@
     "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
     "auth:bootstrap": "node --env-file-if-exists=.env.local scripts/auth-bootstrap.mjs",
     "auth:smoke": "node --env-file-if-exists=.env.local scripts/auth-smoke.mjs",
+    "m5:smoke": "node --env-file-if-exists=.env.local scripts/m5-smoke.mjs",
     "test:auth-integration": "node --env-file-if-exists=.env.local scripts/run-auth-integration-tests.mjs"
   },
   "dependencies": {

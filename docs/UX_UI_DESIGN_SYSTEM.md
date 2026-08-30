@@ -358,6 +358,6 @@ Keputusan berikut mengikat public shell yang sudah dibangun pada 29 Agustus 2026
 
 - Navigasi publik sekarang mengikuti informasi yang tersedia: `Beranda`, `Update Advokasi`, `Info Mahasiswa`, dan `Tentang`; `Lacak Aspirasi` menjadi aksi sekunder, sedangkan `Kirim Aspirasi` menjadi CTA utama.
 - URL canonical alur mahasiswa adalah `/aspirasi/kirim` dan `/aspirasi/lacak`. Route singkat Milestone 1 (`/aspirasi` dan `/lacak`) dipertahankan hanya sebagai redirect server-side untuk kompatibilitas tautan.
-- Halaman kirim/lacak Milestone 2 adalah preview informatif, bukan form visual yang tampak dapat dikirim. Tidak ada input, submit, success state, atau penyimpanan data agar pengguna tidak keliru memasukkan PII sebelum Milestone 5.
+- Milestone 5 menggantikan preview pada `/aspirasi/kirim` dan `/aspirasi/lacak` dengan form empat tahap, warning privasi/evidence, receipt code + token rahasia, dan form tracking privat. Form mempertahankan jawaban antar-tahap, memisahkan review dari pengiriman, serta tidak menampilkan PII kembali pada timeline. Upload bukti tetap tidak tersedia sampai R2 private dan aturan file disetujui.
 - Archive dan detail `Update Advokasi` serta `Info Mahasiswa` memakai data contoh berlabel eksplisit. Card cukup memakai garis, ruang, dan tipografi; tidak ditambah glass atau metrik palsu.
 - Setiap halaman publik statis memiliki satu `h1` melalui `PublicPageIntro`, sementara judul di dalam section memakai tingkat heading lanjutan.

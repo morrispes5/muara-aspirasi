@@ -1,6 +1,6 @@
 # Data Model — Muara Aspirasi
 
-> Status: model domain telah diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada fondasi Milestone 4.
+> Status: model domain diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada Milestone 4; tambahan persistence submission/rate-limit Milestone 5 telah diterapkan melalui migration additive pada Neon development dan preview. Neon main/production tidak disentuh.
 > Terminologi utama mengikuti `PRD.md`.
 
 Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, dan migration auth `drizzle/20260830054722_wise_dexter_bennett/`. Dokumen ini tetap menjadi kontrak produk/data; service mutation, report authorization runtime, R2, dan public projection belum diimplementasikan.
@@ -79,7 +79,8 @@ Field penting:
 
 - `id`;
 - `trackingCode`: opaque, unique, aman untuk diketik tetapi bukan secret;
-- `trackingSecretHash`: hasil hashing token; token plaintext tidak disimpan;
+- `trackingSecretHash`: hasil hash `scrypt` dengan salt acak dari token 256-bit; token plaintext tidak disimpan;
+- `submissionKeyHash`: HMAC dari idempotency key; nullable hanya agar migration kompatibel dengan record pre-M5, selalu diisi untuk submission baru;
 - `categoryId`;
 - `title`, `location`, `chronology`, `impact`;
 - `suggestedSolution`: nullable;
@@ -223,6 +224,19 @@ Field penting:
 - `coverMediaKey`, `coverAlt`, `sourceUrl`, `sourceCredit`: nullable;
 - `authorUserId`, `reviewerUserId`, `publishedByUserId`;
 - `scheduledAt`, `publishedAt`, `archivedAt`, `createdAt`, `updatedAt`.
+
+### 3.13 `PublicRateLimitBucket`
+
+Bucket throttling publik yang dipakai lintas instance aplikasi tanpa menyimpan raw IP atau tracking code.
+
+Field penting:
+
+- `scope`: endpoint/rule seperti submission IP, tracking IP, tracking code, atau circuit breaker global;
+- `signalHash`: HMAC SHA-256 dari signal mentah memakai `PUBLIC_ABUSE_SIGNAL_SECRET` terpisah;
+- `windowStartedAt`, `expiresAt`, `attemptCount`;
+- `createdAt`, `updatedAt`.
+
+Unique key `scope + signalHash + windowStartedAt` membuat increment bucket atomik di PostgreSQL. Baris kadaluarsa dibersihkan saat endpoint dipakai; nilai mentah tidak pernah disimpan di report atau audit.
 
 ## 4. ERD konseptual
 
@@ -454,16 +468,16 @@ Audit log tidak boleh menjadi salinan report atau log request mentah.
 
 ## 10. Open Question dan Proposed Default
 
-| Open Question                         | Proposed Default                                                                                                                                                              |
-| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Format ID?                            | UUID/ULID opaque yang dihasilkan server; jangan gunakan sequential ID pada URL publik.                                                                                        |
-| Hash tracking token?                  | Token acak minimal 128-bit; simpan hash melalui primitive password/token hashing yang direview, bandingkan constant-time. Algoritma final dipilih saat implementasi security. |
-| Retention?                            | Report/contact/evidence 180 hari setelah closure dan audit metadata 365 hari, subject to owner/legal review.                                                                  |
-| Encryption field-level PII?           | Pisahkan tabel dan batasi permission lebih dulu; evaluasi app-layer encryption sebelum production berdasarkan threat model dan key-management readiness.                      |
-| Full content revision history?        | Simpan audit event dan snapshot publication saat publish; detail diff menjadi keputusan editorial/security.                                                                   |
-| Urgency enum dan escalation workflow? | `LOW/NORMAL/HIGH/ESCALATE`, tetapi serious-risk handling harus mengikuti SOP kampus yang belum diberikan.                                                                     |
-| File allowlist dan size?              | Mulai sempit: image dan PDF terkontrol, total maksimum tiga file; angka byte final menunggu keputusan operasional.                                                            |
-| Category dikelola admin?              | Seed dan read-only pada MVP awal; pengubahan category memerlukan milestone policy setelah kebutuhan nyata terlihat.                                                           |
+| Open Question                         | Proposed Default                                                                                                                                         |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Format ID?                            | UUID/ULID opaque yang dihasilkan server; jangan gunakan sequential ID pada URL publik.                                                                   |
+| Hash tracking token?                  | Token acak 256-bit; simpan `scrypt` dengan salt acak dan verifikasi constant-time. Plaintext hanya berada pada response receipt satu kali.               |
+| Retention?                            | Report/contact/evidence 180 hari setelah closure dan audit metadata 365 hari, subject to owner/legal review.                                             |
+| Encryption field-level PII?           | Pisahkan tabel dan batasi permission lebih dulu; evaluasi app-layer encryption sebelum production berdasarkan threat model dan key-management readiness. |
+| Full content revision history?        | Simpan audit event dan snapshot publication saat publish; detail diff menjadi keputusan editorial/security.                                              |
+| Urgency enum dan escalation workflow? | `LOW/NORMAL/HIGH/ESCALATE`, tetapi serious-risk handling harus mengikuti SOP kampus yang belum diberikan.                                                |
+| File allowlist dan size?              | Mulai sempit: image dan PDF terkontrol, total maksimum tiga file; angka byte final menunggu keputusan operasional.                                       |
+| Category dikelola admin?              | Seed dan read-only pada MVP awal; pengubahan category memerlukan milestone policy setelah kebutuhan nyata terlihat.                                      |
 
 ## 10.1 Keputusan foundation Milestone 3
 

@@ -1,6 +1,6 @@
 # Security and Privacy — Muara Aspirasi
 
-> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 sudah lulus acceptance non-production; kesiapan production dan kontrol milestone berikutnya belum selesai.
+> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 sudah lulus acceptance non-production; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end development lulus dengan data sintetis yang dibersihkan otomatis. Kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
 ## 1. Tujuan
@@ -16,17 +16,17 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 
 ## 2. Status implementasi kontrol
 
-| Kontrol                                                    | Status saat dokumen dibuat                                                               |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                           |
-| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                           |
-| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada        |
-| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada |
-| Tracking token generation/hash                             | Belum diimplementasikan                                                                  |
-| Turnstile, honeypot, rate limiting                         | Belum diimplementasikan                                                                  |
-| R2 upload/download validation                              | Belum diimplementasikan                                                                  |
-| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                  |
-| Retention/deletion automation                              | Belum diimplementasikan                                                                  |
+| Kontrol                                                    | Status saat dokumen dibuat                                                                                             |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                                                         |
+| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                                                         |
+| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada                                      |
+| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada                               |
+| Tracking token generation/hash                             | M5 selesai non-production: token 256-bit, `scrypt` salted hash, verifikasi constant-time; smoke tracking privat lulus  |
+| Turnstile, honeypot, rate limiting                         | M5 selesai non-production: widget + server Siteverify, honeypot, bucket Neon HMAC, idempotency; smoke submission lulus |
+| R2 upload/download validation                              | Belum diimplementasikan                                                                                                |
+| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                                                |
+| Retention/deletion automation                              | Belum diimplementasikan                                                                                                |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
@@ -165,9 +165,9 @@ Layer minimum untuk submission/tracking publik:
 7. generic response untuk tracking failure;
 8. monitoring rejection rate tanpa menyimpan form content.
 
-Turnstile token bersifat short-lived dan single-use; client success saja tidak cukup. Development/automated tests menggunakan test keys resmi, bukan production secret.
+Turnstile token bersifat short-lived dan single-use; client success saja tidak cukup. Development/automated tests menggunakan test keys resmi, bukan production secret. Dummy key Cloudflare mengembalikan hostname `example.com`; pengecualian itu diterima hanya bila secret dummy persis dipakai bersama `DATABASE_ENVIRONMENT=development` atau `preview`. Di luar kondisi tersebut, hostname request tetap wajib cocok.
 
-Rate limiting production tidak boleh hanya memakai in-memory map karena Netlify dapat menjalankan beberapa instance. Provider/store belum dipilih dan dicatat sebagai Open Question.
+Rate limiting M5 memakai tabel bucket Neon dengan unique key atomik, sehingga tidak bergantung pada in-memory map dan bekerja lintas instance yang mengarah ke database environment yang sama. Kapasitas/latensi Neon tetap harus dipantau sebelum production.
 
 Raw IP bukan bagian permanen dari report. Bila diperlukan untuk abuse prevention, simpan signal pseudonymous/truncated dengan salt terpisah dan retention pendek yang disetujui.
 

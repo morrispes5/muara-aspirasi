@@ -2,7 +2,7 @@
 
 Muara Aspirasi adalah portal advokasi dan informasi mahasiswa milik BEM FTI Universitas Budi Luhur. Produk ini ditujukan untuk membantu mahasiswa menyampaikan aspirasi secara terstruktur dan aman, sekaligus mengikuti pembaruan advokasi BEM dalam bahasa yang jelas.
 
-Repository ini telah menyelesaikan **Milestone 1 — UI Foundation dan Public Shell**, **Milestone 2 — Halaman Publik Statis**, **Milestone 3 — Database dan ORM Foundation**, dan **Milestone 4 — BEM Authentication, Roles, dan Admin Foundation**. Better Auth, login BEM-only, role/permission matrix, protected admin shell, pengelolaan akses, audit auth, migration, bootstrap, serta runtime smoke test sudah tervalidasi pada environment non-production. Milestone 5 belum dimulai.
+Repository ini telah menyelesaikan **Milestone 1 — UI Foundation dan Public Shell**, **Milestone 2 — Halaman Publik Statis**, **Milestone 3 — Database dan ORM Foundation**, **Milestone 4 — BEM Authentication, Roles, dan Admin Foundation**, serta **Milestone 5 — Kirim dan Lacak Aspirasi**. M5 menyediakan form bertahap, validasi server, Turnstile, honeypot, rate limit berbasis Neon, idempotency, receipt credential, serta tracking privat. Migration additive telah diterapkan ke Neon development dan preview; smoke acceptance development lulus dengan data sintetis yang dibersihkan otomatis. Neon main/production tidak disentuh.
 
 ## Prasyarat
 
@@ -41,42 +41,46 @@ Versi Node yang dipakai proyek dicatat di `.nvmrc` dan `netlify.toml`.
 
 ## Environment variable
 
-| Nama                          | Wajib saat ini                | Keterangan                                                                                                      |
-| ----------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`         | Tidak untuk build lokal       | Kontrak URL publik aplikasi; template menggunakan `http://localhost:3000`. Nilai ini aman diekspos ke browser.  |
-| `DATABASE_URL`                | Saat runtime database dipakai | Pooled Neon connection string untuk server runtime; isi hanya di `.env.local` atau secret store.                |
-| `DATABASE_URL_UNPOOLED`       | Saat migrate/seed             | Direct Neon connection string untuk migration dan seed terkontrol; isi hanya di `.env.local` atau secret store. |
-| `DATABASE_ENVIRONMENT`        | Saat seed                     | Harus `development` atau `preview`; script seed menolak nilai lain agar tidak pernah mengenai production.       |
-| `BETTER_AUTH_SECRET`          | Saat admin auth dipakai       | Secret minimal 32 karakter untuk signing/encryption Better Auth; jangan gunakan placeholder.                    |
-| `BETTER_AUTH_URL`             | Saat admin auth dipakai       | Origin canonical auth, misalnya `http://localhost:3000`; sesuaikan per environment.                             |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Saat admin auth dipakai       | Daftar origin tepercaya dipisahkan koma; harus sesuai origin aplikasi.                                          |
-| `BEM_ALLOWED_EMAIL_DOMAINS`   | Opsional M4                   | Allowlist domain email BEM untuk prosedur bootstrap; kosong berarti tidak menambah pembatasan domain.           |
-| `AUTH_BOOTSTRAP_NAME`         | One-time bootstrap            | Nama admin pertama; hapus dari `.env.local` setelah bootstrap berhasil.                                         |
-| `AUTH_BOOTSTRAP_EMAIL`        | One-time bootstrap            | Email admin pertama; hanya dipakai script bootstrap dan tidak boleh masuk repository.                           |
-| `AUTH_BOOTSTRAP_PASSWORD`     | One-time bootstrap            | Password admin pertama minimal 12 karakter; hapus segera setelah bootstrap berhasil.                            |
+| Nama                             | Wajib saat ini                | Keterangan                                                                                                      |
+| -------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`            | Tidak untuk build lokal       | Kontrak URL publik aplikasi; template menggunakan `http://localhost:3000`. Nilai ini aman diekspos ke browser.  |
+| `DATABASE_URL`                   | Saat runtime database dipakai | Pooled Neon connection string untuk server runtime; isi hanya di `.env.local` atau secret store.                |
+| `DATABASE_URL_UNPOOLED`          | Saat migrate/seed             | Direct Neon connection string untuk migration dan seed terkontrol; isi hanya di `.env.local` atau secret store. |
+| `DATABASE_ENVIRONMENT`           | Saat seed                     | Harus `development` atau `preview`; script seed menolak nilai lain agar tidak pernah mengenai production.       |
+| `BETTER_AUTH_SECRET`             | Saat admin auth dipakai       | Secret minimal 32 karakter untuk signing/encryption Better Auth; jangan gunakan placeholder.                    |
+| `BETTER_AUTH_URL`                | Saat admin auth dipakai       | Origin canonical auth, misalnya `http://localhost:3000`; sesuaikan per environment.                             |
+| `BETTER_AUTH_TRUSTED_ORIGINS`    | Saat admin auth dipakai       | Daftar origin tepercaya dipisahkan koma; harus sesuai origin aplikasi.                                          |
+| `BEM_ALLOWED_EMAIL_DOMAINS`      | Opsional M4                   | Allowlist domain email BEM untuk prosedur bootstrap; kosong berarti tidak menambah pembatasan domain.           |
+| `AUTH_BOOTSTRAP_NAME`            | One-time bootstrap            | Nama admin pertama; hapus dari `.env.local` setelah bootstrap berhasil.                                         |
+| `AUTH_BOOTSTRAP_EMAIL`           | One-time bootstrap            | Email admin pertama; hanya dipakai script bootstrap dan tidak boleh masuk repository.                           |
+| `AUTH_BOOTSTRAP_PASSWORD`        | One-time bootstrap            | Password admin pertama minimal 12 karakter; hapus segera setelah bootstrap berhasil.                            |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Saat form M5 dibuka           | Site key Turnstile aman untuk browser; gunakan widget terpisah setiap environment.                              |
+| `TURNSTILE_SECRET_KEY`           | Saat submission M5 aktif      | Secret server-only untuk Siteverify; tidak boleh memakai prefix `NEXT_PUBLIC_`.                                 |
+| `PUBLIC_ABUSE_SIGNAL_SECRET`     | Saat endpoint publik M5 aktif | Salt HMAC terpisah untuk signal rate-limit/idempotency; berbeda untuk setiap environment.                       |
 
-Credential Turnstile dan Cloudflare R2 baru ditambahkan pada milestone pemiliknya. Jangan pernah memasukkan secret asli ke `.env.example` atau repository.
+Cloudflare menyediakan dummy key resmi untuk localhost/automated testing; key tersebut hanya dipakai development/preview dan wajib diganti oleh widget/key asli sebelum production. R2 evidence tetap belum diaktifkan sampai private bucket serta aturan file disetujui. Jangan pernah memasukkan secret asli ke `.env.example` atau repository.
 
 ## Command proyek
 
-| Kebutuhan          | Command                         | Catatan                                                                                                                    |
-| ------------------ | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Development        | `npm run dev`                   | Menjalankan Next.js development server.                                                                                    |
-| Lint               | `npm run lint`                  | Menjalankan ESLint dengan zero-warning policy.                                                                             |
-| Type-check         | `npm run typecheck`             | Menjalankan TypeScript tanpa menghasilkan file build.                                                                      |
-| Test               | `npm test`                      | Menjalankan test satu kali dengan Vitest.                                                                                  |
-| Test watch         | `npm run test:watch`            | Menjalankan Vitest dalam watch mode.                                                                                       |
-| Format             | `npm run format`                | Memformat file yang dikelola proyek dengan Prettier.                                                                       |
-| Format check       | `npm run format:check`          | Memeriksa format tanpa mengubah file.                                                                                      |
-| Check migration    | `npm run db:check`              | Memeriksa konsistensi folder migration Drizzle tanpa koneksi database.                                                     |
-| Generate migration | `npm run db:generate`           | Membuat SQL migration reviewable dari `src/server/db/schema`; review SQL sebelum menerapkannya.                            |
-| Migration database | `npm run db:migrate`            | Menerapkan migration dengan `DATABASE_URL_UNPOOLED`; command gagal aman bila secret tidak tersedia.                        |
-| Seed database      | `npm run db:seed`               | Mengisi data sintetis hanya saat `DATABASE_ENVIRONMENT=development` atau `preview`; tidak ada data mahasiswa nyata.        |
-| Auth bootstrap     | `npm run auth:bootstrap`        | Membuat satu akun `ADMIN` dari environment one-time; hanya untuk development/preview dan harus dibersihkan setelah sukses. |
-| Auth smoke         | `npm run auth:smoke`            | Menguji signup tertutup, origin, login, cookie, protected admin, revoke session, dan logout pada server lokal.             |
-| Auth integration   | `npm run test:auth-integration` | Menguji role/status, session revocation, audit, dan self-lockout terhadap Neon development.                                |
-| Production build   | `npm run build`                 | Membuat build Next.js untuk production.                                                                                    |
-| Production start   | `npm run start`                 | Menjalankan hasil production build secara lokal.                                                                           |
+| Kebutuhan          | Command                         | Catatan                                                                                                                                        |
+| ------------------ | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Development        | `npm run dev`                   | Menjalankan Next.js development server.                                                                                                        |
+| Lint               | `npm run lint`                  | Menjalankan ESLint dengan zero-warning policy.                                                                                                 |
+| Type-check         | `npm run typecheck`             | Menjalankan TypeScript tanpa menghasilkan file build.                                                                                          |
+| Test               | `npm test`                      | Menjalankan test satu kali dengan Vitest.                                                                                                      |
+| Test watch         | `npm run test:watch`            | Menjalankan Vitest dalam watch mode.                                                                                                           |
+| Format             | `npm run format`                | Memformat file yang dikelola proyek dengan Prettier.                                                                                           |
+| Format check       | `npm run format:check`          | Memeriksa format tanpa mengubah file.                                                                                                          |
+| Check migration    | `npm run db:check`              | Memeriksa konsistensi folder migration Drizzle tanpa koneksi database.                                                                         |
+| Generate migration | `npm run db:generate`           | Membuat SQL migration reviewable dari `src/server/db/schema`; review SQL sebelum menerapkannya.                                                |
+| Migration database | `npm run db:migrate`            | Menerapkan migration dengan `DATABASE_URL_UNPOOLED`; command gagal aman bila secret tidak tersedia.                                            |
+| Seed database      | `npm run db:seed`               | Mengisi data sintetis hanya saat `DATABASE_ENVIRONMENT=development` atau `preview`; tidak ada data mahasiswa nyata.                            |
+| Auth bootstrap     | `npm run auth:bootstrap`        | Membuat satu akun `ADMIN` dari environment one-time; hanya untuk development/preview dan harus dibersihkan setelah sukses.                     |
+| Auth smoke         | `npm run auth:smoke`            | Menguji signup tertutup, origin, login, cookie, protected admin, revoke session, dan logout pada server lokal.                                 |
+| Auth integration   | `npm run test:auth-integration` | Menguji role/status, session revocation, audit, dan self-lockout terhadap Neon development.                                                    |
+| M5 smoke           | `npm run m5:smoke`              | Menguji submission/receipt/idempotency/tracking privat terhadap server lokal dan Neon non-production; membuat lalu membersihkan data sintetis. |
+| Production build   | `npm run build`                 | Membuat build Next.js untuk production.                                                                                                        |
+| Production start   | `npm run start`                 | Menjalankan hasil production build secara lokal.                                                                                               |
 
 ## Struktur utama
 

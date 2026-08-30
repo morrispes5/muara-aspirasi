@@ -1,13 +1,13 @@
 # Implementation Status — Muara Aspirasi
 
 > Terakhir diperbarui: 30 Agustus 2026
-> Milestone aktif: **Milestone 4 selesai; Milestone 5 belum dimulai**
+> Milestone aktif: **Milestone 5 selesai; migration additive diterapkan ke Neon development dan preview, dengan smoke acceptance development lulus**
 
 ## Ringkasan status
 
-Milestone 0, Documentation Gate, Milestone 1 (UI foundation), Milestone 2 (halaman publik statis), Milestone 3 (database/ORM), dan **Milestone 4 (BEM auth/roles/admin foundation) selesai**. Acceptance M4 lulus pada aplikasi lokal serta Neon development/preview dengan identitas sintetis. Milestone 5 belum dimulai.
+Milestone 0, Documentation Gate, Milestone 1 (UI foundation), Milestone 2 (halaman publik statis), Milestone 3 (database/ORM), **Milestone 4 (BEM auth/roles/admin foundation)**, dan **Milestone 5 (kirim dan lacak aspirasi)** selesai. Acceptance M4 lulus pada aplikasi lokal serta Neon development/preview dengan identitas sintetis. Migration additive M5 diterapkan ke development dan preview; smoke end-to-end development lulus dan membersihkan report sintetisnya otomatis.
 
-M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. Tidak ada database production, form aspirasi aktif, tracking privat, dashboard kasus, API bisnis laporan, R2, atau upload yang dibuat.
+M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. Database production, dashboard kasus BEM, R2/evidence upload, serta workflow status/publikasi belum dibuat.
 
 Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project Neon `morrizstore` tidak disentuh.
 
@@ -20,6 +20,7 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 | 2 — Halaman Publik Statis             | Selesai | Halaman informasi/placeholder non-mutating dan content contoh berlabel.                                                                                                 |
 | 3 — Database dan ORM Foundation       | Selesai | Schema Drizzle, migration/seed, Neon development + preview, data access awal, dan test M3.                                                                              |
 | 4 — BEM Auth, Roles, Admin Foundation | Selesai | Better Auth, migration development/preview, bootstrap sintetis, BEM-only login, permission server-side, access management, audit, dan runtime/browser acceptance lulus. |
+| 5 — Kirim dan Lacak Aspirasi          | Selesai | Migration additive diterapkan pada Neon development/preview; smoke development memvalidasi receipt, idempotency, hash, event/audit, serta tracking privat.              |
 
 ## Implementasi Milestone 3
 
@@ -50,7 +51,7 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 - Tabel persistence auth ditambahkan melalui migration lokal: `auth_sessions`, `auth_accounts`, dan `auth_verifications`; `bem_users` mendapat `email_verified` dan `image` sesuai mapping Better Auth.
 - Role `EDITOR`, `ADVOCATE`, dan `ADMIN` beserta permission matrix eksplisit berada di `src/server/auth/roles.ts`.
 - `src/server/auth/session.ts` adalah pemeriksaan server-side untuk user aktif dan permission. `src/proxy.ts` hanya redirect optimistis dan tidak menjadi authorization boundary.
-- `/admin/login` menyediakan form login; `/admin` menyediakan shell kosong dengan identity, role, logout, dan revoke-other-sessions. Workflow report belum dimulai.
+- `/admin/login` menyediakan form login; `/admin` menyediakan shell kosong dengan identity, role, logout, dan revoke-other-sessions. Workflow case management BEM belum dimulai; M5 hanya membuat submission dan tracking pelapor.
 - Event login failure, logout, dan session revoke dicatat melalui allowlist audit tanpa password, session token, atau request body.
 
 ### Bootstrap dan migration
@@ -59,6 +60,23 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 - Migration M4 tersedia di `drizzle/20260830054722_wise_dexter_bennett/migration.sql`, lulus `db:check`, dan sudah diterapkan/idempotent pada Neon `development` serta `preview`.
 - Akun `ADMIN` sintetis dibuat pada kedua branch non-production. Plaintext password tidak masuk database, log, dokumentasi, atau repository.
 - `src/server/auth/user-management.ts` membatasi perubahan role/status kepada ADMIN aktif, mencabut seluruh sesi target, menulis audit, serta mencegah self-lockout dan penghapusan last active ADMIN.
+
+## Implementasi Milestone 5
+
+### Submission dan tracking privat
+
+- `/aspirasi/kirim` menggantikan preview dengan form empat tahap: identity minimal, detail aspirasi, privacy/ethics, review, Turnstile, dan receipt kode + token rahasia satu kali. Upload evidence sengaja belum tersedia karena R2 private dan aturan file belum disetujui.
+- `POST /api/aspirasi` memvalidasi allowlist field, panjang/nilai enum, origin browser, honeypot, Idempotency-Key UUID, bucket rate limit, dan Siteverify Turnstile sebelum mutation.
+- Satu transaksi membuat report `RECEIVED`, identity restricted, status event reporter-visible, serta audit `PUBLIC_REPORT_SUBMITTED`. Token 256-bit hanya masuk response receipt; database menyimpan hash `scrypt` salted.
+- `POST /api/aspirasi/lacak` menerima code + token pada body, selalu memberi kegagalan generik, memakai `no-store`/`no-referrer`, dan hanya mengembalikan status/timeline reporter-safe tanpa identity, title, chronology, note internal, atau route.
+- `public_rate_limit_buckets` menggunakan HMAC signal dan unique bucket atomik di Neon untuk submission IP, tracking IP, tracking code, serta circuit breaker global. Raw IP, raw tracking token, dan request body tidak disimpan.
+- `scripts/m5-smoke.mjs` memverifikasi receipt, duplicate idempotency, kegagalan tracking generik, projection privacy, hash persistence, initial event, dan audit; semua artefak report sintetis dibersihkan saat test selesai.
+
+### Provider dan environment
+
+- Local/preview memakai dummy key Cloudflare Turnstile resmi agar Siteverify dan automated testing dapat dilakukan tanpa production credential. Respons dummy `example.com` hanya diterima pada `DATABASE_ENVIRONMENT=development`/`preview` dengan dummy secret persis; selain itu hostname request harus sama.
+- `TURNSTILE_SECRET_KEY` tetap server-only. `PUBLIC_ABUSE_SIGNAL_SECRET` adalah salt HMAC terpisah dari Better Auth dan harus berbeda pada setiap environment.
+- Widget/key Turnstile produksi, domain resmi, monitoring production, R2 bucket, dan upload evidence tidak termasuk acceptance M5 saat ini.
 
 ## File penting dibuat atau diubah
 
@@ -72,6 +90,8 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 - `src/server/auth/*`, `src/app/admin/*`, `src/app/api/auth/[...all]/route.ts`, dan `src/components/admin/*` — fondasi auth, session/permission, handler, dan protected admin shell M4.
 - `src/server/db/schema/auth.ts`, perubahan `users.ts`, dan `drizzle/20260830054722_wise_dexter_bennett/` — persistence schema dan migration auth M4.
 - `scripts/auth-bootstrap.mjs`, `scripts/auth-smoke.mjs`, dan runner integration — bootstrap satu kali serta acceptance login/session/access tanpa credential di repository.
+- `src/server/aspirations/*`, `src/app/api/aspirasi/*`, `src/components/aspirations/*`, dan route publik aspirasi — use case M5, crypto, validation, Turnstile, rate limit, receipt, dan tracking UI/API.
+- `drizzle/20260830113406_lowly_spirit/` dan `scripts/m5-smoke.mjs` — migration additive M5 serta acceptance script yang membuat/membersihkan data sintetis.
 - `package.json`, `package-lock.json`, `.env.example`, `.prettierignore`, dan `README.md` — command, dependency driver WebSocket, template environment aman, dan dokumentasi operasional.
 - `docs/ARCHITECTURE.md`, `docs/DATA_MODEL.md`, `docs/SECURITY_PRIVACY.md`, `docs/DEPLOYMENT_RUNBOOK.md`, dan dokumen status ini — status M3 diselaraskan.
 
@@ -111,9 +131,20 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 | Browser desktop/mobile                          | Lulus pada login/admin 390px; login, revoke session, logout, dan redirect tervalidasi. |
 | MFA/recovery/domain allowlist decision          | Dikunci sebagai production gate: MFA ADMIN, dua recovery owner, domain resmi BEM.      |
 
+## Validasi Milestone 5 (sebelum operasi Neon)
+
+| Pemeriksaan                                   | Hasil                                                                                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Schema generate/check                         | Lulus; migration additive M5 direview tanpa perubahan destructive.                                                                                                       |
+| Validation/crypto/Turnstile unit tests        | Lulus: unexpected/oversized input, consent, hash-only, wrong token, hostname, expiry/duplicate response, dan missing secret fail-closed.                                 |
+| Lint dan TypeScript                           | Lulus pada source M5.                                                                                                                                                    |
+| Full test suite                               | Lulus: 25 test, 3 integration skip yang memang bergantung environment.                                                                                                   |
+| Production build                              | Lulus setelah font dependency dapat diakses.                                                                                                                             |
+| Browser UI local                              | Lulus desktop: form empat tahap, data warning, privacy copy, dan tracking form terlihat.                                                                                 |
+| Migration + M5 smoke Neon development/preview | Lulus: migration M5 ada di kedua environment; smoke development lulus untuk receipt, idempotency, hash/event/audit, dan tracking privat. Main/production tidak disentuh. |
+
 ## Pekerjaan milestone berikutnya
 
-- Form kirim aspirasi, hashing/generasi tracking token, tracking privat, rate limit, Turnstile, dan mutation API (Milestone 5).
 - R2, upload bukti, scan file, signed URL, atau evidence binary (Milestone 5/6).
 - Status workflow bisnis, assignment UI, internal note UI, audit-writing service, atau public content publication workflow.
 - Database/credential/deployment production, Netlify integration, serta domain resmi.
@@ -129,4 +160,4 @@ Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project 
 
 ## Rekomendasi milestone berikutnya
 
-Mulai **Milestone 5 — Kirim dan Lacak Aspirasi** hanya setelah scope dan acceptance-nya dibaca ulang. Pertahankan boundary M4: mahasiswa tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, dan data sensitif tidak boleh masuk log atau projection publik.
+Lanjutkan ke Milestone 6: workflow kasus BEM, assignment, catatan internal, dan dashboard operasional, tanpa melemahkan boundary yang ada. Mahasiswa tetap tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, dan data sensitif tidak boleh masuk log atau projection publik.

@@ -32,6 +32,9 @@ export const aspirationReports = pgTable(
     trackingSecretHash: varchar("tracking_secret_hash", { length: 255 })
       .notNull()
       .unique(),
+    // Nullable only for compatibility with pre-M5 rows. New submissions always
+    // set it before insert and the unique constraint still protects retries.
+    submissionKeyHash: varchar("submission_key_hash", { length: 64 }).unique(),
     categoryId: uuid("category_id")
       .notNull()
       .references(() => categories.id, { onDelete: "restrict" }),
@@ -74,6 +77,39 @@ export const aspirationReports = pgTable(
     index("aspiration_reports_duplicate_of_report_id_idx").on(
       table.duplicateOfReportId,
     ),
+  ],
+);
+
+/**
+ * Cross-instance throttling buckets for public endpoints. Raw addresses and
+ * tracking values never enter this table: `signalHash` is an HMAC digest and
+ * each bucket expires after its short enforcement window.
+ */
+export const publicRateLimitBuckets = pgTable(
+  "public_rate_limit_buckets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    scope: varchar("scope", { length: 80 }).notNull(),
+    signalHash: varchar("signal_hash", { length: 64 }).notNull(),
+    windowStartedAt: timestamp("window_started_at", {
+      withTimezone: true,
+    }).notNull(),
+    attemptCount: integer("attempt_count").default(1).notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("public_rate_limit_buckets_scope_signal_window_key").on(
+      table.scope,
+      table.signalHash,
+      table.windowStartedAt,
+    ),
+    index("public_rate_limit_buckets_expires_at_idx").on(table.expiresAt),
   ],
 );
 

@@ -16,17 +16,17 @@ Prinsip ownership:
 
 ## 2. Platform target
 
-| Kebutuhan         | Rekomendasi                                                               | Status                                                                                                 |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`.                                    |
-| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                      |
-| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis. |
-| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                   |
-| Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                          |
-| Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                                                   |
-| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                   |
-| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                               |
-| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                       |
+| Kebutuhan         | Rekomendasi                                                               | Status                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`.                                           |
+| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                             |
+| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis.        |
+| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                          |
+| Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                                 |
+| Anti-spam         | Cloudflare Turnstile                                                      | Kode M5 memakai Siteverify; dummy key resmi hanya ada di development/preview, widget production belum dibuat. |
+| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                          |
+| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                                      |
+| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                              |
 
 Netlify mendukung App Router/Server Components melalui adapter Next.js yang dikelola platform. Tidak perlu menambahkan adapter manual kecuali dokumentasi Netlify versi yang dipakai meminta perubahan.
 
