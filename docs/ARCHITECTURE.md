@@ -1,6 +1,6 @@
 # Architecture — Muara Aspirasi
 
-> Status: rancangan teknis untuk milestone berikutnya; belum seluruhnya diimplementasikan.  
+> Status: M6 case management inti sudah diimplementasikan pada source; publication publik, R2, notifikasi eksternal, dan production masih direncanakan.
 > Sumber kebenaran produk: `PRD.md`. Bila dokumen ini bertentangan dengan PRD, PRD yang berlaku.
 
 ## 1. Tujuan sistem
@@ -46,6 +46,7 @@ Prinsip utama:
 | Database             | Neon PostgreSQL            | Foundation M3 selesai              | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                                                             |
 | ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai              | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.                                                 |
 | Admin authentication | Better Auth                | Milestone 4 selesai                | BEM-only login, session, role enforcement, protected shell, access management, auth audit, dan runtime acceptance non-production sudah lulus. |
+| Case management      | Next.js + Drizzle          | Milestone 6 selesai pada source    | Queue/filter, detail privat, assignment, state transition, internal note, reporter-safe update, archive/reopen, concurrency guard, dan audit. |
 | Anti-spam            | Cloudflare Turnstile       | Milestone 5 selesai non-production | Widget form publik dan Siteverify server-side; development/preview memakai dummy key resmi, production wajib memiliki widget sendiri.         |
 | Object storage       | Cloudflare R2              | Direncanakan                       | Bukti privat dan media editorial dapat dipisahkan dari database.                                                                              |
 | Notification         | Timeline internal aplikasi | MVP default                        | Email/WhatsApp masih open question dalam PRD dan tidak termasuk default MVP.                                                                  |
@@ -77,13 +78,13 @@ Better Auth berjalan sebagai bagian dari aplikasi Next.js, bukan layanan otorisa
 | Kirim aspirasi       | `/aspirasi/kirim`                                                   | Mahasiswa tanpa login                           | Validasi input, ethics consent, Turnstile, rate limit, dan batas upload dilakukan server-side.           |
 | Private tracking     | `/aspirasi/lacak`                                                   | Pemegang tracking code + secret token           | Request menggunakan POST; token tidak masuk URL, analytics, atau log. Hanya timeline reporter-safe.      |
 | Admin authentication | `/admin/login`, `/api/auth/*`                                       | Akun BEM yang dibuat admin                      | Public registration dinonaktifkan. Session divalidasi server-side.                                       |
-| Admin work area      | `/admin/*`                                                          | `EDITOR`, `ADVOCATE`, `ADMIN` sesuai permission | Setiap read/mutation sensitif melakukan role check di server. Redirect/proxy bukan satu-satunya kontrol. |
+| Admin work area      | `/admin`, `/admin/laporan`, `/admin/laporan/[id]`                   | `EDITOR`, `ADVOCATE`, `ADMIN` sesuai permission | Setiap read/mutation sensitif melakukan role check di server. Redirect/proxy bukan satu-satunya kontrol. |
 
 Tidak ada role `MODERATOR` terpisah pada MVP. Tugas triage dan moderasi laporan berada pada `ADVOCATE`; keputusan sensitif dan pengelolaan akun berada pada `ADMIN`.
 
 ## 6. Struktur folder target
 
-Struktur berikut adalah arah implementasi, bukan daftar file yang sudah ada seluruhnya.
+Struktur berikut memuat area yang sudah tersedia dan area future yang masih direncanakan.
 
 ```text
 src/
@@ -92,6 +93,8 @@ src/
 │   ├── aspirasi/                 # kirim dan lacak tanpa login mahasiswa
 │   ├── admin/                    # area BEM terlindungi
 │   └── api/
+│       ├── admin/
+│       │   └── reports/          # queue/detail case management M6
 │       ├── auth/[...all]/        # Better Auth handler
 │       ├── aspirasi/             # endpoint publik dengan abuse controls
 │       └── webhooks/             # hanya bila integrasi eksternal membutuhkan
@@ -158,6 +161,15 @@ Gunakan Node.js runtime default. Tidak ada kebutuhan Edge runtime yang sudah dis
 6. **Adapter:** Turnstile, R2, notifikasi, hashing/crypto, dan clock/ID generator.
 7. **Audit:** mencatat outcome sensitif tanpa menyimpan secret atau isi privat berlebihan.
 
+### 8.4 Implementasi case management Milestone 6
+
+- Server Component `/admin/laporan` dan `/admin/laporan/[id]` memanggil use case langsung; Client Component hanya menerima DTO serializable yang sudah dipilih.
+- `src/server/aspirations/case-management.ts` menjadi boundary use case untuk queue, filter status/kategori/urgensi/tanggal/PIC, detail, assignment, internal note, reporter-visible message, status transition, archive, dan reopen.
+- `src/app/api/admin/reports/*` tetap memeriksa session serta permission pada setiap request. `VIEW_REPORTS` membuka baca; `PROCESS_REPORT` membuka triage; `ARCHIVE_REPORT` dan `REOPEN_REPORT` hanya dimiliki `ADMIN` pada matrix saat ini.
+- Semua mutasi memakai satu transaksi dan optimistic concurrency berbasis `updatedAt`. Jika versi stale, request gagal dengan conflict dan tidak menimpa perubahan actor lain.
+- DTO detail memisahkan original report, identity, evidence metadata, internal notes, status events, assignment history, dan audit. `objectKey`, signed URL, tracking secret/hash, serta isi note yang sudah dihapus tidak dikirim ke browser.
+- M6 tidak menambah migration karena tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah disiapkan pada foundation M3. Binary evidence/R2 read masih menjadi pekerjaan storage milestone berikutnya.
+
 ## 9. Database dan persistence
 
 - Neon PostgreSQL menjadi system of record untuk laporan, identity/contact, status events, assignments, internal notes, publications, dan audit events.
@@ -214,12 +226,12 @@ sequenceDiagram
   actor Advocate as BEM Advocate
   actor Admin as BEM Admin
 
-  Student->>Web: Isi laporan, consent, dan optional evidence
+  Student->>Web: Isi laporan, consent, dan optional evidence bila storage sudah aktif
   Web->>API: POST submission
   API->>API: Validate, normalize, rate-limit, honeypot
   API->>CF: Verify Turnstile token
   CF-->>API: Validation result
-  opt evidence valid
+  opt evidence valid pada milestone storage
     API->>R2: Store object with private access
   end
   API->>DB: Transaction report, identity, evidence metadata, audit
@@ -227,8 +239,8 @@ sequenceDiagram
   API-->>Student: Tracking code + one-time secret token
 
   Advocate->>API: Open protected report
-  API->>API: Validate session and ADVOCATE permission
-  API->>DB: Read/update status, assignment, notes, safe timeline
+  API->>API: Validate session and VIEW_REPORTS/PROCESS_REPORT permission
+  API->>DB: Read/update status, assignment, notes, safe timeline in transaction
   Advocate->>API: Propose public update
   Admin->>API: Review and approve publication
   API->>DB: Save publication + audit event

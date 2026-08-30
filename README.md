@@ -2,7 +2,7 @@
 
 Muara Aspirasi adalah portal advokasi dan informasi mahasiswa milik BEM FTI Universitas Budi Luhur. Produk ini ditujukan untuk membantu mahasiswa menyampaikan aspirasi secara terstruktur dan aman, sekaligus mengikuti pembaruan advokasi BEM dalam bahasa yang jelas.
 
-Repository ini telah menyelesaikan **Milestone 1 — UI Foundation dan Public Shell**, **Milestone 2 — Halaman Publik Statis**, **Milestone 3 — Database dan ORM Foundation**, **Milestone 4 — BEM Authentication, Roles, dan Admin Foundation**, serta **Milestone 5 — Kirim dan Lacak Aspirasi**. M5 menyediakan form bertahap, validasi server, Turnstile, honeypot, rate limit berbasis Neon, idempotency, receipt credential, serta tracking privat. Migration additive telah diterapkan ke Neon development dan preview; smoke acceptance development lulus dengan data sintetis yang dibersihkan otomatis. Neon main/production tidak disentuh.
+Repository ini telah menyelesaikan **Milestone 1 — UI Foundation dan Public Shell**, **Milestone 2 — Halaman Publik Statis**, **Milestone 3 — Database dan ORM Foundation**, **Milestone 4 — BEM Authentication, Roles, dan Admin Foundation**, **Milestone 5 — Kirim dan Lacak Aspirasi**, serta **Milestone 6 — Moderasi dan Admin Case Management**. M5 menyediakan form bertahap, validasi server, Turnstile, honeypot, rate limit berbasis Neon, idempotency, receipt credential, serta tracking privat. M6 menambahkan antrean privat, filter, detail terpisah, assignment, state transition, catatan internal, pesan reporter-visible, arsip/reopen, optimistic concurrency, dan audit. Schema M6 memakai tabel report yang sudah tersedia dari M3 sehingga tidak ada migration baru. Neon main/production tidak disentuh.
 
 ## Prasyarat
 
@@ -79,6 +79,7 @@ Cloudflare menyediakan dummy key resmi untuk localhost/automated testing; key te
 | Auth smoke         | `npm run auth:smoke`            | Menguji signup tertutup, origin, login, cookie, protected admin, revoke session, dan logout pada server lokal.                                 |
 | Auth integration   | `npm run test:auth-integration` | Menguji role/status, session revocation, audit, dan self-lockout terhadap Neon development.                                                    |
 | M5 smoke           | `npm run m5:smoke`              | Menguji submission/receipt/idempotency/tracking privat terhadap server lokal dan Neon non-production; membuat lalu membersihkan data sintetis. |
+| M6 policy tests    | `npm test`                      | Mencakup state transition, filter queue, validasi tanggal/PIC, permission, submission, tracking, dan regression test lain.                     |
 | Production build   | `npm run build`                 | Membuat build Next.js untuk production.                                                                                                        |
 | Production start   | `npm run start`                 | Menjalankan hasil production build secara lokal.                                                                                               |
 
@@ -91,9 +92,9 @@ Cloudflare menyediakan dummy key resmi untuk localhost/automated testing; key te
 ├── drizzle/                   # SQL migration Drizzle yang reviewable
 ├── scripts/                   # Script operasional aman
 ├── src/app/                   # Next.js App Router
-├── src/app/admin/             # Login dan protected admin foundation M4
+├── src/app/admin/             # Login, protected shell M4, dan case management M6
 ├── src/app/api/auth/          # Better Auth catch-all handler M4
-├── src/components/admin/      # Komponen shell/login/session admin M4
+├── src/components/admin/      # Shell/login/session M4 dan queue/detail report M6
 ├── src/server/auth/           # Auth instance, session, role, audit helper M4
 ├── src/server/db/             # Client Neon, schema, repository, health, transaction
 ├── src/lib/                   # Konfigurasi/domain shared yang belum terkait fitur bisnis
@@ -106,11 +107,13 @@ Dokumen utama proyek berada di [`docs/PRD.md`](docs/PRD.md), [`docs/MILESTONE_RO
 
 ## Status dan batas saat ini
 
-- M4 auth foundation aktif di `/admin/login`, `/admin`, dan `/api/auth/*`; public signup tetap nonaktif dan permission diperiksa server-side.
-- Neon project `muara-aspirasi` memiliki branch non-production `development` dan `preview`. Migration M3 dan M4, serta akun ADMIN sintetis M4, telah diterapkan pada keduanya; branch Neon `main` belum disentuh.
+- M4 auth foundation aktif di `/admin/login`, `/admin`, dan `/api/auth/*`; public signup tetap nonaktif dan permission diperiksa server-side. M6 menambahkan `/admin/laporan`, `/admin/laporan/[id]`, `/api/admin/reports`, dan `/api/admin/reports/[id]` dengan guard yang sama.
+- Neon project `muara-aspirasi` memiliki branch non-production `development` dan `preview`. Migration M3, M4, dan M5, serta akun ADMIN sintetis M4, telah diterapkan pada keduanya; M6 tidak mengubah schema sehingga tidak membuat migration baru. Branch Neon `main` belum disentuh.
 - `src/server/db` menyediakan schema Drizzle, repository awal, internal health probe, dan batas transaksi. Tidak ada Route Handler/API bisnis yang mengeksposnya.
-- Belum ada API bisnis, form aspirasi aktif, tracking privat, dashboard laporan, atau workflow publikasi berbasis data; admin page saat ini hanya access foundation M4.
-- Route `/aspirasi/kirim` dan `/aspirasi/lacak` adalah preview yang secara eksplisit tidak mengumpulkan atau mengirim data.
+- Submission/tracking publik M5 dan dashboard kasus BEM M6 sudah aktif pada source. Workflow publication berbasis data, R2, notifikasi eksternal, dan production deployment masih berada di milestone berikutnya.
+- Route `/aspirasi/kirim` dan `/aspirasi/lacak` memakai endpoint privat yang sudah dilindungi validasi, Turnstile, rate limit, idempotency, dan projection reporter-safe.
 - Arsip Update Advokasi dan Info Mahasiswa berisi contoh tampilan berlabel jelas, bukan data BEM atau kampus yang nyata.
 - Lima gambar di `docs/assets` telah disalin ke `public/images` atas persetujuan pengguna untuk UI lokal; sumbernya tidak dipindahkan atau diubah dan izin publikasi produksi tetap perlu dikonfirmasi.
-- Migration auth M4 sudah diterapkan dan diverifikasi idempotent pada Neon development/preview. Tidak ada deployment aplikasi atau perubahan resource production dari milestone ini.
+- Migration auth M4 dan migration additive M5 sudah diterapkan serta diverifikasi pada Neon development/preview. M6 hanya memanfaatkan schema yang telah ada; tidak ada deployment aplikasi atau perubahan resource production dari milestone ini.
+
+Milestone berikutnya adalah **Milestone 7 — Public Publishing, notifikasi, dan polish**. Sebelum mulai, owner perlu mengonfirmasi approver publikasi, copy kebijakan/kontak, izin aset, keputusan scheduler, dan apakah smoke test M6 berbasis data sintetis akan dijalankan pada Neon non-production.

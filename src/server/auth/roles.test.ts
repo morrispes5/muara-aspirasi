@@ -31,8 +31,9 @@ describe("BEM permission matrix", () => {
   });
 
   it("gives admin the complete matrix", () => {
-    expect(permissionsForRole("ADMIN")).toHaveLength(9);
+    expect(permissionsForRole("ADMIN")).toHaveLength(11);
     expect(hasPermission("ADMIN", "APPROVE_PUBLICATION")).toBe(true);
+    expect(hasPermission("ADMIN", "ARCHIVE_REPORT")).toBe(true);
     expect(hasPermission("ADMIN", "MANAGE_USERS")).toBe(true);
     expect(hasPermission("ADMIN", "VIEW_AUDIT")).toBe(true);
   });

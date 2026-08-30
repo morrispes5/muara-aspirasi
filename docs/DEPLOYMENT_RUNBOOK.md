@@ -1,6 +1,6 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4, seed sintetis, bootstrap auth, dan acceptance M4 telah diverifikasi pada keduanya. Deployment dan seluruh konfigurasi production belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M6 tidak menambah migration dan quality gate source sudah lulus. Deployment dan seluruh konfigurasi production belum dilakukan.
 
 ## 1. Tujuan dan ownership
 
@@ -16,17 +16,17 @@ Prinsip ownership:
 
 ## 2. Platform target
 
-| Kebutuhan         | Rekomendasi                                                               | Status                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`.                                           |
-| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                             |
-| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis.        |
-| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                          |
-| Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                                 |
-| Anti-spam         | Cloudflare Turnstile                                                      | Kode M5 memakai Siteverify; dummy key resmi hanya ada di development/preview, widget production belum dibuat. |
-| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                          |
-| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                                      |
-| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                              |
+| Kebutuhan         | Rekomendasi                                                               | Status                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Source control/CI | GitHub + workflow `.github/workflows/ci.yml`                              | Repository privat terhubung; perubahan saat ini langsung ke `main`.                                                                |
+| Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                                                  |
+| Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis. M6 memakai schema yang ada. |
+| ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                                               |
+| Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                                                      |
+| Anti-spam         | Cloudflare Turnstile                                                      | Kode M5 memakai Siteverify; dummy key resmi hanya ada di development/preview, widget production belum dibuat.                      |
+| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                                               |
+| DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                                                           |
+| Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                                                   |
 
 Netlify mendukung App Router/Server Components melalui adapter Next.js yang dikelola platform. Tidak perlu menambahkan adapter manual kecuali dokumentasi Netlify versi yang dipakai meminta perubahan.
 
@@ -102,7 +102,7 @@ npm test
 npm run build
 ```
 
-`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3 dan M4 sudah diuji di branch Neon `development` dan `preview`; jangan menjalankannya ke production tanpa approval terpisah.
+`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; M6 tidak menghasilkan migration baru. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
 
 ### Setelah database milestone (status M3)
 
@@ -126,6 +126,18 @@ Proposed sequence:
 6. Hapus seluruh `AUTH_BOOTSTRAP_*` dari environment setelah berhasil. Uji visual `/admin/login`, `/admin`, logout, dan layout mobile secara terkontrol.
 7. Jangan memakai akun BEM production pada local/preview kecuali UAT sudah disetujui owner.
 
+### Case management local/preview (Milestone 6)
+
+1. Pastikan aplikasi memakai `DATABASE_URL` pooled dan environment non-production; `DATABASE_URL_UNPOOLED` hanya dipakai untuk operasi database yang memang diperlukan.
+2. Jalankan `npm run db:check`, `npm run format:check`, `npm run lint`, `npm run typecheck`, `npm test`, dan `npm run build`.
+3. Uji `/admin/laporan` sebagai `ADVOCATE` dan `ADMIN`; `EDITOR` boleh membuka shell BEM tetapi tidak boleh melihat antrean atau detail report.
+4. Verifikasi filter status, kategori, urgensi, tanggal diterima, assignment/PIC, arsip, pencarian, pagination, dan reset filter.
+5. Verifikasi detail memisahkan original report, identity/evidence metadata restricted, internal note, reporter-visible message, assignment history, dan audit projection.
+6. Verifikasi status guard, reason untuk `CANNOT_PROCESS`/archive/reopen, soft-delete note, stale `updatedAt` conflict, dan admin-only archive/reopen.
+7. Smoke end-to-end yang membuat report sintetis hanya boleh dijalankan terhadap Neon `development`/`preview` setelah owner memberi izin eksplisit; script wajib membersihkan seluruh row turunan dan report sintetis.
+
+M6 tidak memerlukan `npm run db:migrate`: tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah tersedia dari foundation M3. R2 binary upload/download tetap belum aktif.
+
 ## 6. Pull request dan Deploy Preview
 
 1. Buat branch `feat/<short-name>` atau `fix/<short-name>`.
@@ -134,7 +146,7 @@ Proposed sequence:
 4. Push branch dan buka pull request.
 5. GitHub Actions menjalankan format, lint, type-check, test, dan build.
 6. Netlify membuat Deploy Preview dari pull request.
-7. Bila milestone memakai database, provision/reset Neon preview branch dan jalankan migration terhadap branch itu.
+7. Bila milestone mengubah schema, provision/reset Neon preview branch dan jalankan migration terhadap branch itu. M6 tidak mengubah schema.
 8. Gunakan synthetic/sanitized seed.
 9. Jalankan browser, responsive, accessibility, authorization, dan privacy checks di Preview.
 10. Hapus preview database/storage resource setelah PR ditutup sesuai automation/policy.

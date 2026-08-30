@@ -1,6 +1,6 @@
 # Security and Privacy — Muara Aspirasi
 
-> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 sudah lulus acceptance non-production; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end development lulus dengan data sintetis yang dibersihkan otomatis. Kesiapan production belum selesai dan Neon main/production tidak disentuh.
+> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end M5 development lulus dengan data sintetis yang dibersihkan otomatis. Kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
 ## 1. Tujuan
@@ -16,17 +16,18 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 
 ## 2. Status implementasi kontrol
 
-| Kontrol                                                    | Status saat dokumen dibuat                                                                                             |
-| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                                                         |
-| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                                                         |
-| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada                                      |
-| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada                               |
-| Tracking token generation/hash                             | M5 selesai non-production: token 256-bit, `scrypt` salted hash, verifikasi constant-time; smoke tracking privat lulus  |
-| Turnstile, honeypot, rate limiting                         | M5 selesai non-production: widget + server Siteverify, honeypot, bucket Neon HMAC, idempotency; smoke submission lulus |
-| R2 upload/download validation                              | Belum diimplementasikan                                                                                                |
-| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                                                |
-| Retention/deletion automation                              | Belum diimplementasikan                                                                                                |
+| Kontrol                                                    | Status saat dokumen dibuat                                                                                                                                                    |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                                                                                                                |
+| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                                                                                                                |
+| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada                                                                                             |
+| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada                                                                                      |
+| Tracking token generation/hash                             | M5 selesai non-production: token 256-bit, `scrypt` salted hash, verifikasi constant-time; smoke tracking privat lulus                                                         |
+| Turnstile, honeypot, rate limiting                         | M5 selesai non-production: widget + server Siteverify, honeypot, bucket Neon HMAC, idempotency; smoke submission lulus                                                        |
+| M6 case authorization/workflow/audit                       | Source selesai: queue/detail permission, status guard, assignment/note/message transaction, optimistic conflict, archive/reopen ADMIN-only, dan audit metadata tanpa content. |
+| R2 upload/download validation                              | Belum diimplementasikan                                                                                                                                                       |
+| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                                                                                                       |
+| Retention/deletion automation                              | Belum diimplementasikan                                                                                                                                                       |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
@@ -88,7 +89,7 @@ Kontrak mode:
 - `CONSENTED_LIMITED_SHARE` memerlukan consent eksplisit, tujuan/unit tujuan yang tercatat, dan hanya field identity minimum.
 - Tidak ada mode yang mengizinkan identity tampil pada publik atau public advocacy update.
 
-Foundation evidence default untuk development/preview adalah maksimal tiga file JPEG, PNG, atau PDF, dengan batas 5 MiB per file dan 10 MiB total. File harus lolos pemeriksaan extension, MIME, magic bytes, dan checksum, lalu tetap berada pada private/quarantine storage ketika Milestone 6 dikerjakan. Batas ini dapat diperketat setelah review operasional sebelum production.
+Foundation evidence default untuk development/preview adalah maksimal tiga file JPEG, PNG, atau PDF, dengan batas 5 MiB per file dan 10 MiB total. File harus lolos pemeriksaan extension, MIME, magic bytes, dan checksum, lalu tetap berada pada private/quarantine storage. M6 hanya menampilkan metadata evidence pada actor restricted; binary upload/download tetap menunggu desain R2. Batas ini dapat diperketat setelah review operasional sebelum production.
 
 Aturan mutlak:
 
@@ -111,11 +112,13 @@ Aturan mutlak:
 | Baca original report                  | Hanya own safe timeline |             Tidak secara default |                 Ya |               Ya |
 | Baca identity/contact/evidence        |                   Tidak |                            Tidak |   Ya, need-to-know | Ya, need-to-know |
 | Ubah status/assignment/note           |                   Tidak |                            Tidak |                 Ya |               Ya |
-| Approve publish/archive/reopen        |                   Tidak |                            Tidak | Proposed: terbatas |               Ya |
+| Approve publish / archive / reopen    |                   Tidak |                            Tidak |              Tidak |               Ya |
 | Kelola akun/role/policy               |                   Tidak |                            Tidak |              Tidak |               Ya |
 | Baca audit security penuh             |                   Tidak |                            Tidak | Terbatas pada case |               Ya |
 
 `EDITOR` disebut dapat membantu laporan pada PRD, tetapi scope bantuan belum rinci. Proposed Default adalah editor hanya melihat sanitized summary yang sengaja disediakan; editor tidak melihat PII, evidence, atau internal note.
+
+M6 saat ini tidak menyediakan sanitized report summary untuk `EDITOR`; `VIEW_REPORTS` tetap hanya diberikan kepada `ADVOCATE` dan `ADMIN`. `ARCHIVE_REPORT` serta `REOPEN_REPORT` hanya diberikan kepada `ADMIN`, sehingga Advocate dapat memproses kasus tanpa melakukan lifecycle action yang sensitif.
 
 Tidak ada role moderator terpisah pada MVP.
 
@@ -246,6 +249,8 @@ Audit bersifat append-oriented dan mencatat actor, action, target, result, reaso
 
 Audit metadata memakai allowlist agar audit log tidak menjadi secondary PII store.
 
+Kontrol M6 yang sudah diimplementasikan: `REPORT_QUEUE_VIEWED`, `REPORT_DETAIL_VIEWED`, `REPORT_STATUS_CHANGED`, `REPORT_REPORTER_MESSAGE_ADDED`, `REPORT_CASE_FIELDS_UPDATED`, `REPORT_ASSIGNMENT_CHANGED`, `REPORT_INTERNAL_NOTE_ADDED`, `REPORT_INTERNAL_NOTE_DELETED`, `REPORT_ARCHIVED`, dan `REPORT_REOPENED`. Metadata hanya menyimpan flag, panjang pesan, status, atau reason code; isi report, identity, note body, object key, dan token tidak disalin.
+
 ## 12. Environment variable policy
 
 - `.env.example` hanya berisi nama dan placeholder aman.
@@ -289,6 +294,16 @@ Sebelum production:
 Header untuk dynamic/function responses harus dikonfigurasi di aplikasi bila header Netlify statis tidak mencakupnya.
 
 ## 15. Pre-production security acceptance
+
+### Kontrol M6 yang sudah divalidasi pada source
+
+- Queue memvalidasi enum, UUID, tanggal Jakarta, rentang tanggal, PIC, pagination, dan panjang search sebelum query.
+- Detail report memisahkan original report, restricted identity/evidence metadata, internal note, reporter-visible event, assignment history, dan audit projection.
+- Route Handler memeriksa `VIEW_REPORTS`, `PROCESS_REPORT`, `ARCHIVE_REPORT`, atau `REOPEN_REPORT` server-side; `proxy.ts` bukan authorization boundary.
+- Mutation memakai transaction dan optimistic `updatedAt`; stale update menghasilkan conflict.
+- `CANNOT_PROCESS`, archive, dan reopen memerlukan reason code; klarifikasi memerlukan pesan reporter-visible.
+- Soft-delete note tidak mengirim body lama ke client; event internal tidak mengirim reporter message ke client.
+- M6 tidak menambahkan object URL atau route binary evidence. Validasi/storage R2 tetap menjadi gate milestone storage.
 
 - [ ] Public registration benar-benar tidak tersedia.
 - [ ] Seluruh protected page, action, dan route memiliki server-side session + permission test.

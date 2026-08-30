@@ -1,9 +1,9 @@
 # Data Model — Muara Aspirasi
 
-> Status: model domain diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada Milestone 4; tambahan persistence submission/rate-limit Milestone 5 telah diterapkan melalui migration additive pada Neon development dan preview. Neon main/production tidak disentuh.
+> Status: model domain diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada Milestone 4; tambahan persistence submission/rate-limit Milestone 5 telah diterapkan melalui migration additive pada Neon development dan preview; runtime case management Milestone 6 sudah tersedia tanpa perubahan schema. Neon main/production tidak disentuh.
 > Terminologi utama mengikuti `PRD.md`.
 
-Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, dan migration auth `drizzle/20260830054722_wise_dexter_bennett/`. Dokumen ini tetap menjadi kontrak produk/data; service mutation, report authorization runtime, R2, dan public projection belum diimplementasikan.
+Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, migration auth `drizzle/20260830054722_wise_dexter_bennett/`, migration submission `drizzle/20260830113406_lowly_spirit/`, dan `src/server/aspirations/case-management.ts`. M6 memakai tabel report yang sudah tersedia; service mutation, report authorization runtime, queue/detail DTO, serta reporter-safe projection sudah diimplementasikan. R2 binary access dan public publication projection tetap berada di milestone berikutnya.
 
 ## 1. Tujuan model
 
@@ -123,7 +123,7 @@ Field penting:
 - `validationStatus`: `PENDING | ACCEPTED | REJECTED | QUARANTINED`;
 - `createdAt`, `validatedAt`, `deletedAt`.
 
-Maksimum tiga file mengikuti PRD. Batas byte dan allowlist MIME merupakan Open Question sebelum implementasi.
+Maksimum tiga file mengikuti PRD. M6 hanya membaca metadata evidence yang sudah tersimpan untuk role restricted; binary upload/download, quarantine, dan R2 authorization belum diaktifkan.
 
 ### 3.6 `ReportStatusEvent`
 
@@ -237,6 +237,20 @@ Field penting:
 - `createdAt`, `updatedAt`.
 
 Unique key `scope + signalHash + windowStartedAt` membuat increment bucket atomik di PostgreSQL. Baris kadaluarsa dibersihkan saat endpoint dipakai; nilai mentah tidak pernah disimpan di report atau audit.
+
+### 3.14 Invariant runtime Milestone 6
+
+Service `src/server/aspirations/case-management.ts` menerapkan invariant berikut pada setiap mutation:
+
+- actor sudah lolos `requireBemPermission` pada Route Handler; service hanya menerima `actorUserId` dari session server yang telah tervalidasi;
+- report yang diarsipkan tidak dapat diubah sampai `ADMIN` melakukan reopen dengan reason code;
+- status hanya mengikuti transition yang diizinkan; `CANNOT_PROCESS` membutuhkan reason dan `NEEDS_CLARIFICATION` membutuhkan reporter-visible message;
+- perubahan report, status event, assignment/note, dan audit yang terkait berada pada satu transaksi;
+- `updatedAt` yang dikirim client harus sama dengan versi database. Update dengan versi stale gagal sebagai conflict dan tidak menimpa perubahan lain;
+- hanya satu assignment aktif yang dapat ada untuk satu report, sesuai partial unique index database;
+- identity dan evidence metadata hanya masuk DTO bila actor memiliki `VIEW_CONFIDENTIAL_REPORT`; audit history hanya masuk DTO bila actor memiliki `VIEW_AUDIT`;
+- internal note yang di-soft-delete tidak mengirim body lama ke client, dan event status internal tidak mengirim reporter message ke projection admin;
+- tracking secret/hash dan `report_evidence.objectKey` tidak pernah masuk DTO case management.
 
 ## 4. ERD konseptual
 
@@ -386,7 +400,7 @@ stateDiagram-v2
   CANNOT_PROCESS --> UNDER_REVIEW: admin reopen with reason
 ```
 
-Transition tambahan dari `NEEDS_CLARIFICATION` dan `UPDATE_AVAILABLE` di atas merupakan **Proposed Default** untuk menyelesaikan loop operasional yang belum lengkap di PRD. Harus dikonfirmasi BEM sebelum schema diimplementasikan.
+Transition tambahan dari `NEEDS_CLARIFICATION` dan `UPDATE_AVAILABLE` di atas merupakan **Proposed Default** yang dipakai service M6 untuk menyelesaikan loop operasional. Konfirmasi SOP BEM, serious-risk escalation, dan approval production tetap wajib sebelum launch.
 
 Setiap transition wajib:
 

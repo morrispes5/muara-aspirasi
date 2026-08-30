@@ -1,6 +1,6 @@
 # UX/UI Design System — Muara Aspirasi
 
-> Status: arahan desain untuk milestone UI berikutnya. Tidak ada perubahan UI aplikasi pada milestone dokumentasi ini.  
+> Status: token dan arahan visual menjadi baseline UI M1–M6; queue/detail case management M6 sudah diimplementasikan. Publication publik, R2, dan polish release masih mengikuti milestone berikutnya.
 > Lima gambar di `docs/assets` adalah referensi visual, bukan production asset.
 
 ## 1. Arah pengalaman
@@ -72,17 +72,17 @@ Halaman privacy/ethics tidak boleh memakai placeholder pada public launch.
 
 ## 5. Halaman setelah login BEM
 
-| Route konseptual        | Pengguna              | Tujuan                                                                                         |
-| ----------------------- | --------------------- | ---------------------------------------------------------------------------------------------- |
-| `/admin/login`          | BEM                   | Login tanpa public signup.                                                                     |
-| `/admin`                | Semua role BEM        | Ringkasan tugas sesuai role, bukan expose seluruh data.                                        |
-| `/admin/aspirasi`       | Advocate/Admin        | Queue, filter, pagination, urgency, assignment.                                                |
-| `/admin/aspirasi/[id]`  | Advocate/Admin        | Case detail dengan tab/section jelas untuk report, identity, evidence, timeline, notes, audit. |
-| `/admin/update`         | Editor/Advocate/Admin | Draft/review/publish advocacy updates sesuai permission.                                       |
-| `/admin/info-mahasiswa` | Editor/Advocate/Admin | Draft/review/schedule/publish student info.                                                    |
-| `/admin/users`          | Admin                 | Manage user, role, suspension, session.                                                        |
-| `/admin/audit`          | Admin                 | Search audit events tanpa menampilkan secret/PII berlebihan.                                   |
-| `/admin/settings`       | Admin                 | Policy version dan konfigurasi non-secret yang disetujui.                                      |
+| Route konseptual        | Pengguna              | Tujuan                                                                                              |
+| ----------------------- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| `/admin/login`          | BEM                   | Login tanpa public signup.                                                                          |
+| `/admin`                | Semua role BEM        | Ringkasan tugas sesuai role, bukan expose seluruh data.                                             |
+| `/admin/laporan`        | Advocate/Admin        | Queue, filter, pagination, urgency, tanggal, assignment/PIC, arsip, dan reset filter.               |
+| `/admin/laporan/[id]`   | Advocate/Admin        | Case detail dengan section jelas untuk report, identity, evidence metadata, timeline, notes, audit. |
+| `/admin/update`         | Editor/Advocate/Admin | Draft/review/publish advocacy updates sesuai permission.                                            |
+| `/admin/info-mahasiswa` | Editor/Advocate/Admin | Draft/review/schedule/publish student info.                                                         |
+| `/admin/users`          | Admin                 | Manage user, role, suspension, session.                                                             |
+| `/admin/audit`          | Admin                 | Search audit events tanpa menampilkan secret/PII berlebihan.                                        |
+| `/admin/settings`       | Admin                 | Policy version dan konfigurasi non-secret yang disetujui.                                           |
 
 Admin UI harus membedakan secara visual:
 
@@ -340,7 +340,7 @@ Sebelum penggunaan production, owner harus menyediakan:
 Keputusan berikut mengikat public shell yang sudah dibangun pada 29 Agustus 2026. Ia melengkapi rencana konseptual di atas tanpa mengubah route dan fitur yang masih ditunda.
 
 - Header memprioritaskan wordmark teks `Muara Aspirasi`; setelah persetujuan eksplisit pengguna, lockup institusi kecil tampil pada desktop dan foto kampus dipakai di hero lokal. Izin produksi/master resmi masih wajib diverifikasi.
-- Navigasi sementara mengikuti brief Milestone 1: `Beranda`, `Tentang`, `Aspirasi`, `Lacak Aspirasi`, `Transparansi`, dan `Masuk BEM`. `Masuk BEM` adalah placeholder, bukan login. Route PRD yang lebih rinci tetap merupakan target milestone berikutnya.
+- Navigasi awal M1 kini dilanjutkan oleh route canonical M2/M4: `Kirim Aspirasi` menuju `/aspirasi/kirim`, `Lacak Aspirasi` menuju `/aspirasi/lacak`, dan `Masuk BEM` menuju `/admin/login`. Public signup tetap tidak tersedia.
 - Menu mobile memakai state klien yang sangat terbatas untuk membuka/menutup navigasi; kontrol berlabel memiliki target sentuh minimal 44px dan tetap dapat dioperasikan keyboard.
 - Token awal diterapkan melalui Tailwind CSS v4 di `globals.css`: canvas `#F6F8FB`, ink `#102A43`, primary `#155EEF`, border `#D9E2EC`, radius control 8px, radius card 16px, dan skala 4px. Untuk teks/icon accent, warm diperdalam menjadi `#C2410C` agar tidak memakai `#F97316` sebagai teks pada putih.
 - Breakpoint shell menggunakan satu kolom sampai bawah `lg` dan navigasi desktop pada `lg` (1024px ke atas). Container memakai padding 20px mobile, 32px tablet, dan 40px desktop.
@@ -361,3 +361,13 @@ Keputusan berikut mengikat public shell yang sudah dibangun pada 29 Agustus 2026
 - Milestone 5 menggantikan preview pada `/aspirasi/kirim` dan `/aspirasi/lacak` dengan form empat tahap, warning privasi/evidence, receipt code + token rahasia, dan form tracking privat. Form mempertahankan jawaban antar-tahap, memisahkan review dari pengiriman, serta tidak menampilkan PII kembali pada timeline. Upload bukti tetap tidak tersedia sampai R2 private dan aturan file disetujui.
 - Archive dan detail `Update Advokasi` serta `Info Mahasiswa` memakai data contoh berlabel eksplisit. Card cukup memakai garis, ruang, dan tipografi; tidak ditambah glass atau metrik palsu.
 - Setiap halaman publik statis memiliki satu `h1` melalui `PublicPageIntro`, sementara judul di dalam section memakai tingkat heading lanjutan.
+
+## 19. Keputusan UI Milestone 6
+
+- Queue memakai table pada desktop dan stacked card pada mobile; filter mencakup status, urgensi, kategori, tanggal diterima, assignment, PIC spesifik, arsip, dan pencarian.
+- Queue memiliki loading, empty, error, pagination, dan reset state. Empty state tidak menyiratkan sistem gagal dan selalu memberi next action yang jelas.
+- Detail memakai section terpisah untuk isi original, identity restricted, metadata evidence, klasifikasi internal, workflow, reporter-visible message, internal note, assignment, lifecycle, dan audit.
+- Identity/evidence diberi notice restricted dan tidak dicampur dengan copy reporter-visible. Evidence M6 hanya metadata; tidak ada object URL atau download UI.
+- Semua form mutation memiliki label, feedback `aria-live`, status disabled saat menyimpan, dan conflict message ketika versi report stale.
+- Archive/reopen memakai reason selector dan confirmation dialog. Soft-delete note memakai alasan dan menampilkan tombstone, bukan body note lama.
+- `EDITOR` dapat melihat shell BEM sesuai permission, tetapi tidak melihat antrean/detail report. UI tidak mengandalkan hidden link sebagai authorization; server tetap menjadi boundary.

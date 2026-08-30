@@ -2,6 +2,7 @@
 
 > Build one milestone at a time. Do not begin the next milestone until the previous acceptance criteria pass.
 > Untuk eksekusi sesi saat ini, gunakan `MILESTONE_ROADMAP.md` dan `IMPLEMENTATION_STATUS.md`; dokumen ini dipertahankan sebagai roadmap legacy dan pemetaan milestone produk.
+> Catatan status: label legacy di bawah tidak mengubah urutan eksekusi terbaru. Case management yang tertulis sebagai Milestone 4 di dokumen legacy selesai pada Milestone 6 execution roadmap; public publishing legacy Milestone 5 menjadi Milestone 7 execution roadmap.
 
 ## Milestone 0 — Project bootstrap and documentation
 

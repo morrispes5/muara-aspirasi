@@ -5,8 +5,8 @@ import { getSafeAdminRedirectPath } from "@/server/auth/redirect";
 describe("admin redirect validation", () => {
   it("accepts only local admin paths", () => {
     expect(getSafeAdminRedirectPath("/admin")).toBe("/admin");
-    expect(getSafeAdminRedirectPath("/admin/aspirasi?status=RECEIVED")).toBe(
-      "/admin/aspirasi?status=RECEIVED",
+    expect(getSafeAdminRedirectPath("/admin/laporan?status=RECEIVED")).toBe(
+      "/admin/laporan?status=RECEIVED",
     );
   });
 

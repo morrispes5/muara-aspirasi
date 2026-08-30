@@ -203,6 +203,8 @@ Mengimplementasikan loop mahasiswa: submission aman, tracking credential, dan re
 
 ## Milestone 6 — Moderasi dan admin case management
 
+> Status 30 Agustus 2026: **core implementation selesai pada source**. Queue/detail, server-side permission, guarded workflow, assignment, internal note, reporter-visible update, archive/reopen, optimistic concurrency, dan audit sudah tersedia. M6 tidak membutuhkan migration baru karena seluruh tabel report yang diperlukan sudah dibuat pada M3. Neon `main`/production tidak disentuh.
+
 ### Tujuan
 
 Memungkinkan BEM memproses report end-to-end dengan pemisahan data dan audit.
@@ -214,14 +216,14 @@ Memungkinkan BEM memproses report end-to-end dengan pemisahan data dan audit.
 - Assignment history, internal note, reporter message.
 - State machine dan guarded transition.
 - Required reason untuk cannot-process, archive, reopen, dan sensitive actions.
-- Evidence authorized read dan audit.
+- Evidence authorized metadata read dan audit; binary upload/download tetap menunggu desain R2.
 - Sanitized summary boundary bila editor benar-benar membutuhkan bantuan report.
 
 ### Dependency
 
 - Milestone 4–5 lulus.
-- Transition tambahan dan escalation SOP dikonfirmasi.
-- Permission/approval matrix final.
+- Transition tambahan dipakai sebagai Proposed Default yang sudah di-guard pada service; serious-risk escalation SOP tetap harus dikonfirmasi sebelum production.
+- Permission matrix M4 dipakai: `ADVOCATE` memproses report, `ADMIN` melakukan archive/reopen dan melihat audit penuh.
 
 ### Validasi wajib
 
@@ -229,8 +231,9 @@ Memungkinkan BEM memproses report end-to-end dengan pemisahan data dan audit.
 - State transition unit/property tests.
 - Role/access negative tests untuk PII/evidence/note/audit.
 - Assignment concurrency dan transaction tests.
-- E2E advocate workflow dan admin reopen/approval.
-- Public response privacy scan.
+- Local route/build smoke untuk `/admin/laporan` dan `/admin/laporan/[id]`.
+- E2E advocate workflow dan admin reopen/approval pada Neon non-production memerlukan owner approval karena membuat data sintetis.
+- Public response privacy scan melalui DTO review dan unit regression tests.
 
 ### Risiko utama
 
@@ -238,6 +241,15 @@ Memungkinkan BEM memproses report end-to-end dengan pemisahan data dan audit.
 - Internal note terkirim ke pelapor.
 - Concurrent update menimpa status/assignment.
 - Serious-risk case diproses tanpa SOP.
+
+### Hasil implementasi M6
+
+- `src/server/aspirations/case-management.ts` memusatkan query/mutation dan invariant report.
+- `src/app/api/admin/reports/route.ts` menyediakan queue read dengan pagination dan filter status/kategori/urgensi/tanggal/PIC/assignment/arsip/search.
+- `src/app/api/admin/reports/[id]/route.ts` menyediakan detail dan mutation action dengan same-origin check, session/permission check, validation, serta safe error response.
+- `src/components/admin/report-queue.tsx` menyediakan table desktop, card mobile, filter, pagination, reset, loading, empty, dan error state.
+- `src/components/admin/report-detail.tsx` memisahkan original, identity, evidence metadata, internal note, reporter-visible message, assignment, lifecycle, dan audit.
+- State transition dan filter boundary memiliki regression tests; full Neon mutation smoke belum dijalankan pada sesi ini tanpa izin eksplisit owner.
 
 ## Milestone 7 — Public publishing, notifikasi, dan polish
 

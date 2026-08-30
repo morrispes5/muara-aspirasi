@@ -8,6 +8,7 @@ import { Container } from "@/components/layout/container";
 type AdminShellProps = {
   children: ReactNode;
   user: {
+    canViewReports: boolean;
     email: string;
     name: string;
     role: BemRole;
@@ -43,6 +44,14 @@ export function AdminShell({ children, user }: AdminShellProps) {
             >
               Ringkasan akses
             </Link>
+            {user.canViewReports ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/laporan"
+              >
+                Antrean laporan
+              </Link>
+            ) : null}
           </nav>
           <div className="border-line border-t pt-5">
             <p className="text-muted mb-3 text-xs leading-5">

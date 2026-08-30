@@ -86,6 +86,8 @@ Implement public report submission and private tracking exactly as documented. T
 Implement the BEM report workflow: filters, report detail, assignment history, safe status transitions, internal notes, reporter-visible updates, and audit events. Enforce roles server-side.
 ```
 
+Status implementasi 30 Agustus 2026: core M6 sudah tersedia di source pada `/admin/laporan`, `/admin/laporan/[id]`, dan `/api/admin/reports/*`. Tabel report sudah tersedia dari M3 sehingga M6 tidak membuat migration baru. Sebelum mengklaim acceptance runtime penuh, minta izin eksplisit owner untuk smoke mutation dengan data sintetis pada Neon `development` atau `preview`; jangan menyentuh Neon `main`/production.
+
 ### Milestone 7 add-on
 
 ```text

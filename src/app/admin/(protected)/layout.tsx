@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
-import { redirect } from "next/navigation";
 
 import {
   AuthorizationError,
   requireBemPermission,
 } from "@/server/auth/session";
 import { AdminShell } from "@/components/admin/admin-shell";
+import { hasPermission } from "@/server/auth/roles";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +32,7 @@ export default async function AdminProtectedLayout({
   return (
     <AdminShell
       user={{
+        canViewReports: hasPermission(session.user.role, "VIEW_REPORTS"),
         email: session.user.email,
         name: session.user.name,
         role: session.user.role,
