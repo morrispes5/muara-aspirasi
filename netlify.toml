@@ -1,5 +1,8 @@
 [build]
-  command = "npm run build"
+  # Netlify's Next runtime bundles the admin proxy as an Edge Function. Use
+  # webpack here because the Turbopack middleware artifact cannot be bundled
+  # reliably by the current Windows Netlify CLI path resolver.
+  command = "npm run build -- --webpack"
   publish = ".next"
 
 [build.environment]
