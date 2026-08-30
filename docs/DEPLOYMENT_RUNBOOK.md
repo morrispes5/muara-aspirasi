@@ -1,6 +1,6 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision secara terpisah pada free plan; schema, migration, dan seed sintetis Milestone 3 telah diverifikasi pada keduanya. Deploy, account linking, credential runtime, dan seluruh konfigurasi production belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4, seed sintetis, bootstrap auth, dan acceptance M4 telah diverifikasi pada keduanya. Deployment dan seluruh konfigurasi production belum dilakukan.
 
 ## 1. Tujuan dan ownership
 
@@ -22,7 +22,7 @@ Prinsip ownership:
 | Web hosting       | Netlify Next.js runtime                                                   | `netlify.toml` baseline tersedia.                                                                      |
 | Database          | Neon PostgreSQL                                                           | Project `muara-aspirasi` free; branch development/preview sudah dimigrasikan dan diberi seed sintetis. |
 | ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                   |
-| Auth              | Better Auth pada Next.js                                                  | Belum dipasang.                                                                                        |
+| Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                          |
 | Anti-spam         | Cloudflare Turnstile                                                      | Belum dikonfigurasi.                                                                                   |
 | Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                   |
 | DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                               |
@@ -48,7 +48,7 @@ Aturan:
 
 ## 4. Environment variable terencana
 
-Daftar berikut hanya nama dan fungsi. Placeholder database ditambahkan ke `.env.example` saat persiapan Milestone 3; value nyata tetap hanya berada di `.env.local`/secret store.
+Daftar berikut hanya nama dan fungsi. Placeholder database dan auth tersedia di `.env.example`; value nyata tetap hanya berada di `.env.local`/secret store.
 
 | Nama                                   | Scope            | Fungsi                                                        |                            Secret? |
 | -------------------------------------- | ---------------- | ------------------------------------------------------------- | ---------------------------------: |
@@ -57,6 +57,11 @@ Daftar berikut hanya nama dan fungsi. Placeholder database ditambahkan ke `.env.
 | `DATABASE_URL_UNPOOLED`                | Build/ops server | Direct connection untuk migration terkontrol.                 |                                 Ya |
 | `BETTER_AUTH_SECRET`                   | Server           | Signing/encryption secret Better Auth.                        |                                 Ya |
 | `BETTER_AUTH_URL`                      | Server           | Trusted canonical auth origin.                                | Tidak, tetapi environment-specific |
+| `BETTER_AUTH_TRUSTED_ORIGINS`          | Server           | Comma-separated origin allowlist untuk callback/auth request. | Tidak, tetapi environment-specific |
+| `BEM_ALLOWED_EMAIL_DOMAINS`            | Ops              | Optional domain allowlist untuk bootstrap admin BEM.          |                              Tidak |
+| `AUTH_BOOTSTRAP_NAME`                  | One-time ops     | Nama admin awal; hapus setelah bootstrap.                     |                              Tidak |
+| `AUTH_BOOTSTRAP_EMAIL`                 | One-time ops     | Email admin awal; hapus setelah bootstrap.                    |                              Tidak |
+| `AUTH_BOOTSTRAP_PASSWORD`              | One-time ops     | Password admin awal; hapus setelah bootstrap.                 |                                 Ya |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server  | Public Turnstile widget site key.                             |                              Tidak |
 | `TURNSTILE_SECRET_KEY`                 | Server           | Server-side Siteverify credential.                            |                                 Ya |
 | `R2_ACCOUNT_ID`                        | Server           | Cloudflare account identifier.                                |                  Restricted config |
@@ -97,7 +102,7 @@ npm test
 npm run build
 ```
 
-`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3 sudah diuji di branch Neon `development` dan `preview`; jangan menjalankannya ke production tanpa approval terpisah.
+`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3 dan M4 sudah diuji di branch Neon `development` dan `preview`; jangan menjalankannya ke production tanpa approval terpisah.
 
 ### Setelah database milestone (status M3)
 
@@ -110,6 +115,16 @@ Proposed sequence:
 5. jalankan `npm run db:seed` hanya dengan `DATABASE_ENVIRONMENT=development` atau `preview`;
 6. uji migration/constraint/transaction pada development, lalu ulangi di preview;
 7. jangan memakai `push` langsung ke production.
+
+### Auth local/preview (Milestone 4)
+
+1. Isi `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `DATABASE_ENVIRONMENT`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, dan `BETTER_AUTH_TRUSTED_ORIGINS` untuk environment non-production.
+2. Review migration M4 di `drizzle/20260830054722_wise_dexter_bennett/migration.sql`, lalu jalankan `npm run db:migrate` hanya terhadap branch development/preview yang dipilih.
+3. Set `AUTH_BOOTSTRAP_NAME`, `AUTH_BOOTSTRAP_EMAIL`, dan `AUTH_BOOTSTRAP_PASSWORD`; bila dipakai, isi `BEM_ALLOWED_EMAIL_DOMAINS`.
+4. Jalankan `npm run auth:bootstrap` satu kali. Script menolak environment selain `development`/`preview`, membuat akun `ADMIN`, dan tidak mencetak password.
+5. Jalankan `npm run test:auth-integration` dan, saat server lokal aktif, `npm run auth:smoke`.
+6. Hapus seluruh `AUTH_BOOTSTRAP_*` dari environment setelah berhasil. Uji visual `/admin/login`, `/admin`, logout, dan layout mobile secara terkontrol.
+7. Jangan memakai akun BEM production pada local/preview kecuali UAT sudah disetujui owner.
 
 ## 6. Pull request dan Deploy Preview
 

@@ -1,4 +1,5 @@
 import {
+  boolean,
   check,
   index,
   pgTable,
@@ -17,6 +18,8 @@ export const bemUsers = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     name: varchar("name", { length: 160 }).notNull(),
     email: varchar("email", { length: 320 }).notNull(),
+    emailVerified: boolean("email_verified").default(false).notNull(),
+    image: varchar("image", { length: 2048 }),
     role: bemUserRoleEnum("role").default("EDITOR").notNull(),
     status: bemUserStatusEnum("status").default("ACTIVE").notNull(),
     createdByUserId: uuid("created_by_user_id"),

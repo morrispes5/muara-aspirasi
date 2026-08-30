@@ -7,7 +7,7 @@ This guide keeps implementation sessions focused. Send **one milestone at a time
 At the beginning of a Codex session, provide:
 
 1. Repository path and current branch.
-2. Exact milestone/task from `IMPLEMENTATION_ROADMAP.md`.
+2. Exact milestone/task from `MILESTONE_ROADMAP.md` (the detailed execution roadmap); use `IMPLEMENTATION_ROADMAP.md` for the legacy product milestone mapping.
 3. Documents it must read before editing.
 4. Instruction to inspect existing work and preserve unrelated changes.
 5. Required verification commands.
@@ -26,7 +26,9 @@ Before changing anything, read:
 - docs/DATA_MODEL.md
 - docs/SECURITY_PRIVACY.md
 - docs/UX_UI_DESIGN_SYSTEM.md
+- docs/MILESTONE_ROADMAP.md
 - docs/IMPLEMENTATION_ROADMAP.md
+- docs/IMPLEMENTATION_STATUS.md
 
 Current task: <INSERT ONE SPECIFIC MILESTONE TASK>
 
@@ -57,34 +59,46 @@ Implement the public UI shell and static pages from docs/UX_UI_DESIGN_SYSTEM.md.
 ### Milestone 2 add-on
 
 ```text
-Implement Neon + Drizzle schema/migrations and BEM-only Better Auth according to docs/DATA_MODEL.md and docs/SECURITY_PRIVACY.md. Add a protected admin shell and role tests. Do not implement the public report form yet.
+Implement the public static information and placeholder pages from docs/UX_UI_DESIGN_SYSTEM.md. Keep them non-mutating and label synthetic content clearly. Do not implement database mutation, auth, or the public report form yet.
 ```
 
 ### Milestone 3 add-on
 
 ```text
-Implement public report submission and private tracking exactly as documented. Turnstile must be verified server-side. Store only a hash of the secret tracking token. No report content or identity may appear on public archive pages.
+Implement Neon + Drizzle schema/migrations, seed/repository foundation, and database health/transaction helpers according to docs/DATA_MODEL.md and docs/SECURITY_PRIVACY.md. Keep seed synthetic and do not add Better Auth, public submission, or production resources.
 ```
 
 ### Milestone 4 add-on
 
 ```text
-Implement the BEM report workflow: filters, report detail, assignment history, safe status transitions, internal notes, reporter-visible updates, and audit events. Enforce roles server-side.
+Implement BEM-only Better Auth with Drizzle adapter, public signup disabled, safe admin bootstrap, auth handler, login/logout/session revoke, server-side role/permission helpers, optimistic proxy redirect, protected admin shell, and auth audit events. Do not implement the public report form or report case workflow yet.
 ```
 
 ### Milestone 5 add-on
 
 ```text
-Implement advocacy update and Info Mahasiswa draft/publish/archive workflows plus public archives/detail pages. Public updates must be independently authored summaries and cannot render original report content.
+Implement public report submission and private tracking exactly as documented. Turnstile must be verified server-side. Store only a hash of the secret tracking token. No report content or identity may appear on public archive pages.
 ```
 
 ### Milestone 6 add-on
 
 ```text
+Implement the BEM report workflow: filters, report detail, assignment history, safe status transitions, internal notes, reporter-visible updates, and audit events. Enforce roles server-side.
+```
+
+### Milestone 7 add-on
+
+```text
+Implement advocacy update and Info Mahasiswa draft/publish/archive workflows plus public archives/detail pages. Public updates must be independently authored summaries and cannot render original report content.
+```
+
+### Milestone 8 add-on
+
+```text
 Implement Cloudflare R2 media according to docs/SECURITY_PRIVACY.md. Evidence must remain private. Validate type, count, size, and authorization. Use environment variable names only; do not require real credentials for local tests.
 ```
 
-### Milestone 7/8 add-on
+### Milestone 9 add-on
 
 ```text
 Implement and run the relevant tests/checklists. Treat docs/DEPLOYMENT_RUNBOOK.md as the release contract. Do not deploy or modify external production resources without explicit instruction from the project owner.

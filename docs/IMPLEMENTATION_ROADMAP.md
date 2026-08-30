@@ -1,6 +1,7 @@
 # Implementation Roadmap — Muara Aspirasi
 
 > Build one milestone at a time. Do not begin the next milestone until the previous acceptance criteria pass.
+> Untuk eksekusi sesi saat ini, gunakan `MILESTONE_ROADMAP.md` dan `IMPLEMENTATION_STATUS.md`; dokumen ini dipertahankan sebagai roadmap legacy dan pemetaan milestone produk.
 
 ## Milestone 0 — Project bootstrap and documentation
 

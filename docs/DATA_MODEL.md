@@ -1,9 +1,9 @@
 # Data Model — Muara Aspirasi
 
-> Status: model konseptual yang telah diimplementasikan sebagai foundation Drizzle pada Milestone 3.
+> Status: model domain telah diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada fondasi Milestone 4.
 > Terminologi utama mengikuti `PRD.md`.
 
-Implementasi referensi: `src/server/db/schema/` dan migration `drizzle/20260829191548_milestone_3_foundation/`. Dokumen ini tetap menjadi kontrak produk/data; Better Auth, service mutation, authorization runtime, R2, dan public projection belum diimplementasikan.
+Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, dan migration auth `drizzle/20260830054722_wise_dexter_bennett/`. Dokumen ini tetap menjadi kontrak produk/data; service mutation, report authorization runtime, R2, dan public projection belum diimplementasikan.
 
 ## 1. Tujuan model
 
@@ -46,6 +46,16 @@ Field penting:
 - `createdByUserId`: nullable untuk bootstrap admin pertama.
 
 Credential, session, verification token, dan account provider dikelola tabel Better Auth. Password plaintext tidak pernah menjadi field domain.
+
+### 3.1.1 Persistence Better Auth
+
+Fondasi M4 memetakan Better Auth ke PostgreSQL melalui Drizzle adapter:
+
+- `auth_sessions`: session aktif, expiry, user agent, dan IP signal terbatas;
+- `auth_accounts`: credential account dengan provider `credential`, password yang sudah di-hash Better Auth, serta account identifier;
+- `auth_verifications`: verification record yang diperlukan adapter, tanpa memasukkan secret ke seed atau log aplikasi.
+
+Ketiga tabel memiliki foreign key ke `bem_users` dengan cascade pada penghapusan user auth. Signup publik tetap nonaktif dan user domain yang dapat membuat session harus berstatus `ACTIVE`.
 
 ### 3.2 `Category`
 
@@ -467,6 +477,21 @@ Keputusan berikut berlaku untuk database development dan preview Muara Aspirasi.
 | Retention     | Report, contact, dan evidence dihapus/diarsipkan sesuai prosedur 180 hari setelah closure; audit metadata 365 hari; abuse signal maksimal 30 hari dan diminimalkan.                                                                                |
 | Evidence      | Maksimal 3 file; JPEG, PNG, dan PDF; maksimal 5 MiB per file dan 10 MiB total. Validasi extension, MIME, magic bytes, checksum, dan random object key; object tetap private/quarantine di R2.                                                      |
 | Permission    | Public hanya submit/track dengan code + token dan membaca projection publik. `EDITOR` hanya sanitized summary/konten. `ADVOCATE` menangani report/identity/evidence sesuai need-to-know. `ADMIN` memiliki approval, policy, role, dan audit penuh. |
+
+## 10.2 Keputusan foundation Milestone 4
+
+Keputusan implementasi berikut berlaku untuk fondasi auth lokal dan menjadi acceptance gate sebelum account linking production:
+
+| Area           | Keputusan foundation                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Provider       | Better Auth dengan Drizzle adapter PostgreSQL; akun BEM memakai provider `credential`.                                                                             |
+| Registration   | Public signup nonaktif. Akun pertama dibuat melalui `npm run auth:bootstrap` pada development/preview saja.                                                        |
+| Password       | Panjang 12–128 karakter; plaintext tidak disimpan atau dicetak.                                                                                                    |
+| Session        | Cookie auth server-side; protected page/handler wajib memeriksa session dan status `ACTIVE` di server.                                                             |
+| Role           | `EDITOR`, `ADVOCATE`, `ADMIN`; permission matrix berada di `src/server/auth/roles.ts`.                                                                             |
+| Redirect       | `src/proxy.ts` hanya redirect optimistis; redirect aman menolak target external/non-admin.                                                                         |
+| Audit          | Login failure, logout, dan session revoke dicatat sebagai `AuditEvent` dengan metadata allowlist tanpa credential/token.                                           |
+| Runtime status | Migration auth sudah diterapkan pada Neon development/preview; bootstrap, login, revoke session, suspend/role, audit, dan logout tervalidasi dengan data sintetis. |
 
 ## 11. Referensi implementasi masa depan
 

@@ -1,6 +1,6 @@
 # Security and Privacy — Muara Aspirasi
 
-> Status: kebijakan dan acceptance target untuk MVP. Ini bukan klaim bahwa kontrol sudah diimplementasikan.  
+> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 sudah lulus acceptance non-production; kesiapan production dan kontrol milestone berikutnya belum selesai.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
 ## 1. Tujuan
@@ -16,17 +16,17 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 
 ## 2. Status implementasi kontrol
 
-| Kontrol                                                    | Status saat dokumen dibuat                                                |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                            |
-| TypeScript strict, lint, test, production build            | Sudah tersedia                                                            |
-| Authentication, session, role enforcement                  | Belum diimplementasikan                                                   |
-| Database/schema/migration                                  | Foundation M3 selesai pada Neon development/preview; production belum ada |
-| Tracking token generation/hash                             | Belum diimplementasikan                                                   |
-| Turnstile, honeypot, rate limiting                         | Belum diimplementasikan                                                   |
-| R2 upload/download validation                              | Belum diimplementasikan                                                   |
-| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                   |
-| Retention/deletion automation                              | Belum diimplementasikan                                                   |
+| Kontrol                                                    | Status saat dokumen dibuat                                                               |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                           |
+| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                           |
+| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada        |
+| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada |
+| Tracking token generation/hash                             | Belum diimplementasikan                                                                  |
+| Turnstile, honeypot, rate limiting                         | Belum diimplementasikan                                                                  |
+| R2 upload/download validation                              | Belum diimplementasikan                                                                  |
+| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                  |
+| Retention/deletion automation                              | Belum diimplementasikan                                                                  |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
@@ -130,6 +130,16 @@ Tidak ada role moderator terpisah pada MVP.
 - Sensitive actions dapat meminta recent authentication/re-authentication.
 - Session dapat direvoke; role change/suspension harus membatalkan session aktif yang relevan.
 - Proposed Default: MFA diwajibkan untuk `ADMIN` sebelum production, subject to recovery SOP dan kemampuan library yang diuji.
+
+Implementasi M4 mengikuti boundary di atas:
+
+- `src/server/auth/auth.ts` mengonfigurasi Better Auth dengan Drizzle adapter, signup publik nonaktif, password 12–128 karakter, trusted origin eksplisit, dan cookie `HttpOnly`/`SameSite`/`Secure` sesuai environment;
+- `src/proxy.ts` hanya melakukan redirect optimistis untuk `/admin`, sedangkan `src/server/auth/session.ts` memeriksa user aktif dan permission di server;
+- `src/server/auth/roles.ts` mengunci matrix permission `EDITOR`, `ADVOCATE`, dan `ADMIN`;
+- `src/app/api/auth/[...all]/route.ts` menyediakan handler auth dan audit login failure, logout, serta session revoke tanpa mencatat password atau token;
+- `src/server/auth/user-management.ts` membatasi perubahan role/status kepada `ADMIN` aktif, mencabut sesi target, mencatat audit, dan mencegah self-lockout/last-active-admin;
+- migration auth dan bootstrap sintetis sudah diterapkan pada Neon development/preview; smoke test memvalidasi signup tertutup, trusted origin, cookie `HttpOnly`/`SameSite=Lax`, login, protected page, revoke session, dan logout;
+- keputusan production: MFA wajib untuk `ADMIN`, recovery wajib dimiliki minimal dua owner organisasi, dan akun production harus memakai domain BEM resmi yang disetujui. M4 tidak membuat akun production.
 
 ## 8. Input validation dan content safety
 

@@ -34,21 +34,21 @@ Prinsip utama:
 
 ## 3. Stack dan alasan
 
-| Bagian               | Teknologi                  | Status                        | Alasan                                                                                                 |
-| -------------------- | -------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Web framework        | Next.js 16 App Router      | Sudah dipasang                | Mendukung Server Components, Route Handlers, Server Actions, metadata, dan satu deployment full-stack. |
-| UI runtime           | React 19                   | Sudah dipasang                | Runtime UI yang digunakan Next.js saat ini.                                                            |
-| Bahasa               | TypeScript strict          | Sudah dipasang                | Menurunkan risiko kontrak data dan otorisasi yang tidak konsisten.                                     |
-| Styling              | Tailwind CSS 4             | Sudah dipasang                | Sistem token/utilitas konsisten dan mobile-first.                                                      |
-| UI primitives        | shadcn/ui                  | Direncanakan, belum dipasang  | Roadmap meminta hanya komponen yang benar-benar dipakai.                                               |
-| Quality              | ESLint, Prettier, Vitest   | Sudah dipasang                | Quality gate lokal dan CI sudah tersedia.                                                              |
-| Hosting              | Netlify                    | Konfigurasi baseline tersedia | Mendukung Next.js App Router melalui adapter yang dikelola Netlify dan Deploy Preview.                 |
-| Database             | Neon PostgreSQL            | Foundation M3 selesai         | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                      |
-| ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai         | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.          |
-| Admin authentication | Better Auth                | Direncanakan                  | Stack dikunci oleh handoff; mendukung integrasi Next.js dan kontrol akses berbasis role.               |
-| Anti-spam            | Cloudflare Turnstile       | Direncanakan                  | Validasi bot untuk form publik; token wajib diverifikasi server-side.                                  |
-| Object storage       | Cloudflare R2              | Direncanakan                  | Bukti privat dan media editorial dapat dipisahkan dari database.                                       |
-| Notification         | Timeline internal aplikasi | MVP default                   | Email/WhatsApp masih open question dalam PRD dan tidak termasuk default MVP.                           |
+| Bagian               | Teknologi                  | Status                        | Alasan                                                                                                                                        |
+| -------------------- | -------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web framework        | Next.js 16 App Router      | Sudah dipasang                | Mendukung Server Components, Route Handlers, Server Actions, metadata, dan satu deployment full-stack.                                        |
+| UI runtime           | React 19                   | Sudah dipasang                | Runtime UI yang digunakan Next.js saat ini.                                                                                                   |
+| Bahasa               | TypeScript strict          | Sudah dipasang                | Menurunkan risiko kontrak data dan otorisasi yang tidak konsisten.                                                                            |
+| Styling              | Tailwind CSS 4             | Sudah dipasang                | Sistem token/utilitas konsisten dan mobile-first.                                                                                             |
+| UI primitives        | shadcn/ui                  | Direncanakan, belum dipasang  | Roadmap meminta hanya komponen yang benar-benar dipakai.                                                                                      |
+| Quality              | ESLint, Prettier, Vitest   | Sudah dipasang                | Quality gate lokal dan CI sudah tersedia.                                                                                                     |
+| Hosting              | Netlify                    | Konfigurasi baseline tersedia | Mendukung Next.js App Router melalui adapter yang dikelola Netlify dan Deploy Preview.                                                        |
+| Database             | Neon PostgreSQL            | Foundation M3 selesai         | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                                                             |
+| ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai         | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.                                                 |
+| Admin authentication | Better Auth                | Milestone 4 selesai           | BEM-only login, session, role enforcement, protected shell, access management, auth audit, dan runtime acceptance non-production sudah lulus. |
+| Anti-spam            | Cloudflare Turnstile       | Direncanakan                  | Validasi bot untuk form publik; token wajib diverifikasi server-side.                                                                         |
+| Object storage       | Cloudflare R2              | Direncanakan                  | Bukti privat dan media editorial dapat dipisahkan dari database.                                                                              |
+| Notification         | Timeline internal aplikasi | MVP default                   | Email/WhatsApp masih open question dalam PRD dan tidak termasuk default MVP.                                                                  |
 
 ## 4. Konteks sistem
 
@@ -172,11 +172,12 @@ Gunakan Node.js runtime default. Tidak ada kebutuhan Edge runtime yang sudah dis
 
 - Better Auth hanya untuk akun BEM. Mahasiswa tidak memiliki akun pada MVP.
 - Akun dibuat oleh `ADMIN`; signup publik tidak tersedia.
-- Better Auth menangani session/auth tables dan endpoint auth.
+- Better Auth menangani session/auth tables (`auth_sessions`, `auth_accounts`, `auth_verifications`) dan endpoint `/api/auth/*`; relasi user tetap memakai `bem_users`.
 - Role aplikasi: `EDITOR`, `ADVOCATE`, dan `ADMIN`.
 - Pemeriksaan cookie di `proxy.ts` boleh dipakai untuk redirect optimistis, tetapi bukan kontrol keamanan final.
 - Setiap protected page, Server Action, dan Route Handler memvalidasi session serta permission server-side.
 - Permission matrix dan baseline session dijelaskan di `SECURITY_PRIVACY.md`.
+- `src/server/auth/session.ts` menjadi boundary session server-side; `src/server/auth/roles.ts` menjadi permission matrix eksplisit; `src/server/auth/audit.ts` mencatat event auth tanpa credential.
 
 ## 11. Penyimpanan aset
 

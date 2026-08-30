@@ -19,10 +19,15 @@
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/db-migrate.mjs",
-    "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs"
+    "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
+    "auth:bootstrap": "node --env-file-if-exists=.env.local scripts/auth-bootstrap.mjs",
+    "auth:smoke": "node --env-file-if-exists=.env.local scripts/auth-smoke.mjs",
+    "test:auth-integration": "node --env-file-if-exists=.env.local scripts/run-auth-integration-tests.mjs"
   },
   "dependencies": {
+    "@better-auth/drizzle-adapter": "^1.7.2",
     "@neondatabase/serverless": "1.1.0",
+    "better-auth": "^1.7.2",
     "drizzle-orm": "1.0.0-rc.4",
     "next": "16.3.3",
     "react": "19.2.8",

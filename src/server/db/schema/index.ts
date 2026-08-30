@@ -1,4 +1,5 @@
 export * from "@/server/db/schema/aspirations";
+export * from "@/server/db/schema/auth";
 export * from "@/server/db/schema/categories";
 export * from "@/server/db/schema/content";
 export * from "@/server/db/schema/enums";

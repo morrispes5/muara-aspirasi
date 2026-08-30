@@ -14,7 +14,6 @@ if (!databaseUrl) {
       "node_modules/drizzle-kit/bin.cjs",
       "migrate",
       "--config=drizzle.config.ts",
-      `--url=${databaseUrl}`,
     ],
     { stdio: "inherit" },
   );

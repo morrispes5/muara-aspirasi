@@ -1,0 +1,104 @@
+import { eq } from "drizzle-orm";
+import { headers as getRequestHeaders } from "next/headers";
+
+import { AuthConfigurationError, getAuth } from "@/server/auth/auth";
+import {
+  type BemPermission,
+  type BemRole,
+  hasPermission,
+  isBemRole,
+} from "@/server/auth/roles";
+import { DatabaseConfigurationError, getDatabase } from "@/server/db/client";
+import { bemUsers } from "@/server/db/schema";
+
+type AuthSessionResponse = Awaited<
+  ReturnType<ReturnType<typeof getAuth>["api"]["getSession"]>
+>;
+
+export type BemSession = NonNullable<AuthSessionResponse> & {
+  user: NonNullable<AuthSessionResponse>["user"] & {
+    role: BemRole;
+    status: "ACTIVE";
+  };
+};
+
+function isExpectedConfigurationError(error: unknown): boolean {
+  return (
+    error instanceof AuthConfigurationError ||
+    error instanceof DatabaseConfigurationError
+  );
+}
+
+export async function getBemSession(
+  requestHeaders?: Headers,
+): Promise<BemSession | null> {
+  try {
+    const headers = requestHeaders ?? (await getRequestHeaders());
+    const session = await getAuth().api.getSession({ headers });
+
+    if (!session) {
+      return null;
+    }
+
+    const [user] = await getDatabase()
+      .select({
+        email: bemUsers.email,
+        id: bemUsers.id,
+        name: bemUsers.name,
+        role: bemUsers.role,
+        status: bemUsers.status,
+      })
+      .from(bemUsers)
+      .where(eq(bemUsers.id, session.user.id))
+      .limit(1);
+
+    if (!user || user.status !== "ACTIVE" || !isBemRole(user.role)) {
+      return null;
+    }
+
+    return {
+      ...session,
+      user: {
+        ...session.user,
+        email: user.email,
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        status: "ACTIVE",
+      },
+    } as BemSession;
+  } catch (error) {
+    if (isExpectedConfigurationError(error)) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+export class AuthorizationError extends Error {
+  readonly statusCode: 401 | 403;
+
+  constructor(statusCode: 401 | 403, message: string) {
+    super(message);
+    this.name = "AuthorizationError";
+    this.statusCode = statusCode;
+  }
+}
+
+export async function requireBemPermission(
+  permission: BemPermission,
+  requestHeaders?: Headers,
+): Promise<BemSession> {
+  const session = await getBemSession(requestHeaders);
+
+  if (!session) {
+    throw new AuthorizationError(401, "Sesi BEM tidak ditemukan.");
+  }
+
+  if (!hasPermission(session.user.role, permission)) {
+    throw new AuthorizationError(403, "Peran BEM tidak memiliki izin ini.");
+  }
+
+  return session;
+}

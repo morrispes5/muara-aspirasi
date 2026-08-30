@@ -9,7 +9,7 @@ export const siteConfig = {
   name: "Muara Aspirasi",
   purpose:
     "Ruang informasi dan aspirasi mahasiswa BEM FTI Universitas Budi Luhur.",
-  bemSignInPath: "/masuk",
+  bemSignInPath: "/admin/login",
   reportPath: "/aspirasi/kirim",
   trackingPath: "/aspirasi/lacak",
 } as const;

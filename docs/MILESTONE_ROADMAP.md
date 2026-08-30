@@ -126,6 +126,8 @@ Mengimplementasikan Neon + Drizzle schema/migration dari `DATA_MODEL.md` pada en
 
 ## Milestone 4 — Better Auth dan role enforcement
 
+> Status 30 Agustus 2026: **selesai**. Better Auth, Drizzle auth schema, BEM-only login, role/permission enforcement, protected admin shell, access management, dan audit sudah tersedia. Migration serta bootstrap sintetis diterapkan pada Neon development/preview; signup tertutup, trusted origin, cookie, login, revoke session, role/suspension, self-lockout guard, dan logout telah diuji. Neon `main` tidak disentuh.
+
 ### Tujuan
 
 Membuat login BEM-only dan protected admin shell dengan permission server-side.
@@ -142,7 +144,7 @@ Membuat login BEM-only dan protected admin shell dengan permission server-side.
 ### Dependency
 
 - Milestone 3 lulus.
-- Admin bootstrap owner, email/domain allowlist, MFA/recovery decision.
+- Untuk non-production, bootstrap memakai identitas sintetis dan allowlist `.test`. Sebelum production, domain resmi wajib ditentukan, MFA `ADMIN` wajib diaktifkan, dan recovery harus dimiliki minimal dua owner organisasi.
 - Permission matrix `SECURITY_PRIVACY.md` disetujui.
 
 ### Validasi wajib
