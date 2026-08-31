@@ -33,9 +33,9 @@ Tiga test yang skip adalah integration test opt-in pada `src/server/auth/user-ma
 
 Ini menentukan gate mana yang **tidak** memiliki bukti CI.
 
-- `HEAD` lokal = `278d3c2`, sama dengan head PR #1 (`milestone-7-publication`).
+- Evidence wave direkam sebelum commit M8 pada `278d3c2` (head PR #1, `milestone-7-publication`). Setelah evidence diverifikasi, coordinator membuat commit `1d078ee` pada branch lokal `milestone-8-readiness`.
 - `origin/main` masih di `012222a` (Milestone 6). Dua commit (`c4fc6b3` M7, `278d3c2` docs) ada pada branch PR, belum pada `main`.
-- **Seluruh pekerjaan M8 Wave 1–3 masih uncommitted** pada worktree (13 file modified, 8 file baru). Konsekuensinya: **tidak ada run CI maupun Deploy Preview yang mencakup M8 Wave 1–3.** Bukti CI/preview di bawah hanya berlaku untuk M7 pada `278d3c2`.
+- **Commit M8 `1d078ee` belum dipush dan belum memiliki PR.** Konsekuensinya tetap: **tidak ada run CI maupun Deploy Preview yang mencakup M8 Wave 1–3.** Bukti CI/preview di bawah hanya berlaku untuk M7 pada `278d3c2`.
 
 ---
 
@@ -46,7 +46,7 @@ Ini menentukan gate mana yang **tidak** memiliki bukti CI.
 | Format, lint, typecheck, test, build | Lulus                | Tabel evidence run di atas, dijalankan lokal 31 Agustus 2026.                                                                                                                                                                                                                                  |
 | `db:check` tanpa migration baru      | Lulus                | Evidence run; M8 tidak membuat migration.                                                                                                                                                                                                                                                      |
 | CI hijau pada commit yang di-push    | Lulus (M7 saja)      | GitHub Actions workflow `CI`, job `quality`, run `33337642476`, job `99327326513`, conclusion SUCCESS, selesai 2026-08-30T21:55:00Z pada PR #1.                                                                                                                                                |
-| CI hijau mencakup M8 Wave 1–3        | **Belum dijalankan** | Wave 1–3 uncommitted; belum ada commit/branch/PR sehingga CI belum pernah menjalankannya.                                                                                                                                                                                                      |
+| CI hijau mencakup M8 Wave 1–3        | **Belum dijalankan** | Commit M8 `1d078ee` sudah ada lokal, tetapi belum dipush dan belum ada PR sehingga CI belum pernah menjalankannya.                                                                                                                                                                             |
 | Clean-checkout `npm ci` + full gate  | Lulus (M7 saja)      | Workflow `CI` menjalankan `npm ci` lalu format, lint, typecheck, test, db:check, dan build pada checkout bersih Ubuntu; run `33337642476` SUCCESS. Belum pernah dijalankan untuk M8 Wave 1–3. Evidence run lokal di atas memakai `node_modules` yang sudah ada, jadi bukan pengganti gate ini. |
 
 ## 2. Auth, role, dan permission
@@ -132,7 +132,7 @@ Catatan jujur: test aksesibilitas yang ada adalah **source-level guard**, bukan 
 | Deploy Preview tersedia      | Lulus                | Status check `netlify/muaraaspirasi/deploy-preview` = SUCCESS, `https://deploy-preview-1--muaraaspirasi.netlify.app`.                                                    |
 | Preview tidak publik         | Lulus                | `GET` read-only pada 2026-08-31T05:10Z mengembalikan `HTTP 401` beserta `X-Robots-Tag: noindex`. Preview terlindungi akses.                                              |
 | Verifikasi konten preview    | **Diblokir**         | Preview mengembalikan 401, sehingga isi halaman, header aplikasi, dan QA browser tidak dapat diverifikasi otomatis dari sini. Butuh kredensial akses preview dari owner. |
-| Preview mencakup M8 Wave 1–3 | **Belum dijalankan** | Preview dibangun dari `278d3c2`, yang **tidak** memuat Wave 1–3 (masih uncommitted).                                                                                     |
+| Preview mencakup M8 Wave 1–3 | **Belum dijalankan** | Preview dibangun dari `278d3c2`, yang **tidak** memuat Wave 1–3; commit M8 `1d078ee` belum dipush.                                                                       |
 
 > **Koreksi dokumen.** `DEPLOYMENT_RUNBOOK.md` bagian 6 masih mencatat blocker "Netlify team menolak Deploy Preview dengan `Unrecognized Git contributor`". Per pemeriksaan 31 Agustus 2026 status check deploy preview PR #1 adalah **SUCCESS**, sehingga catatan blocker itu sudah usang dan perlu diperbarui oleh pemilik dokumen.
 
@@ -175,7 +175,7 @@ Dipisahkan dari pekerjaan teknis karena tidak satu pun dapat diselesaikan dengan
 
 - **Sudah code-complete dengan bukti test**: isolasi query publik, draft invisibility tingkat SQL, transition dan approval, optimistic concurrency, origin guard, safe error, security headers baseline, CSP report-only, perbaikan focus ring dan label.
 - **Belum dijalankan sama sekali**: browser journey, Lighthouse/screen reader/keyboard/zoom/contrast, clean-checkout `npm ci`, secret scanning di CI, integration test Neon, serta seluruh latihan rollback/restore/incident.
-- **Blocker paling dekat**: M8 Wave 1–3 masih uncommitted sehingga belum pernah melewati CI atau Deploy Preview. Sampai perubahan itu masuk branch/PR, tidak ada bukti CI untuk M8.
+- **Blocker paling dekat**: commit M8 `1d078ee` belum dipush ke branch/PR sehingga belum pernah melewati CI atau Deploy Preview. Sampai perubahan itu dipush, tidak ada bukti CI untuk M8.
 - **Sesuai `MILESTONE_ROADMAP.md` M8**, acceptance "No high-severity known gap" belum dapat dinyatakan tercapai karena beberapa validasi wajib di atas belum dijalankan.
 
 Milestone 9 (deployment dan limited launch) tidak boleh dimulai sebelum bagian 9 dan 10 dokumen ini memiliki isi, bukan placeholder.

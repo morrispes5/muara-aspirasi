@@ -353,7 +353,7 @@ Wave dokumentasi. Tidak ada perubahan source, test, migration, secret, deploy, a
 
 Tiga temuan dari wave ini yang mengubah gambaran kesiapan:
 
-1. **M8 Wave 1–3 masih uncommitted**, sehingga belum pernah melewati CI maupun Deploy Preview. Bukti CI yang ada (`33337642476`, SUCCESS) dan Deploy Preview PR #1 keduanya dibangun dari `278d3c2`, yang hanya memuat sampai M7.
+1. **M8 Wave 1–3 sudah dikunci dalam commit lokal `1d078ee` pada branch `milestone-8-readiness`, tetapi belum dipush**, sehingga belum pernah melewati CI maupun Deploy Preview. Bukti CI yang ada (`33337642476`, SUCCESS) dan Deploy Preview PR #1 keduanya dibangun dari `278d3c2`, yang hanya memuat sampai M7.
 2. **Catatan blocker Netlify pada `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah usang.** Status check `netlify/muaraaspirasi/deploy-preview` pada PR #1 adalah SUCCESS. Pemilik dokumen perlu memperbarui catatan tersebut.
 3. **Deploy Preview mengembalikan `HTTP 401`.** Baik untuk privasi karena preview tidak publik dan membawa `X-Robots-Tag: noindex`, tetapi memblokir QA browser dan verifikasi header ter-deploy sampai owner menyediakan kredensial akses preview. Host preview juga sudah mengembalikan `Strict-Transport-Security` dari sisi Netlify, sehingga keputusan HSTS menyempit menjadi konfigurasi domain production, bukan perubahan kode.
 
