@@ -353,9 +353,10 @@ Wave dokumentasi. Tidak ada perubahan source, test, migration, secret, deploy, a
 
 Tiga temuan dari wave ini yang mengubah gambaran kesiapan:
 
-1. **M8 Wave 1–3 sudah dikunci dalam commit lokal `1d078ee` pada branch `milestone-8-readiness`, tetapi belum dipush**, sehingga belum pernah melewati CI maupun Deploy Preview. Bukti CI yang ada (`33337642476`, SUCCESS) dan Deploy Preview PR #1 keduanya dibangun dari `278d3c2`, yang hanya memuat sampai M7.
-2. **Catatan blocker Netlify pada `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah usang.** Status check `netlify/muaraaspirasi/deploy-preview` pada PR #1 adalah SUCCESS. Pemilik dokumen perlu memperbarui catatan tersebut.
-3. **Deploy Preview mengembalikan `HTTP 401`.** Baik untuk privasi karena preview tidak publik dan membawa `X-Robots-Tag: noindex`, tetapi memblokir QA browser dan verifikasi header ter-deploy sampai owner menyediakan kredensial akses preview. Host preview juga sudah mengembalikan `Strict-Transport-Security` dari sisi Netlify, sehingga keputusan HSTS menyempit menjadi konfigurasi domain production, bukan perubahan kode.
+1. **M8 Wave 1–3 sudah dipush dan melewati CI.** Commit source `1d078ee` dan dokumentasi `cd18b8d` berada pada branch `milestone-8-readiness`; PR #2 memakai base `main` dan CI run `33381947557` (job `99456076155`) SUCCESS dengan clean checkout.
+2. **Catatan contributor Netlify pada `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah tidak berlaku.** Status check `netlify/muaraaspirasi/deploy-preview` pada PR #1 adalah SUCCESS; PR #2 masih menunggu status preview. Draft lokal Windows gagal saat bundling proxy Edge sebelum publish.
+3. **Percobaan trigger preview salah target.** `netlify deploy --trigger --context branch:milestone-8-readiness` memilih production `main` dan menghasilkan deploy ready `6a9557235e010a438975637f` untuk commit `012222aa`, sama dengan artifact production sebelumnya; tidak ada kode M8 yang terpublikasi. Tidak ada trigger production lanjutan.
+4. **Deploy Preview yang tersedia mengembalikan `HTTP 401`.** Baik untuk privasi karena preview tidak publik dan membawa `X-Robots-Tag: noindex`, tetapi memblokir QA browser dan verifikasi header ter-deploy sampai owner menyediakan kredensial akses preview. Host preview juga sudah mengembalikan `Strict-Transport-Security` dari sisi Netlify, sehingga keputusan HSTS menyempit menjadi konfigurasi domain production, bukan perubahan kode.
 
 Bukti perintah 31 Agustus 2026 (`UTC 2026-08-31T05:10:18Z`): `format:check`, `lint`, `typecheck`, `db:check`, dan `build` lulus; `npm test` 122 passed / 3 skipped; `npm audit` 0 vulnerabilities. Rincian per gate ada di checklist.
 
