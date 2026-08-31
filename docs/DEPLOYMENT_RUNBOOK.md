@@ -161,8 +161,9 @@ SUCCESS; blocker `Unrecognized Git contributor` tidak lagi terlihat. `netlify.to
 memakai `next build --webpack` karena Netlify CLI Windows gagal membundel proxy
 Edge (`webpack-runtime.js`/path resolver) sebelum publish; build remote Linux
 melalui webhook tetap merupakan jalur preview yang direkomendasikan. PR #2
-(`milestone-8-readiness`) sudah melewati CI tetapi status preview Netlify belum
-muncul.
+(`milestone-8-readiness`) sudah melewati CI dan Deploy Preview
+(`deploy-preview-2--muaraaspirasi.netlify.app`) sudah ready, tetapi aksesnya
+terlindungi `HTTP 401` sehingga QA browser memerlukan kredensial owner.
 
 Jangan memakai `netlify deploy --trigger --context branch:<branch>` sebagai
 pengganti webhook tanpa memeriksa hasil `context`, `branch`, dan `commit_ref`:

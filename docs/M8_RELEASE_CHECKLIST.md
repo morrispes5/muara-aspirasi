@@ -35,12 +35,13 @@ Ini menentukan gate mana yang **tidak** memiliki bukti CI.
 
 - Evidence wave direkam sebelum commit M8 pada `278d3c2` (head PR #1, `milestone-7-publication`). Setelah evidence diverifikasi, coordinator membuat commit `1d078ee` pada branch `milestone-8-readiness`, lalu commit dokumentasi `cd18b8d`.
 - Branch `milestone-8-readiness` sudah dipush ke `origin` dan PR #2 (`https://github.com/morrispes5/muara-aspirasi/pull/2`) sudah dibuka dengan base `main`. `origin/main` masih di `012222a` (Milestone 6); PR #2 membawa M7 dan M8.
-- CI PR #2 sudah lulus pada run `33381947557` (job `99456076155`, head `cd18b8d5efa47aa05df19f47c6d9e99a172b9005`), termasuk clean checkout `npm ci`, format, lint, typecheck, test, `db:check`, dan build. Deploy Preview PR #2 belum muncul pada status GitHub/Netlify.
+- CI PR #2 sudah lulus pada run `33381947557` (job `99456076155`, head `cd18b8d5efa47aa05df19f47c6d9e99a172b9005`), termasuk clean checkout `npm ci`, format, lint, typecheck, test, `db:check`, dan build. Setelah commit follow-up `ca6e5c7`, Deploy Preview PR #2 juga ready.
 
 ### Catatan aksi coordinator setelah evidence run
 
 - Deploy draft melalui Netlify CLI lokal Windows gagal sebelum publish saat bundling proxy Edge (`webpack-runtime.js`/path resolver). Build aplikasi lokal tetap lulus; jalur server-side Linux melalui webhook Netlify adalah jalur preview yang direkomendasikan.
 - Percobaan `netlify deploy --trigger --context branch:milestone-8-readiness` secara tidak terduga memilih **production `main`**, bukan preview branch. Deploy `6a9557235e010a438975637f` berstatus ready tetapi hanya membangun commit `012222aa` (M6), sama dengan deploy production sebelumnya `6a948c33eb01f7e6f722641a`; **tidak ada kode M8 yang terpublikasi**. Tidak ada trigger production lanjutan yang dijalankan.
+- Webhook PR #2 kemudian membuat deploy `6a9559df4344450008839079` berstatus ready dengan context `deploy-preview`, branch `milestone-8-readiness`, dan commit `ca6e5c7`. Header read-only pada `https://deploy-preview-2--muaraaspirasi.netlify.app` mengembalikan `401`, `Strict-Transport-Security`, dan `X-Robots-Tag: noindex`; verifikasi isi tetap memerlukan kredensial preview owner.
 
 ---
 
@@ -130,15 +131,15 @@ Catatan jujur: test aksesibilitas yang ada adalah **source-level guard**, bukan 
 
 ## 8. CI dan Netlify preview
 
-| Gate                         | Status               | Bukti                                                                                                                                                                    |
-| ---------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| CI workflow aktif            | Lulus                | `.github/workflows` job `quality`: format, lint, typecheck, test, db:check, build.                                                                                       |
-| CI hijau pada PR #1          | Lulus                | Run `33337642476`, conclusion SUCCESS, 2026-08-30T21:55:00Z.                                                                                                             |
-| CI hijau pada PR #2          | Lulus                | Run `33381947557`, job `99456076155`, head `cd18b8d`, conclusion SUCCESS, 2026-08-31T10:21:37Z.                                                                          |
-| Deploy Preview tersedia      | Lulus                | Status check `netlify/muaraaspirasi/deploy-preview` = SUCCESS, `https://deploy-preview-1--muaraaspirasi.netlify.app`.                                                    |
-| Preview tidak publik         | Lulus                | `GET` read-only pada 2026-08-31T05:10Z mengembalikan `HTTP 401` beserta `X-Robots-Tag: noindex`. Preview terlindungi akses.                                              |
-| Verifikasi konten preview    | **Diblokir**         | Preview mengembalikan 401, sehingga isi halaman, header aplikasi, dan QA browser tidak dapat diverifikasi otomatis dari sini. Butuh kredensial akses preview dari owner. |
-| Preview mencakup M8 Wave 1–3 | **Belum dijalankan** | Preview PR #2 belum menerima status Netlify. Preview PR #1 dibangun dari `278d3c2` dan hanya mencakup M7; draft lokal Windows gagal saat bundling Edge sebelum publish.  |
+| Gate                         | Status       | Bukti                                                                                                                                                                    |
+| ---------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| CI workflow aktif            | Lulus        | `.github/workflows` job `quality`: format, lint, typecheck, test, db:check, build.                                                                                       |
+| CI hijau pada PR #1          | Lulus        | Run `33337642476`, conclusion SUCCESS, 2026-08-30T21:55:00Z.                                                                                                             |
+| CI hijau pada PR #2          | Lulus        | Run `33381947557`, job `99456076155`, head `cd18b8d`, conclusion SUCCESS, 2026-08-31T10:21:37Z.                                                                          |
+| Deploy Preview tersedia      | Lulus        | PR #1 dan PR #2 memiliki status check `netlify/muaraaspirasi/deploy-preview` = SUCCESS; PR #2: `https://deploy-preview-2--muaraaspirasi.netlify.app`.                    |
+| Preview tidak publik         | Lulus        | `GET` read-only PR #2 pada 2026-08-31T10:41Z mengembalikan `HTTP 401` beserta `X-Robots-Tag: noindex`. Preview terlindungi akses.                                        |
+| Verifikasi konten preview    | **Diblokir** | Preview mengembalikan 401, sehingga isi halaman, header aplikasi, dan QA browser tidak dapat diverifikasi otomatis dari sini. Butuh kredensial akses preview dari owner. |
+| Preview mencakup M8 Wave 1–3 | Lulus        | Deploy `6a9559df4344450008839079` ready dari branch `milestone-8-readiness`, commit `ca6e5c7`, plugin Next.js dan Edge function sukses.                                  |
 
 > **Koreksi dokumen.** `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah diperbarui: blocker `Unrecognized Git contributor` tidak lagi terlihat pada PR #1. Status preview PR #2 tetap menunggu webhook Netlify.
 
@@ -181,7 +182,7 @@ Dipisahkan dari pekerjaan teknis karena tidak satu pun dapat diselesaikan dengan
 
 - **Sudah code-complete dengan bukti test**: isolasi query publik, draft invisibility tingkat SQL, transition dan approval, optimistic concurrency, origin guard, safe error, security headers baseline, CSP report-only, perbaikan focus ring dan label.
 - **Belum dijalankan sama sekali**: browser journey, Lighthouse/screen reader/keyboard/zoom/contrast, secret scanning di CI, integration test Neon, serta seluruh latihan rollback/restore/incident.
-- **Blocker paling dekat**: Netlify belum memunculkan Deploy Preview untuk PR #2, dan preview yang tersedia mengembalikan 401 sehingga QA browser serta verifikasi header ter-deploy memerlukan akses owner. Jangan mengulang `netlify deploy --trigger` tanpa memverifikasi target karena percobaan sebelumnya memilih production `main`.
+- **Blocker paling dekat**: Preview PR #2 sudah ready tetapi mengembalikan 401, sehingga QA browser serta verifikasi konten/header aplikasi ter-deploy memerlukan kredensial akses preview dari owner. Jangan mengulang `netlify deploy --trigger` tanpa memverifikasi target karena percobaan sebelumnya memilih production `main`.
 - **Sesuai `MILESTONE_ROADMAP.md` M8**, acceptance "No high-severity known gap" belum dapat dinyatakan tercapai karena beberapa validasi wajib di atas belum dijalankan.
 
 Milestone 9 (deployment dan limited launch) tidak boleh dimulai sebelum bagian 9 dan 10 dokumen ini memiliki isi, bukan placeholder.
