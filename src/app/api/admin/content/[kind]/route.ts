@@ -14,6 +14,8 @@ import {
   parseContentKind,
 } from "@/server/content/publication";
 
+import { isSameOriginRequest } from "@/server/security/origin";
+
 export const runtime = "nodejs";
 
 type RouteContext = { params: Promise<{ kind: string }> };
@@ -56,11 +58,6 @@ function formInput(body: JsonRecord): ContentFormInput {
     summary: requiredString(body, "summary"),
     title: requiredString(body, "title"),
   };
-}
-
-function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
 }
 
 function errorResponse(error: unknown) {
@@ -117,7 +114,7 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  if (!sameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return adminError(
       403,
       "REQUEST_REJECTED",

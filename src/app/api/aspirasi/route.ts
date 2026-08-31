@@ -25,6 +25,8 @@ import {
 
 import { NextResponse } from "next/server";
 
+import { isSameOriginRequest } from "@/server/security/origin";
+
 export const runtime = "nodejs";
 
 function isIdempotencyKey(value: string | null): value is string {
@@ -36,13 +38,8 @@ function isIdempotencyKey(value: string | null): value is string {
   );
 }
 
-function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
-}
-
 export async function POST(request: Request) {
-  if (!sameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return publicError(
       403,
       "REQUEST_REJECTED",

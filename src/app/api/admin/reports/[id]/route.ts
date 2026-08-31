@@ -19,6 +19,8 @@ import {
 import { type BemPermission, hasPermission } from "@/server/auth/roles";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
 
+import { isSameOriginRequest } from "@/server/security/origin";
+
 export const runtime = "nodejs";
 
 type RouteContext = {
@@ -73,11 +75,6 @@ function errorResponse(error: unknown) {
     "REQUEST_FAILED",
     "Laporan belum dapat diproses. Coba lagi beberapa saat.",
   );
-}
-
-function sameOrigin(request: Request) {
-  const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
 }
 
 function permissionForAction(action: string): BemPermission {
@@ -138,7 +135,7 @@ export async function GET(request: Request, context: RouteContext) {
 }
 
 export async function POST(request: Request, context: RouteContext) {
-  if (!sameOrigin(request)) {
+  if (!isSameOriginRequest(request)) {
     return adminError(
       403,
       "REQUEST_REJECTED",

@@ -23,8 +23,20 @@ export function ArticleCard({ article, basePath }: ArticleCardProps) {
       </div>
       <div className="border-line flex items-center justify-between border-t pt-4 text-xs font-semibold text-[#4e5f76]">
         <span>{article.date}</span>
+        {/*
+          Every card carries the same visible link text, so the accessible name
+          names the article it opens — otherwise a screen reader's link list is
+          a column of identical "Baca selengkapnya" entries. The visible text is
+          kept as a prefix so voice control still matches what is on screen.
+
+          No `focus-visible:outline-none` here: that utility outranks the shared
+          `:focus-visible` ring in `globals.css` on specificity and left this
+          link, the main way into every archive article, with no visible focus
+          indicator at all.
+        */}
         <Link
-          className="text-brand hover:text-brand-dark rounded-control py-1 focus-visible:outline-none"
+          aria-label={`Baca selengkapnya: ${article.title}`}
+          className="text-brand hover:text-brand-dark rounded-control py-1"
           href={`${basePath}/${article.slug}`}
         >
           Baca selengkapnya

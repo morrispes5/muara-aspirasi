@@ -3,7 +3,9 @@
 > Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end M5 development lulus dengan data sintetis yang dibersihkan otomatis. Kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
-> Addendum 31 Agustus 2026: M7 publication guard, audit metadata, plain-text validation, dan public projection isolation sudah tersedia pada source. Editorial R2, scheduler, notifikasi eksternal, security headers/CSP, dan production review tetap belum selesai.
+> Addendum 31 Agustus 2026: M7 publication guard, audit metadata, plain-text validation, dan public projection isolation sudah tersedia pada source. Editorial R2, scheduler, notifikasi eksternal, dan production review tetap belum selesai.
+
+> Addendum M8 Wave 1 (31 Agustus 2026): security headers baseline dan CSP report-only sudah aktif untuk semua route melalui `next.config.ts` + `src/lib/security-headers.ts`, dan origin guard untuk request sensitif dikonsolidasikan pada `src/server/security/origin.ts` serta ditambahkan ke endpoint tracking. Dua kontrol sengaja belum diaktifkan dan menunggu keputusan owner: HSTS dan promosi CSP dari report-only menjadi enforcing. Lihat bagian 14.
 
 ## 1. Tujuan
 
@@ -18,18 +20,20 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 
 ## 2. Status implementasi kontrol
 
-| Kontrol                                                    | Status saat dokumen dibuat                                                                                                                                                    |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                                                                                                                |
-| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                                                                                                                |
-| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada                                                                                             |
-| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada                                                                                      |
-| Tracking token generation/hash                             | M5 selesai non-production: token 256-bit, `scrypt` salted hash, verifikasi constant-time; smoke tracking privat lulus                                                         |
-| Turnstile, honeypot, rate limiting                         | M5 selesai non-production: widget + server Siteverify, honeypot, bucket Neon HMAC, idempotency; smoke submission lulus                                                        |
-| M6 case authorization/workflow/audit                       | Source selesai: queue/detail permission, status guard, assignment/note/message transaction, optimistic conflict, archive/reopen ADMIN-only, dan audit metadata tanpa content. |
-| R2 upload/download validation                              | Belum diimplementasikan                                                                                                                                                       |
-| Security headers, CSP, production monitoring               | Belum diimplementasikan                                                                                                                                                       |
-| Retention/deletion automation                              | Belum diimplementasikan                                                                                                                                                       |
+| Kontrol                                                    | Status saat dokumen dibuat                                                                                                                                                                    |
+| ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `.gitignore`, `.env.example`, secret pattern scan baseline | Sudah tersedia                                                                                                                                                                                |
+| TypeScript strict, lint, test, production build            | Sudah tersedia                                                                                                                                                                                |
+| Authentication, session, role enforcement                  | Milestone 4 selesai dan diuji pada Neon development/preview; production belum ada                                                                                                             |
+| Database/schema/migration                                  | Foundation M3 + migration auth M4 selesai pada development/preview; production belum ada                                                                                                      |
+| Tracking token generation/hash                             | M5 selesai non-production: token 256-bit, `scrypt` salted hash, verifikasi constant-time; smoke tracking privat lulus                                                                         |
+| Turnstile, honeypot, rate limiting                         | M5 selesai non-production: widget + server Siteverify, honeypot, bucket Neon HMAC, idempotency; smoke submission lulus                                                                        |
+| M6 case authorization/workflow/audit                       | Source selesai: queue/detail permission, status guard, assignment/note/message transaction, optimistic conflict, archive/reopen ADMIN-only, dan audit metadata tanpa content.                 |
+| R2 upload/download validation                              | Belum diimplementasikan                                                                                                                                                                       |
+| Security headers baseline                                  | M8 Wave 1 selesai pada source: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, dan `X-DNS-Prefetch-Control` aktif untuk `/:path*`. |
+| CSP                                                        | M8 Wave 1 report-only pada source; promosi ke enforcing menunggu QA browser dan keputusan owner.                                                                                              |
+| HSTS, production monitoring                                | Belum diimplementasikan; keputusan owner/deploy.                                                                                                                                              |
+| Retention/deletion automation                              | Belum diimplementasikan                                                                                                                                                                       |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
@@ -195,6 +199,8 @@ Raw IP bukan bagian permanen dari report. Bila diperlukan untuk abuse prevention
 - Perlakukan Server Actions sebagai public endpoints; auth, authorization, validation, dan audit tetap dilakukan dalam action.
 - Protect upload/signing endpoint dan auth endpoints dari cross-origin abuse.
 
+Implementasi M8 Wave 1: origin guard berada pada satu definisi `isSameOriginRequest` di `src/server/security/origin.ts` dan dipakai oleh `POST /api/aspirasi`, `POST /api/aspirasi/lacak`, `PATCH /api/admin/reports/[id]`, `POST /api/admin/content/[kind]`, serta `PATCH /api/admin/content/[kind]/[id]`. Sebelumnya definisi ini disalin pada empat route dan endpoint tracking tidak memilikinya sama sekali. Request tanpa header `Origin` tetap diterima karena caller same-origin non-browser memang menghilangkannya; `SameSite` pada session cookie tetap menjadi kontrol CSRF utama dan origin guard adalah defence in depth. Endpoint tracking menolak origin asing dengan response generic yang sama dengan kode salah, sehingga penolakan tidak dapat dipakai untuk enumeration.
+
 ### SQL injection
 
 - Gunakan Drizzle query builder/parameter binding.
@@ -294,6 +300,31 @@ Sebelum production:
 - public static assets/content boleh menggunakan caching yang terkontrol.
 
 Header untuk dynamic/function responses harus dikonfigurasi di aplikasi bila header Netlify statis tidak mencakupnya.
+
+### Status implementasi M8 Wave 1
+
+Sumber kebenaran: `src/lib/security-headers.ts`, dipasang untuk `source: "/:path*"` melalui `next.config.ts`. Terverifikasi ada pada `.next/routes-manifest.json` setelah `npm run build`, dan dikunci oleh `src/lib/security-headers.test.ts`.
+
+Sudah aktif (enforcing):
+
+- `X-Content-Type-Options: nosniff`;
+- `X-Frame-Options: DENY` sebagai anti-clickjacking yang berlaku sekarang;
+- `Referrer-Policy: strict-origin-when-cross-origin`;
+- `Permissions-Policy` yang menolak camera, microphone, geolocation, payment, USB, dan sensor lain yang tidak dipakai aplikasi;
+- `Cross-Origin-Opener-Policy: same-origin`;
+- `X-DNS-Prefetch-Control: off`.
+
+Sudah aktif (report-only):
+
+- `Content-Security-Policy-Report-Only` dengan `default-src 'self'`, `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`, dan satu-satunya origin pihak ketiga `https://challenges.cloudflare.com` untuk `script-src`, `connect-src`, serta `frame-src`. Font Google di-self-host oleh `next/font` sehingga tidak ada origin font eksternal.
+- `'unsafe-eval'` hanya muncul pada mode development untuk React Refresh; build production diuji tidak memuatnya.
+
+Belum diaktifkan dan merupakan keputusan owner/deploy, bukan kelalaian implementasi:
+
+1. **HSTS.** `max-age` yang salah di-cache browser dan tidak dapat dibatalkan dari sisi aplikasi. Owner harus menetapkan `max-age`, `includeSubDomains`, dan apakah preload diinginkan, setelah domain resmi dan HTTPS stabil.
+2. **Promosi CSP ke enforcing.** Membutuhkan QA browser pada Deploy Preview untuk memastikan Turnstile, font, dan hydration tidak terblokir.
+3. **`script-src` tanpa `'unsafe-inline'`.** Next.js menyuntikkan inline bootstrap/hydration script; menghapus `'unsafe-inline'` membutuhkan nonce per-request melalui proxy/middleware. Selama `'unsafe-inline'` masih ada, CSP ini adalah defence in depth terhadap script pihak ketiga, exfiltration `connect-src`/`form-action`, dan framing — bukan mitigasi XSS yang lengkap.
+4. **CSP report endpoint.** Belum ada; tanpa `report-to`/`report-uri` pelanggaran hanya terlihat di devtools browser.
 
 ## 15. Pre-production security acceptance
 

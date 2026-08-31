@@ -11,12 +11,20 @@ const toneClasses: Record<StateTone, string> = {
 
 type StateCardProps = {
   description: string;
+  /**
+   * `h2` suits the common case, where the card sits under a page heading.
+   * Standalone state pages (loading, not-found, error) have no other heading,
+   * so they pass `h1` to keep one clear top-level heading per page as required
+   * by docs/UX_UI_DESIGN_SYSTEM.md section 11.
+   */
+  headingLevel?: "h1" | "h2" | "h3";
   title: string;
   tone?: StateTone;
 };
 
 export function StateCard({
   description,
+  headingLevel: Heading = "h2",
   title,
   tone = "empty",
 }: StateCardProps) {
@@ -31,7 +39,7 @@ export function StateCard({
         {symbol}
       </span>
       <div className="space-y-1">
-        <h2 className="text-ink text-lg font-bold">{title}</h2>
+        <Heading className="text-ink text-lg font-bold">{title}</Heading>
         <p className="text-muted text-sm leading-6">{description}</p>
       </div>
     </Card>

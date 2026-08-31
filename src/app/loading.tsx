@@ -7,6 +7,7 @@ export default function Loading() {
       <Container className="max-w-2xl">
         <StateCard
           description="Konten sedang disiapkan untuk ditampilkan."
+          headingLevel="h1"
           title="Memuat halaman"
           tone="loading"
         />
