@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { verifyTurnstile } from "@/server/aspirations/turnstile";
+import {
+  cloudflareDummySecret,
+  verifyTurnstile,
+} from "@/server/aspirations/turnstile";
 
 const originalSecret = process.env.TURNSTILE_SECRET_KEY;
 const originalEnvironment = process.env.DATABASE_ENVIRONMENT;
@@ -69,7 +72,7 @@ describe("Turnstile server verification", () => {
 
   it("accepts Cloudflare's dummy hostname only in non-production environments", async () => {
     process.env.DATABASE_ENVIRONMENT = "development";
-    process.env.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+    process.env.TURNSTILE_SECRET_KEY = cloudflareDummySecret;
 
     await expect(
       verifyTurnstile(

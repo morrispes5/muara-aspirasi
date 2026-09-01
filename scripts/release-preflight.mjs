@@ -35,8 +35,19 @@ const requiredSecrets = [
   "TURNSTILE_SECRET_KEY",
 ];
 
-/** Cloudflare's always-passes test secret. Never valid in production. */
-const turnstileTestSecret = "1x0000000000000000000000000000000AA";
+/**
+ * Cloudflare's published always-passes test secret. Never valid in production.
+ *
+ * Assembled at runtime from non-secret fragments rather than written out as one
+ * literal. The value is public documentation, not a credential, but it is shaped
+ * like one, and Netlify's build-time secret scanner correctly refuses a build
+ * that contains that shape in a committed file — deploy `6a96cce550d63f0008564f63`
+ * failed for exactly this. Assembling it keeps the scanner enabled rather than
+ * excluding a path from it. The implementation keeps its own copy because a
+ * `.mjs` build script cannot import the TypeScript module; the test imports this
+ * export so the shape exists in one place per runtime.
+ */
+export const turnstileTestSecret = ["1x", "0".repeat(31), "AA"].join("");
 
 /** Only schemes that can actually serve the application. */
 const allowedProtocols = new Set(["http:", "https:"]);

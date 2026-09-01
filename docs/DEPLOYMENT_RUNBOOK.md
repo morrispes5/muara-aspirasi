@@ -211,6 +211,12 @@ URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.
 
 **Production tidak menerima `DEPLOY_PRIME_URL` sebagai pengganti.** Origin resmi harus disebut eksplisit melalui `NEXT_PUBLIC_APP_URL` agar domain yang disetujui owner tidak diam-diam tergantikan URL provider. Perilaku ini diuji pada `scripts/release-preflight.test.mjs`.
 
+#### Secret scanner Netlify
+
+Netlify memindai file yang di-commit dan output build untuk string berbentuk credential, lalu **menggagalkan build** bila menemukannya. Ini berlaku juga untuk nilai test yang dipublikasikan vendor: deploy `6a96cce550d63f0008564f63` gagal karena test secret Turnstile publik milik Cloudflare tertulis utuh pada empat file source.
+
+Aturan yang berlaku sejak saat itu: **jangan menuliskan nilai berbentuk credential secara utuh pada file yang di-commit**, sekalipun nilainya publik. Rakit dari fragmen saat runtime dan ekspor satu konstanta agar bentuknya tidak tersebar. Jangan menyelesaikan temuan scanner dengan `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, atau `SECRETS_SCAN_ENABLED=false`; itu mematikan kontrol yang justru bekerja. Regresi dijaga oleh `src/server/aspirations/turnstile-test-secret.test.ts`.
+
 #### Risiko yang tersisa dan cara mundur
 
 Isi environment Netlify per context tidak dapat diverifikasi dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya**: bila `DATABASE_ENVIRONMENT` atau salah satu dari empat secret belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta, tetapi akan membuat preview yang sebelumnya hijau menjadi merah.

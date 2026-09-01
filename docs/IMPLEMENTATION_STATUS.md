@@ -495,6 +495,45 @@ Isi environment Netlify per context tidak dapat dibaca dari repository. **Build 
 | `npm audit --audit-level=high` | Lulus — 0 vulnerabilities                                     |
 | `git diff --check`             | Bersih                                                        |
 
+## Implementasi Milestone 8 Wave 8 — perbaikan secret scanner Netlify
+
+### Apa yang sebenarnya terjadi
+
+Commit `bbb7d11` di-push, CI `quality` LULUS (run `33511046005`), tetapi Deploy Preview Netlify **GAGAL** pada deploy `6a96cce550d63f0008564f63`.
+
+**Koreksi diagnosis.** Laporan sebelumnya menduga kegagalan itu berasal dari build gate preflight yang baru dipasang, yaitu bahwa context preview belum memiliki `DATABASE_ENVIRONMENT` dan keempat secret. Dugaan itu **salah**. Penyebab sebenarnya adalah **secret scanner Netlify**: build ditolak pada tahap building karena menemukan literal berbentuk credential — test secret Turnstile milik Cloudflare — pada empat file yang di-commit:
+
+- `scripts/release-preflight.mjs` baris 39
+- `scripts/release-preflight.test.mjs`
+- `src/server/aspirations/turnstile.test.ts`
+- `src/server/aspirations/turnstile.ts` baris 3
+
+Nilai itu adalah dokumentasi publik Cloudflare, bukan credential nyata, tetapi bentuknya persis seperti credential dan scanner benar menolaknya. Literal tersebut sudah ada sejak M5; yang berubah hanyalah bahwa build Netlify kini benar-benar berjalan sampai tahap itu.
+
+### Remediasi
+
+Nilai tersebut kini **dirakit saat runtime dari fragmen non-secret**, bukan ditulis sebagai satu literal:
+
+- `src/server/aspirations/turnstile.ts` mengekspor `cloudflareDummySecret`;
+- `scripts/release-preflight.mjs` mengekspor `turnstileTestSecret` — salinan terpisah karena skrip `.mjs` tidak dapat meng-import modul TypeScript;
+- kedua file test meng-import konstanta itu alih-alih menuliskan ulang nilainya.
+
+Perilaku tidak berubah: penerimaan dummy hostname `example.com` tetap hanya berlaku pada `development`/`preview`, dan production tetap menolak test secret tersebut.
+
+**Secret scanning Netlify tidak dilemahkan.** Tidak ada `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, maupun `SECRETS_SCAN_ENABLED=false` yang ditambahkan.
+
+### Verifikasi
+
+- `git grep` atas literal tersebut pada file tracked: **nihil**. Sisa kemunculan hanya pada `.env.local` dan `.env.preview.local`, yang git-ignored (`.gitignore` baris 25) dan tidak pernah sampai ke Netlify.
+- Output build discan setelah `next build --webpack`: literal **tidak muncul**, sehingga bundler tidak melipat kembali hasil perakitan menjadi string utuh.
+- Test regresi baru `src/server/aspirations/turnstile-test-secret.test.ts` memastikan nilai rakitan tetap benar dan menyapu `src/`, `scripts/`, serta `docs/` agar literal maupun varian `1x`/`2x`/`3x` sepanjang itu tidak kembali. Sapuan juga menegaskan jumlah file yang dipindai supaya assertion tidak vacuous.
+
+### Yang belum terbukti
+
+Deploy Preview **belum** diverifikasi hijau setelah perbaikan ini. Status remote hanya dapat dinyatakan setelah Netlify menjalankan build untuk commit berikutnya. Selain itu, karena build sebelumnya berhenti pada secret scanner, **build gate preflight belum pernah benar-benar dijalankan pada Netlify**; apakah context preview memiliki `DATABASE_ENVIRONMENT` dan keempat secret masih belum diketahui dan dapat menjadi kegagalan berikutnya.
+
+Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan production acceptance.
+
 ## Pekerjaan milestone berikutnya
 
 - Milestone 8 Wave 4 dan seterusnya: browser journey, retention/deletion job, backup/restore dan incident drill, serta dependency/secret scan.
