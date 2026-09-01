@@ -1,3 +1,5 @@
+import { isNonProductionEnvironment } from "@/server/config/deploy-environment";
+
 const siteverifyEndpoint =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -36,8 +38,7 @@ function acceptsDummyHostname(hostname: string | undefined, secret: string) {
   return (
     hostname === "example.com" &&
     secret === cloudflareDummySecret &&
-    (process.env.DATABASE_ENVIRONMENT === "development" ||
-      process.env.DATABASE_ENVIRONMENT === "preview")
+    isNonProductionEnvironment(process.env.DATABASE_ENVIRONMENT)
   );
 }
 

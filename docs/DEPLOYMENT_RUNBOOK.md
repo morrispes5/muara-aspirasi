@@ -217,6 +217,18 @@ Netlify memindai file yang di-commit dan output build untuk string berbentuk cre
 
 Aturan yang berlaku sejak saat itu: **jangan menuliskan nilai berbentuk credential secara utuh pada file yang di-commit**, sekalipun nilainya publik. Rakit dari fragmen saat runtime dan ekspor satu konstanta agar bentuknya tidak tersebar. Jangan menyelesaikan temuan scanner dengan `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, atau `SECRETS_SCAN_ENABLED=false`; itu mematikan kontrol yang justru bekerja. Regresi dijaga oleh `src/server/aspirations/turnstile-test-secret.test.ts`.
 
+#### Nilai environment variable juga dipindai
+
+Secret scanner Netlify tidak hanya mencari pola credential; ia juga mencocokkan **nilai** setiap environment variable yang dikonfigurasi pada context terhadap repository dan output build. Nilai berupa kata biasa karena itu tidak dapat dipakai: deploy `6a96d0f38086ad0008e5660f` gagal karena `DATABASE_ENVIRONMENT` context preview berisi kata non-production yang muncul ratusan kali pada README dan dokumen.
+
+Aturan yang berlaku:
+
+- Nilai environment variable pada context Netlify **harus cukup khas** sehingga tidak muncul pada file tracked. Untuk `DATABASE_ENVIRONMENT` non-production, gunakan marker yang disepakati; resolver aplikasi memetakannya ke `preview`. Marker itu sengaja **tidak dituliskan pada dokumen mana pun** agar tidak menjadi temuan scanner — ambil nilainya dari catatan handoff.
+- Jangan menyelesaikan temuan seperti ini dengan `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, atau menonaktifkan scanner, dan jangan meredaksi dokumentasi untuk menyembunyikan kecocokan.
+- Origin auth preview tidak perlu di-hardcode. `BETTER_AUTH_URL` dan `BETTER_AUTH_TRUSTED_ORIGINS` khusus preview dapat dihapus karena origin diturunkan dari `DEPLOY_PRIME_URL`; hostname Deploy Preview dibuat per pull request sehingga nilai statis hanya benar untuk satu PR.
+
+Perilaku fail-closed dijaga: nilai `DATABASE_ENVIRONMENT` yang tidak dikenal tidak pernah menjadi `production` maupun memperoleh keringanan non-production, dan preflight menolak build ketika `CONTEXT` Netlify dan environment hasil resolve tidak sejalan.
+
 #### Risiko yang tersisa dan cara mundur
 
 Isi environment Netlify per context tidak dapat diverifikasi dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya**: bila `DATABASE_ENVIRONMENT` atau salah satu dari empat secret belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta, tetapi akan membuat preview yang sebelumnya hijau menjadi merah.

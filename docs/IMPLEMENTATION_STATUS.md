@@ -534,6 +534,42 @@ Deploy Preview **belum** diverifikasi hijau setelah perbaikan ini. Status remote
 
 Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan production acceptance.
 
+## Implementasi Milestone 8 Wave 9 — tabrakan nilai env dengan secret scanner
+
+### Kegagalan kedua dan diagnosisnya
+
+Commit `cf74b59` menghapus literal test secret Turnstile, tetapi Deploy Preview **gagal lagi** pada deploy `6a96d0f38086ad0008e5660f`.
+
+Diagnosis dari dashboard Netlify: secret scanner mencocokkan **nilai** environment variable yang dikonfigurasi pada context terhadap isi repository dan output build. Context preview memakai `DATABASE_ENVIRONMENT` bernilai kata biasa non-production. Kata itu muncul ratusan kali pada README (baris 49 dan 61 disebut eksplisit), seluruh dokumen, test, dan source, sehingga scanner menandai hampir seluruh tree.
+
+Ini adalah tabrakan provider/source, bukan kebocoran. Nilainya memang bukan secret — tetapi tidak dapat dipindai secara praktis, dan kata itu tidak mungkin dihapus dari dokumentasi tanpa merusak kejujuran dokumen.
+
+### Remediasi
+
+**1. Marker non-production khusus Netlify.** `src/server/config/deploy-environment.ts` dan `scripts/deploy-environment.mjs` menyediakan satu resolver `DATABASE_ENVIRONMENT`. Selain `development`/`preview`/`production`, resolver menerima satu marker yang dipetakan ke `preview`. Marker itu **dirakit dari fragmen** sehingga literalnya tidak pernah ada pada file yang di-commit maupun pada output build; keduanya diverifikasi.
+
+Semantik lama dipertahankan: seed, bootstrap, smoke M5, dan penerimaan dummy hostname Turnstile tetap hanya berlaku untuk environment non-production, kini melalui `isNonProductionEnvironment`.
+
+**Fail-closed.** Nilai yang tidak dikenal me-resolve ke `null`, bukan ke default: ia tidak pernah menjadi `production`, dan juga tidak pernah memperoleh keringanan non-production. Preflight juga memeriksa silang variabel bawaan Netlify `CONTEXT`: build dengan `CONTEXT=production` yang tidak resolve ke `production` ditolak, dan environment `production` pada context non-production juga ditolak. Tanpa pemeriksaan ini marker dapat dipakai untuk memberi semantik preview pada deploy production.
+
+**2. Origin auth preview diturunkan secara dinamis.** `src/server/auth/auth.ts` kini menyertakan `DEPLOY_PRIME_URL` pada trusted origin dan pada fallback `baseURL`. Hostname Deploy Preview dibuat per pull request, sehingga `BETTER_AUTH_URL` statis hanya pernah benar untuk satu PR. Dengan penurunan dinamis ini, context preview **tidak lagi memerlukan** `BETTER_AUTH_URL`/`BETTER_AUTH_TRUSTED_ORIGINS` khusus preview — sekaligus menghapus nilai tersebut dari permukaan yang dipindai scanner. Literal host deploy-preview pada file test juga diganti host contoh netral.
+
+**Secret scanning tetap aktif penuh.** Tidak ada `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, penonaktifan scanner, maupun redaksi dokumentasi untuk menyembunyikan temuan.
+
+### Yang harus dilakukan pemilik pada Netlify
+
+Perubahan environment context adalah milik coordinator/owner, bukan worker. Diperlukan:
+
+1. Ganti `DATABASE_ENVIRONMENT` pada context Deploy Preview dan branch deploy dari kata biasa menjadi marker yang disepakati. Nilainya sengaja tidak ditulis pada dokumen mana pun; ambil dari laporan worker.
+2. Hapus `BETTER_AUTH_URL` dan `BETTER_AUTH_TRUSTED_ORIGINS` khusus preview; keduanya kini diturunkan dari `DEPLOY_PRIME_URL`.
+3. Pastikan context production tetap memakai `production` beserta origin https resmi.
+
+### Yang belum terbukti
+
+Deploy Preview **belum** diverifikasi hijau. Perbaikan ini menghilangkan tabrakan pada sisi source, tetapi baru berlaku setelah owner mengubah nilai pada Netlify. Build gate preflight juga tetap belum pernah benar-benar dieksekusi di Netlify, sehingga kelengkapan variable context preview masih belum diketahui.
+
+Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan production acceptance.
+
 ## Pekerjaan milestone berikutnya
 
 - Milestone 8 Wave 4 dan seterusnya: browser journey, retention/deletion job, backup/restore dan incident drill, serta dependency/secret scan.

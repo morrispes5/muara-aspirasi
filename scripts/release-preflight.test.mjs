@@ -6,6 +6,10 @@ import {
   runReleasePreflight,
   turnstileTestSecret,
 } from "./release-preflight.mjs";
+import {
+  nonProductionMarker,
+  resolveDeployEnvironment,
+} from "./deploy-environment.mjs";
 
 const realSecret = [
   "0123456789abcdef",
@@ -31,6 +35,77 @@ function errorsFor(result, variable) {
     (finding) => finding.variable === variable && finding.severity === "error",
   );
 }
+
+describe("Netlify-only non-production marker", () => {
+  it("stays identical to the TypeScript resolver's value", () => {
+    // The two runtimes keep separate copies because a build script cannot
+    // import TypeScript; they must never drift.
+    expect(resolveDeployEnvironment(nonProductionMarker)).toBe("preview");
+  });
+
+  it("satisfies a preview build in place of the dictionary word", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: nonProductionMarker,
+        DEPLOY_PRIME_URL: "https://deploy-preview-99--example-site.netlify.app",
+        NEXT_PUBLIC_APP_URL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.environment).toBe("preview");
+  });
+
+  it("never satisfies production", () => {
+    const result = runReleasePreflight(
+      productionEnv({ DATABASE_ENVIRONMENT: nonProductionMarker }),
+    );
+
+    // Resolves to preview, so the production URL rule no longer applies, but it
+    // must not be reported as production either.
+    expect(result.environment).toBe("preview");
+    expect(result.environment).not.toBe("production");
+  });
+
+  it("is rejected when Netlify says the context is production", () => {
+    // Fail-closed: the marker must not turn a production deploy into preview.
+    const result = runReleasePreflight(
+      productionEnv({
+        CONTEXT: "production",
+        DATABASE_ENVIRONMENT: nonProductionMarker,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "DATABASE_ENVIRONMENT").length).toBeGreaterThan(0);
+  });
+
+  it("rejects production environment on a non-production Netlify context", () => {
+    const result = runReleasePreflight(
+      productionEnv({ CONTEXT: "deploy-preview" }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "DATABASE_ENVIRONMENT").length).toBeGreaterThan(0);
+  });
+
+  it("accepts matching context and environment", () => {
+    expect(
+      runReleasePreflight(productionEnv({ CONTEXT: "production" })).ok,
+    ).toBe(true);
+    expect(
+      runReleasePreflight(
+        productionEnv({
+          CONTEXT: "deploy-preview",
+          DATABASE_ENVIRONMENT: nonProductionMarker,
+          DEPLOY_PRIME_URL:
+            "https://deploy-preview-99--example-site.netlify.app",
+          NEXT_PUBLIC_APP_URL: undefined,
+        }),
+      ).ok,
+    ).toBe(true);
+  });
+});
 
 describe("Cloudflare test secret", () => {
   it("assembles to the documented value without a literal in source", () => {
@@ -170,7 +245,7 @@ describe("release preflight", () => {
     const result = runReleasePreflight(
       productionEnv({
         DATABASE_ENVIRONMENT: "preview",
-        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        DEPLOY_PRIME_URL: "https://deploy-preview-99--example-site.netlify.app",
         NEXT_PUBLIC_APP_URL: undefined,
       }),
     );
@@ -197,7 +272,7 @@ describe("release preflight", () => {
     const result = runReleasePreflight(
       productionEnv({
         DATABASE_ENVIRONMENT: "preview",
-        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        DEPLOY_PRIME_URL: "https://deploy-preview-99--example-site.netlify.app",
         NEXT_PUBLIC_APP_URL: "http://localhost:3000",
       }),
     );
@@ -230,7 +305,7 @@ describe("release preflight", () => {
     const result = runReleasePreflight(
       productionEnv({
         DATABASE_ENVIRONMENT: "development",
-        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        DEPLOY_PRIME_URL: "https://deploy-preview-99--example-site.netlify.app",
         NEXT_PUBLIC_APP_URL: undefined,
       }),
     );

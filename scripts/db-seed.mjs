@@ -1,3 +1,4 @@
+import { isNonProductionEnvironment } from "./deploy-environment.mjs";
 import { neon } from "@neondatabase/serverless";
 
 const databaseUrl = process.env.DATABASE_URL_UNPOOLED;
@@ -9,7 +10,7 @@ if (!databaseUrl) {
   );
 }
 
-if (environment !== "development" && environment !== "preview") {
+if (!isNonProductionEnvironment(environment)) {
   throw new Error(
     "DATABASE_ENVIRONMENT harus bernilai development atau preview agar seed tidak pernah mengenai production.",
   );

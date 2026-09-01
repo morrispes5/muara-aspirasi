@@ -136,19 +136,19 @@ describe("Netlify DEPLOY_PRIME_URL fallback", () => {
     // Deploy Preview hostnames are generated per pull request, so no static
     // value can be correct for all of them.
     withAppUrl(undefined);
-    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+    withDeployUrl("https://deploy-preview-99--example-site.netlify.app");
 
     expect(getAppUrl()).toBe(
-      "https://deploy-preview-2--muaraaspirasi.netlify.app",
+      "https://deploy-preview-99--example-site.netlify.app",
     );
     expect(absoluteUrl("/sitemap.xml")).toBe(
-      "https://deploy-preview-2--muaraaspirasi.netlify.app/sitemap.xml",
+      "https://deploy-preview-99--example-site.netlify.app/sitemap.xml",
     );
   });
 
   it("never overrides an explicit NEXT_PUBLIC_APP_URL", () => {
     withAppUrl("https://muara.example.ac.id");
-    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+    withDeployUrl("https://deploy-preview-99--example-site.netlify.app");
 
     expect(getAppUrl()).toBe("https://muara.example.ac.id");
   });
@@ -156,7 +156,7 @@ describe("Netlify DEPLOY_PRIME_URL fallback", () => {
   it("does not rescue an explicit value that is set but unusable", () => {
     // A configured-but-broken value is a misconfiguration; silently swapping in
     // a provider URL would hide it.
-    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+    withDeployUrl("https://deploy-preview-99--example-site.netlify.app");
 
     for (const broken of ["javascript:alert(1)", "ftp://host", "not-a-url"]) {
       withAppUrl(broken);

@@ -1,5 +1,7 @@
 import { pathToFileURL } from "node:url";
 
+import { resolveDeployEnvironment } from "./deploy-environment.mjs";
+
 /**
  * Owner-run pre-deploy configuration gate.
  *
@@ -25,7 +27,6 @@ export const secretPlaceholderPrefix = "replace-with";
 
 /** Environments that must satisfy every deployed-grade rule. */
 const deployedEnvironments = new Set(["preview", "production"]);
-const knownEnvironments = ["development", "preview", "production"];
 
 /** Server secrets that must be real, environment-specific values. */
 const requiredSecrets = [
@@ -64,7 +65,10 @@ export function isPlaceholderSecret(value) {
 
 export function runReleasePreflight(env) {
   const findings = [];
-  const environment = env.DATABASE_ENVIRONMENT?.trim() ?? "";
+  const rawEnvironment = env.DATABASE_ENVIRONMENT?.trim() ?? "";
+  // The deployed context may use the Netlify-only marker instead of the
+  // dictionary word, so resolve before judging anything.
+  const environment = resolveDeployEnvironment(rawEnvironment) ?? "";
   const isDeployed = deployedEnvironments.has(environment);
   const isProduction = environment === "production";
 
@@ -76,10 +80,27 @@ export function runReleasePreflight(env) {
   if (!environment) {
     error(
       "DATABASE_ENVIRONMENT",
-      "Wajib diisi: development, preview, atau production.",
+      rawEnvironment
+        ? "Nilai tidak dikenal; gunakan development, preview, production, atau marker non-production yang disepakati."
+        : "Wajib diisi: development, preview, atau production.",
     );
-  } else if (!knownEnvironments.includes(environment)) {
-    error("DATABASE_ENVIRONMENT", `Nilai tidak dikenal: "${environment}".`);
+  }
+
+  // Fail-closed cross-check against Netlify's own build context. The marker
+  // resolves to preview, so without this a production deploy could be given
+  // non-production semantics by setting the marker there.
+  const netlifyContext = env.CONTEXT?.trim();
+  if (netlifyContext === "production" && environment !== "production") {
+    error(
+      "DATABASE_ENVIRONMENT",
+      "Context Netlify adalah production, tetapi environment tidak resolve ke production.",
+    );
+  }
+  if (netlifyContext && netlifyContext !== "production" && isProduction) {
+    error(
+      "DATABASE_ENVIRONMENT",
+      `Environment production dipakai pada context Netlify "${netlifyContext}".`,
+    );
   }
 
   for (const variable of requiredSecrets) {

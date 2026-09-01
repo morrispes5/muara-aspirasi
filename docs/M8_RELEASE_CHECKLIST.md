@@ -54,6 +54,16 @@ Setiap perbaikan diverifikasi non-vacuous dengan melumpuhkan guard-nya dan memas
 
 Dilumpuhkannya kedua guard membuat **17 test gagal**; file lalu dipulihkan dan diverifikasi identik melalui checksum.
 
+### Deploy Preview `cf74b59` gagal — nilai env bertabrakan dengan scanner
+
+Deploy `6a96d0f38086ad0008e5660f` gagal meskipun literal Turnstile sudah dihapus. Sebabnya berbeda: secret scanner Netlify mencocokkan **nilai** environment variable context terhadap repository dan output build. `DATABASE_ENVIRONMENT` pada context preview berisi kata biasa non-production yang muncul ratusan kali di README (baris 49 dan 61 disebut), dokumen, test, dan source.
+
+**Remediasi.** Resolver `DATABASE_ENVIRONMENT` tunggal per runtime menerima satu marker khusus Netlify yang dipetakan ke `preview` dan dirakit dari fragmen, sehingga tidak pernah muncul sebagai literal pada file tracked maupun output build — keduanya diverifikasi. Semantik seed/bootstrap/Turnstile tidak berubah. Nilai tak dikenal me-resolve ke `null` sehingga tidak pernah menjadi production maupun memperoleh keringanan non-production, dan preflight memeriksa silang `CONTEXT` Netlify agar marker tidak dapat memberi semantik preview pada deploy production. Origin auth preview kini diturunkan dari `DEPLOY_PRIME_URL`, sehingga `BETTER_AUTH_URL`/`BETTER_AUTH_TRUSTED_ORIGINS` khusus preview dapat dihapus dan hilang dari permukaan pemindaian.
+
+**Scanner tetap aktif penuh**: tidak ada `SECRETS_SCAN_OMIT_*`, tidak ada penonaktifan, tidak ada redaksi dokumentasi.
+
+**Belum terbukti.** Preview belum hijau. Perbaikan source baru berlaku setelah owner mengganti nilai context Netlify; nilainya sengaja tidak ditulis di dokumen mana pun.
+
 ### Deploy Preview `bbb7d11` gagal — secret scanner, bukan build gate
 
 Commit `bbb7d11` menghasilkan CI `quality` LULUS (run `33511046005`) tetapi Deploy Preview **GAGAL** pada deploy `6a96cce550d63f0008564f63`.

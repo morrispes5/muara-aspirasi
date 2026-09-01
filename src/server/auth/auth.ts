@@ -35,6 +35,12 @@ function getConfiguredOrigins(): string[] {
   const configured = [
     process.env.BETTER_AUTH_URL,
     process.env.NEXT_PUBLIC_APP_URL,
+    // Netlify's per-deploy URL. Deploy Preview hostnames are generated per pull
+    // request, so a static BETTER_AUTH_URL can only ever be right for one of
+    // them; deriving the origin means the preview context needs no hardcoded
+    // auth origin at all, which also removes it from the secret scanner's
+    // value-matching surface.
+    process.env.DEPLOY_PRIME_URL,
     ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "").split(","),
   ];
 
@@ -63,7 +69,10 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
     },
     appName: "Muara Aspirasi BEM",
     basePath: "/api/auth",
-    baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
+    baseURL:
+      process.env.BETTER_AUTH_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.DEPLOY_PRIME_URL,
     database: drizzleAdapter(database, {
       provider: "pg",
       schema: {
