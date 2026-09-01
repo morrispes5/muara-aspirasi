@@ -52,27 +52,28 @@ Aturan:
 
 Daftar berikut hanya nama dan fungsi. Placeholder database dan auth tersedia di `.env.example`; value nyata tetap hanya berada di `.env.local`/secret store.
 
-| Nama                                   | Scope            | Fungsi                                                        |                            Secret? |
-| -------------------------------------- | ---------------- | ------------------------------------------------------------- | ---------------------------------: |
-| `NEXT_PUBLIC_APP_URL`                  | Client + server  | Base URL/canonical origin aplikasi.                           |                              Tidak |
-| `DATABASE_URL`                         | Server           | Neon pooled connection string untuk runtime aplikasi.         |                                 Ya |
-| `DATABASE_URL_UNPOOLED`                | Build/ops server | Direct connection untuk migration terkontrol.                 |                                 Ya |
-| `BETTER_AUTH_SECRET`                   | Server           | Signing/encryption secret Better Auth.                        |                                 Ya |
-| `BETTER_AUTH_URL`                      | Server           | Trusted canonical auth origin.                                | Tidak, tetapi environment-specific |
-| `BETTER_AUTH_TRUSTED_ORIGINS`          | Server           | Comma-separated origin allowlist untuk callback/auth request. | Tidak, tetapi environment-specific |
-| `BEM_ALLOWED_EMAIL_DOMAINS`            | Ops              | Optional domain allowlist untuk bootstrap admin BEM.          |                              Tidak |
-| `AUTH_BOOTSTRAP_NAME`                  | One-time ops     | Nama admin awal; hapus setelah bootstrap.                     |                              Tidak |
-| `AUTH_BOOTSTRAP_EMAIL`                 | One-time ops     | Email admin awal; hapus setelah bootstrap.                    |                              Tidak |
-| `AUTH_BOOTSTRAP_PASSWORD`              | One-time ops     | Password admin awal; hapus setelah bootstrap.                 |                                 Ya |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server  | Public Turnstile widget site key.                             |                              Tidak |
-| `TURNSTILE_SECRET_KEY`                 | Server           | Server-side Siteverify credential.                            |                                 Ya |
-| `R2_ACCOUNT_ID`                        | Server           | Cloudflare account identifier.                                |                  Restricted config |
-| `R2_ACCESS_KEY_ID`                     | Server           | R2 S3 API credential ID.                                      |                                 Ya |
-| `R2_SECRET_ACCESS_KEY`                 | Server           | R2 S3 API credential secret.                                  |                                 Ya |
-| `R2_EVIDENCE_BUCKET`                   | Server           | Private evidence bucket name.                                 |                  Restricted config |
-| `R2_EDITORIAL_BUCKET`                  | Server           | Approved editorial media bucket name.                         |                  Restricted config |
-| `NEXT_PUBLIC_EDITORIAL_ASSET_BASE_URL` | Client + server  | Public base URL media editorial jika custom domain disetujui. |                              Tidak |
-| `LOG_LEVEL`                            | Server           | Logging verbosity tanpa menyalakan body/PII logging.          |                              Tidak |
+| Nama                                   | Scope            | Fungsi                                                                                                     |                            Secret? |
+| -------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------: |
+| `NEXT_PUBLIC_APP_URL`                  | Client + server  | Base URL/canonical origin aplikasi.                                                                        |                              Tidak |
+| `DEPLOY_PRIME_URL`                     | Build (Netlify)  | URL per-deploy bawaan Netlify; fallback origin hanya untuk preview/branch deploy, tidak pernah production. |                              Tidak |
+| `DATABASE_URL`                         | Server           | Neon pooled connection string untuk runtime aplikasi.                                                      |                                 Ya |
+| `DATABASE_URL_UNPOOLED`                | Build/ops server | Direct connection untuk migration terkontrol.                                                              |                                 Ya |
+| `BETTER_AUTH_SECRET`                   | Server           | Signing/encryption secret Better Auth.                                                                     |                                 Ya |
+| `BETTER_AUTH_URL`                      | Server           | Trusted canonical auth origin.                                                                             | Tidak, tetapi environment-specific |
+| `BETTER_AUTH_TRUSTED_ORIGINS`          | Server           | Comma-separated origin allowlist untuk callback/auth request.                                              | Tidak, tetapi environment-specific |
+| `BEM_ALLOWED_EMAIL_DOMAINS`            | Ops              | Optional domain allowlist untuk bootstrap admin BEM.                                                       |                              Tidak |
+| `AUTH_BOOTSTRAP_NAME`                  | One-time ops     | Nama admin awal; hapus setelah bootstrap.                                                                  |                              Tidak |
+| `AUTH_BOOTSTRAP_EMAIL`                 | One-time ops     | Email admin awal; hapus setelah bootstrap.                                                                 |                              Tidak |
+| `AUTH_BOOTSTRAP_PASSWORD`              | One-time ops     | Password admin awal; hapus setelah bootstrap.                                                              |                                 Ya |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server  | Public Turnstile widget site key.                                                                          |                              Tidak |
+| `TURNSTILE_SECRET_KEY`                 | Server           | Server-side Siteverify credential.                                                                         |                                 Ya |
+| `R2_ACCOUNT_ID`                        | Server           | Cloudflare account identifier.                                                                             |                  Restricted config |
+| `R2_ACCESS_KEY_ID`                     | Server           | R2 S3 API credential ID.                                                                                   |                                 Ya |
+| `R2_SECRET_ACCESS_KEY`                 | Server           | R2 S3 API credential secret.                                                                               |                                 Ya |
+| `R2_EVIDENCE_BUCKET`                   | Server           | Private evidence bucket name.                                                                              |                  Restricted config |
+| `R2_EDITORIAL_BUCKET`                  | Server           | Approved editorial media bucket name.                                                                      |                  Restricted config |
+| `NEXT_PUBLIC_EDITORIAL_ASSET_BASE_URL` | Client + server  | Public base URL media editorial jika custom domain disetujui.                                              |                              Tidak |
+| `LOG_LEVEL`                            | Server           | Logging verbosity tanpa menyalakan body/PII logging.                                                       |                              Tidak |
 
 Variable future untuk email/WhatsApp tidak ditetapkan sampai kanal notifikasi disetujui.
 
@@ -183,25 +184,44 @@ dan hanya mengulang artifact commit `012222aa` (M6), tanpa kode M8.
 - content, contact, privacy notice, asset permission, dan escalation SOP disetujui;
 - release owner dan on-call contact ditetapkan.
 
-### Preflight sebagai build gate — status dan cara mengaktifkan
+### Preflight sebagai build gate — sudah aktif
 
 `SECURITY_PRIVACY.md` bagian 12 mensyaratkan: "Build harus gagal dengan pesan aman ketika required server secret hilang."
 
-**Syarat itu saat ini belum terpenuhi.** Diverifikasi 1 September 2026 dengan menjalankan build sambil mengosongkan `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PUBLIC_ABUSE_SIGNAL_SECRET`, dan `TURNSTILE_SECRET_KEY`: build tetap **berhasil**. Penyebabnya wajar — seluruh halaman dinamis dan setiap secret baru dibaca saat request, sehingga aplikasi fail-closed pada runtime tetapi tidak pada build.
+Sebelumnya syarat itu tidak terpenuhi. Diverifikasi 1 September 2026 dengan menjalankan build sambil mengosongkan `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PUBLIC_ABUSE_SIGNAL_SECRET`, dan `TURNSTILE_SECRET_KEY`: build tetap berhasil. Penyebabnya wajar — seluruh halaman dinamis dan setiap secret baru dibaca saat request, sehingga aplikasi fail-closed pada runtime tetapi tidak pada build.
 
-`npm run release:preflight` adalah mekanisme yang tepat untuk menutup gate ini, dan pengaktifannya cukup satu baris pada `netlify.toml`:
+Gate itu kini terpasang. `netlify.toml` menjalankan:
 
 ```toml
 command = "npm run release:preflight && npm run build -- --webpack"
 ```
 
-**Jangan aktifkan sebelum prasyarat berikut diverifikasi owner pada Netlify**, karena mengaktifkannya tanpa itu akan membuat build gagal dan mematikan Deploy Preview yang sekarang hijau:
+Preflight membaca konfigurasi dari environment context Netlify. **Tidak ada secret yang diletakkan di `netlify.toml`**, dan skrip hanya mencetak nama variable beserta alasannya, tidak pernah nilainya.
 
-1. `DATABASE_ENVIRONMENT` terisi pada setiap context — `production` untuk production, `preview` untuk Deploy Preview dan branch deploy. Bila kosong, preflight menghasilkan ERROR dan build berhenti.
-2. `NEXT_PUBLIC_APP_URL` terisi per context. URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.app`), sehingga satu nilai statis tidak dapat benar untuk semua preview; petakan ke variabel bawaan Netlify `$DEPLOY_PRIME_URL` pada context preview, dan ke domain resmi pada production.
-3. Keempat secret wajib terisi nilai nyata per context, bukan placeholder `.env.example`, minimal 32 karakter.
+#### Variable yang wajib ada per context
 
-Worker tidak mengaktifkan wiring ini dan tidak mengubah environment variable Netlify: isi environment per context tidak dapat diverifikasi dari repository, dan menebaknya berisiko mematahkan preview. Ini keputusan owner.
+| Variable                                                                                   | Production                                   | Deploy Preview / branch deploy                    |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------- |
+| `DATABASE_ENVIRONMENT`                                                                     | `production`                                 | `preview`                                         |
+| `NEXT_PUBLIC_APP_URL`                                                                      | **Wajib**, absolut dan `https`, domain resmi | Opsional; bila kosong, `DEPLOY_PRIME_URL` dipakai |
+| `DEPLOY_PRIME_URL`                                                                         | Diabaikan sebagai pengganti origin           | Disediakan otomatis oleh Netlify                  |
+| `BETTER_AUTH_SECRET`, `DATABASE_URL`, `PUBLIC_ABUSE_SIGNAL_SECRET`, `TURNSTILE_SECRET_KEY` | Nilai nyata per context, minimal 32 karakter | Nilai nyata per context, minimal 32 karakter      |
+
+URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.app`), sehingga satu nilai statis tidak dapat benar untuk semua preview. Karena itu `DEPLOY_PRIME_URL` — variabel bawaan Netlify — boleh memenuhi syarat URL pada preview dan branch deploy.
+
+**Production tidak menerima `DEPLOY_PRIME_URL` sebagai pengganti.** Origin resmi harus disebut eksplisit melalui `NEXT_PUBLIC_APP_URL` agar domain yang disetujui owner tidak diam-diam tergantikan URL provider. Perilaku ini diuji pada `scripts/release-preflight.test.mjs`.
+
+#### Risiko yang tersisa dan cara mundur
+
+Isi environment Netlify per context tidak dapat diverifikasi dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya**: bila `DATABASE_ENVIRONMENT` atau salah satu dari empat secret belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta, tetapi akan membuat preview yang sebelumnya hijau menjadi merah.
+
+Bila perlu mundur sementara, kembalikan satu baris berikut pada `netlify.toml` lalu perbaiki environment sebelum memasangnya kembali:
+
+```toml
+command = "npm run build -- --webpack"
+```
+
+Jangan menonaktifkan gate ini secara permanen untuk mengejar build hijau; itu mengembalikan celah bagian 12.
 
 ### Release
 

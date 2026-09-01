@@ -94,16 +94,38 @@ export function runReleasePreflight(env) {
   }
 
   const appUrl = env.NEXT_PUBLIC_APP_URL?.trim();
-  if (!appUrl) {
-    if (isDeployed) {
-      error("NEXT_PUBLIC_APP_URL", "Wajib diisi untuk environment ter-deploy.");
+  const deployPrimeUrl = env.DEPLOY_PRIME_URL?.trim();
+
+  // Netlify's built-in per-deploy URL may stand in for a preview or branch
+  // deploy, whose hostname is generated per pull request and cannot be a static
+  // value. It may NEVER stand in for production: the approved origin has to be
+  // stated explicitly so a provider URL cannot silently replace a custom domain.
+  const deployUrlMayStandIn = isDeployed && !isProduction;
+  const urlSource = appUrl
+    ? "NEXT_PUBLIC_APP_URL"
+    : deployUrlMayStandIn && deployPrimeUrl
+      ? "DEPLOY_PRIME_URL"
+      : "NEXT_PUBLIC_APP_URL";
+  const urlValue = urlSource === "DEPLOY_PRIME_URL" ? deployPrimeUrl : appUrl;
+
+  if (!urlValue) {
+    if (isProduction) {
+      error(
+        "NEXT_PUBLIC_APP_URL",
+        "Production wajib menyebut origin resmi secara eksplisit; DEPLOY_PRIME_URL tidak diterima sebagai pengganti.",
+      );
+    } else if (isDeployed) {
+      error(
+        "NEXT_PUBLIC_APP_URL",
+        "Wajib diisi untuk environment ter-deploy, atau sediakan DEPLOY_PRIME_URL dari Netlify.",
+      );
     }
   } else {
     let parsed;
     try {
-      parsed = new URL(appUrl);
+      parsed = new URL(urlValue);
     } catch {
-      error("NEXT_PUBLIC_APP_URL", "Bukan URL absolut yang valid.");
+      error(urlSource, "Bukan URL absolut yang valid.");
     }
 
     if (parsed) {
@@ -115,19 +137,19 @@ export function runReleasePreflight(env) {
       // throw; `ftp:` parses and would be emitted verbatim into robots.txt.
       if (!allowedProtocols.has(parsed.protocol)) {
         error(
-          "NEXT_PUBLIC_APP_URL",
+          urlSource,
           `Skema ${parsed.protocol} tidak diizinkan; gunakan http atau https.`,
         );
       } else {
         // sitemap.xml, robots.txt, and metadataBase all resolve against this.
         if (isDeployed && isLocal) {
           error(
-            "NEXT_PUBLIC_APP_URL",
+            urlSource,
             "Masih menunjuk localhost pada environment ter-deploy.",
           );
         }
         if (isProduction && parsed.protocol !== "https:") {
-          error("NEXT_PUBLIC_APP_URL", "Production wajib memakai https.");
+          error(urlSource, "Production wajib memakai https.");
         }
       }
     }

@@ -149,6 +149,85 @@ describe("release preflight", () => {
     },
   );
 
+  /**
+   * Netlify generates a Deploy Preview hostname per pull request, so no static
+   * `NEXT_PUBLIC_APP_URL` can be correct for every preview. `DEPLOY_PRIME_URL`
+   * may stand in there — but never for production, where the approved origin
+   * must be stated explicitly so a provider URL cannot silently replace a
+   * custom domain.
+   */
+  it("lets DEPLOY_PRIME_URL satisfy a preview build", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        NEXT_PUBLIC_APP_URL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.findings).toEqual([]);
+  });
+
+  it("refuses to let DEPLOY_PRIME_URL stand in for production", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DEPLOY_PRIME_URL: "https://muaraaspirasi.netlify.app",
+        NEXT_PUBLIC_APP_URL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    const findings = errorsFor(result, "NEXT_PUBLIC_APP_URL");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].message).toContain("DEPLOY_PRIME_URL");
+  });
+
+  it("still prefers an explicit app URL over the per-deploy one", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        NEXT_PUBLIC_APP_URL: "http://localhost:3000",
+      }),
+    );
+
+    // The explicit value is still the one judged, so a localhost value is not
+    // rescued by the presence of a per-deploy URL.
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "NEXT_PUBLIC_APP_URL")).toHaveLength(1);
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "ftp://host/x",
+    "http://localhost:3000",
+    "not-a-url",
+  ])("rejects the unusable per-deploy URL %s on a preview", (deployUrl) => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        DEPLOY_PRIME_URL: deployUrl,
+        NEXT_PUBLIC_APP_URL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "DEPLOY_PRIME_URL").length).toBeGreaterThan(0);
+  });
+
+  it("ignores DEPLOY_PRIME_URL during local development", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "development",
+        DEPLOY_PRIME_URL: "https://deploy-preview-2--muaraaspirasi.netlify.app",
+        NEXT_PUBLIC_APP_URL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
   it("reports the scheme problem once, not as a confusing https complaint", () => {
     const result = runReleasePreflight(
       productionEnv({ NEXT_PUBLIC_APP_URL: "ftp://host/x" }),

@@ -118,3 +118,73 @@ describe("absolute URLs for crawler-facing routes", () => {
     }
   });
 });
+
+describe("Netlify DEPLOY_PRIME_URL fallback", () => {
+  const originalDeploy = process.env.DEPLOY_PRIME_URL;
+
+  function withDeployUrl(value: string | undefined) {
+    if (value === undefined) delete process.env.DEPLOY_PRIME_URL;
+    else process.env.DEPLOY_PRIME_URL = value;
+  }
+
+  afterEach(() => {
+    if (originalDeploy === undefined) delete process.env.DEPLOY_PRIME_URL;
+    else process.env.DEPLOY_PRIME_URL = originalDeploy;
+  });
+
+  it("uses the per-deploy URL when the explicit variable is absent", () => {
+    // Deploy Preview hostnames are generated per pull request, so no static
+    // value can be correct for all of them.
+    withAppUrl(undefined);
+    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+
+    expect(getAppUrl()).toBe(
+      "https://deploy-preview-2--muaraaspirasi.netlify.app",
+    );
+    expect(absoluteUrl("/sitemap.xml")).toBe(
+      "https://deploy-preview-2--muaraaspirasi.netlify.app/sitemap.xml",
+    );
+  });
+
+  it("never overrides an explicit NEXT_PUBLIC_APP_URL", () => {
+    withAppUrl("https://muara.example.ac.id");
+    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+
+    expect(getAppUrl()).toBe("https://muara.example.ac.id");
+  });
+
+  it("does not rescue an explicit value that is set but unusable", () => {
+    // A configured-but-broken value is a misconfiguration; silently swapping in
+    // a provider URL would hide it.
+    withDeployUrl("https://deploy-preview-2--muaraaspirasi.netlify.app");
+
+    for (const broken of ["javascript:alert(1)", "ftp://host", "not-a-url"]) {
+      withAppUrl(broken);
+
+      expect(getAppUrl()).toBe(localAppUrlFallback);
+    }
+  });
+
+  it.each([
+    "javascript:alert(1)",
+    "data:text/html,x",
+    "ftp://host/x",
+    "not-a-url",
+    "",
+  ])("ignores the unusable per-deploy value %s", (value) => {
+    withAppUrl(undefined);
+    withDeployUrl(value);
+
+    expect(getAppUrl()).toBe(localAppUrlFallback);
+  });
+
+  it("keeps localhost when neither variable is set", () => {
+    withAppUrl(undefined);
+    withDeployUrl(undefined);
+
+    expect(getAppUrl()).toBe(localAppUrlFallback);
+    expect(absoluteUrl("/sitemap.xml")).toBe(
+      `${localAppUrlFallback}/sitemap.xml`,
+    );
+  });
+});

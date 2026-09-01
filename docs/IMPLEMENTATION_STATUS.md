@@ -450,6 +450,51 @@ Kedua guard dilumpuhkan bersamaan: **17 test gagal**. File dipulihkan dan diveri
 | `git diff --check`             | Bersih                                                        |
 | `npm run release:preflight`    | Lulus pada `development`                                      |
 
+## Implementasi Milestone 8 Wave 7 — build gate dipasang
+
+Menutup gate `SECURITY_PRIVACY.md` bagian 12 yang pada Wave 6 terbukti belum terpenuhi.
+
+### Yang berubah
+
+`netlify.toml` kini menjalankan `npm run release:preflight && npm run build -- --webpack`. Tidak ada secret di dalam TOML; preflight membaca environment context Netlify dan hanya mencetak nama variable beserta alasannya. Setting `[dev]` tidak diubah.
+
+Agar preview tidak patah oleh URL yang dinamis, resolusi origin publik mendapat fallback ke `DEPLOY_PRIME_URL`, variabel bawaan Netlify:
+
+- `src/lib/app-url.ts` memakai urutan `NEXT_PUBLIC_APP_URL` → `DEPLOY_PRIME_URL` → localhost. Fallback hanya berlaku ketika variabel eksplisit **tidak ada**; nilai yang ada tetapi tidak dapat dipakai tetap jatuh ke localhost, karena menukarnya diam-diam dengan URL provider justru menyembunyikan salah konfigurasi. Allowlist `http:`/`https:` berlaku untuk kedua sumber.
+- `scripts/release-preflight.mjs` menerima `DEPLOY_PRIME_URL` sebagai pemenuh syarat URL pada preview dan branch deploy. **Production tidak menerimanya**: origin resmi harus disebut eksplisit melalui `NEXT_PUBLIC_APP_URL` https, sehingga domain yang disetujui owner tidak dapat tergantikan URL provider. Pesan error menyebut sumber yang benar-benar dinilai (`NEXT_PUBLIC_APP_URL` atau `DEPLOY_PRIME_URL`).
+
+### Bukti
+
+| Simulasi                                          | Hasil                                                           |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| preview, hanya `DEPLOY_PRIME_URL`                 | LULUS, exit 0                                                   |
+| production, hanya `DEPLOY_PRIME_URL`              | GAGAL, exit 1, menyebut provider URL tidak diterima             |
+| production, `NEXT_PUBLIC_APP_URL` https eksplisit | LULUS, exit 0                                                   |
+| perintah `netlify.toml` apa adanya (webpack)      | preflight LULUS lalu "Compiled successfully"                    |
+| engine default (turbopack)                        | preflight LULUS lalu "Compiled successfully"                    |
+| konfigurasi production buruk                      | build **tidak pernah berjalan**; rantai berhenti pada preflight |
+
+Melumpuhkan fallback membuat test preview gagal, dan mengizinkan `DEPLOY_PRIME_URL` pada production membuat test penolakan gagal — dua kegagalan tepat sasaran, lalu file dipulihkan.
+
+### Yang belum terbukti dan risiko yang tersisa
+
+Isi environment Netlify per context tidak dapat dibaca dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya.** Bila `DATABASE_ENVIRONMENT` atau salah satu dari empat secret belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta bagian 12, tetapi akan mengubah Deploy Preview yang sebelumnya hijau menjadi merah. Cara mundur satu baris tercatat pada `DEPLOYMENT_RUNBOOK.md` bagian 7, disertai peringatan agar gate tidak dinonaktifkan permanen hanya demi build hijau.
+
+**Production tetap terblokir** oleh gate owner/provider; wave ini tidak menyatakan production acceptance, tidak menyentuh nilai environment Netlify, Neon, migration, auth policy, CSP/HSTS/MFA, R2, scheduler, maupun konten.
+
+### Validasi Wave 7
+
+| Pemeriksaan                    | Hasil                                                         |
+| ------------------------------ | ------------------------------------------------------------- |
+| `npm run format:check`         | Lulus                                                         |
+| `npm run lint`                 | Lulus (`--max-warnings=0`)                                    |
+| `npm run typecheck`            | Lulus                                                         |
+| `npm test`                     | Lulus — **208 passed, 3 skipped** (211 total); sebelumnya 191 |
+| `npm run db:check`             | Lulus; tidak ada migration                                    |
+| `npm run build`                | Lulus pada engine default dan `--webpack`                     |
+| `npm audit --audit-level=high` | Lulus — 0 vulnerabilities                                     |
+| `git diff --check`             | Bersih                                                        |
+
 ## Pekerjaan milestone berikutnya
 
 - Milestone 8 Wave 4 dan seterusnya: browser journey, retention/deletion job, backup/restore dan incident drill, serta dependency/secret scan.

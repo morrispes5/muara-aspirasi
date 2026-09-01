@@ -28,17 +28,40 @@ export const localAppUrlFallback = "http://localhost:3000";
  */
 const allowedProtocols = new Set(["http:", "https:"]);
 
-export function getAppUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
-  if (!configured) return localAppUrlFallback;
+/** Returns the origin when the value is a usable http(s) URL, otherwise null. */
+function readOrigin(value: string | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
 
   try {
-    const parsed = new URL(configured);
-    if (!allowedProtocols.has(parsed.protocol)) return localAppUrlFallback;
-    return parsed.origin;
+    const parsed = new URL(trimmed);
+    return allowedProtocols.has(parsed.protocol) ? parsed.origin : null;
   } catch {
-    return localAppUrlFallback;
+    return null;
   }
+}
+
+/**
+ * Resolution order:
+ *
+ * 1. `NEXT_PUBLIC_APP_URL` — the approved origin, and the only source production
+ *    is allowed to use. `scripts/release-preflight.mjs` enforces that.
+ * 2. `DEPLOY_PRIME_URL` — Netlify's built-in per-deploy URL, used **only** when
+ *    the explicit variable is absent. Deploy Preview URLs are generated per pull
+ *    request (`deploy-preview-<n>--<site>.netlify.app`), so no static value can
+ *    be correct for all of them; this is what lets a preview build satisfy the
+ *    gate without anyone inventing an origin.
+ * 3. localhost, so local development needs no configuration.
+ *
+ * The fallback deliberately applies only when `NEXT_PUBLIC_APP_URL` is *absent*.
+ * A value that is set but unusable is a misconfiguration, and silently swapping
+ * in a provider URL would hide it.
+ */
+export function getAppUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured) return readOrigin(configured) ?? localAppUrlFallback;
+
+  return readOrigin(process.env.DEPLOY_PRIME_URL) ?? localAppUrlFallback;
 }
 
 export function absoluteUrl(path: string): string {
