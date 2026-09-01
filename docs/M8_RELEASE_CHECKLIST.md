@@ -29,7 +29,7 @@ Dijalankan lokal pada branch `milestone-8-readiness`, Windows, Node 22.16.0, ste
 | `git diff --check`             | Bersih; tidak ada whitespace error                                                                 |
 | `npm run release:preflight`    | Lulus pada environment `development` dengan satu WARNING Turnstile test secret (benar untuk lokal) |
 
-CI dan preview untuk PR #2 pada commit `ed1f6fc`: workflow `CI` job `quality` run `33383657147` SUCCESS (2026-08-31T10:44:36Z), status check `netlify/muaraaspirasi/deploy-preview` SUCCESS (`https://deploy-preview-2--muaraaspirasi.netlify.app`). **Perubahan 1 September belum masuk commit**, sehingga run tersebut belum mencakupnya.
+CI dan preview untuk PR #2 pada commit `53fc672`: workflow `CI` job `quality` run `33507811653` SUCCESS (2026-09-01T12:29:37Z), status check `netlify/muaraaspirasi/deploy-preview` SUCCESS (`https://deploy-preview-2--muaraaspirasi.netlify.app`). Preview tetap mengembalikan `HTTP 401` dengan `X-Robots-Tag: noindex`, sehingga browser/content QA owner masih diperlukan.
 
 ### Perbaikan code-owned pada evidence run ini
 
