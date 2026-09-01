@@ -15,6 +15,7 @@ import {
   privacyNoticeVersion,
 } from "@/server/aspirations/tracking";
 import { type Database, getDatabase } from "@/server/db/client";
+import { requireConfiguredSecret } from "@/server/config/secret-policy";
 import { type SubmissionInput } from "@/server/aspirations/validation";
 
 export class InactiveCategoryError extends Error {
@@ -32,10 +33,12 @@ export class DuplicateSubmissionError extends Error {
 }
 
 function idempotencyKeyHash(key: string) {
-  const secret = process.env.PUBLIC_ABUSE_SIGNAL_SECRET?.trim();
-  if (!secret) {
-    throw new Error("PUBLIC_ABUSE_SIGNAL_SECRET belum diatur.");
-  }
+  // Same rule as the rate limiter: the committed template salt must never be
+  // accepted, or idempotency hashes become computable from the public source.
+  const secret = requireConfiguredSecret(
+    process.env.PUBLIC_ABUSE_SIGNAL_SECRET,
+    "PUBLIC_ABUSE_SIGNAL_SECRET",
+  );
 
   return hashOpaqueValue(`submission:${key}`, secret);
 }

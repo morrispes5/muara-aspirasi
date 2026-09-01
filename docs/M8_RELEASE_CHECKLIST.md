@@ -13,6 +13,53 @@ Kosakata status: **Lulus** · **Code-complete** · **Belum dijalankan** · **Kep
 
 ---
 
+## Evidence run — 1 September 2026 (Wave 5 baseline)
+
+Dijalankan lokal pada branch `milestone-8-readiness`, Windows, Node 22.16.0, stempel waktu `UTC 2026-09-01T12:05:07Z`. Read-only terhadap remote; tidak ada migration, secret, deploy, atau merge.
+
+| Perintah                       | Hasil                                                                                              |
+| ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `npm run format:check`         | Lulus                                                                                              |
+| `npm run lint`                 | Lulus (`--max-warnings=0`)                                                                         |
+| `npm run typecheck`            | Lulus                                                                                              |
+| `npm test`                     | Lulus — **169 passed, 3 skipped** (172 total, 24 file)                                             |
+| `npm run db:check`             | Lulus; tidak ada migration dibuat atau diterapkan                                                  |
+| `npm run build`                | Lulus                                                                                              |
+| `npm audit --audit-level=high` | Lulus — 0 vulnerabilities                                                                          |
+| `git diff --check`             | Bersih; tidak ada whitespace error                                                                 |
+| `npm run release:preflight`    | Lulus pada environment `development` dengan satu WARNING Turnstile test secret (benar untuk lokal) |
+
+CI dan preview untuk PR #2 pada commit `ed1f6fc`: workflow `CI` job `quality` run `33383657147` SUCCESS (2026-08-31T10:44:36Z), status check `netlify/muaraaspirasi/deploy-preview` SUCCESS (`https://deploy-preview-2--muaraaspirasi.netlify.app`). **Perubahan 1 September belum masuk commit**, sehingga run tersebut belum mencakupnya.
+
+### Perbaikan code-owned pada evidence run ini
+
+| Temuan                                                                                                                                                                                                                                                        | Perbaikan                                                                                                                       | Test                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `PUBLIC_ABUSE_SIGNAL_SECRET` hanya diperiksa non-empty, sehingga placeholder `.env.example` — salt HMAC yang ada di repo — lolos ke environment ter-deploy dan membuat bucket key rate limit serta hash idempotency dapat dihitung siapa pun pemegang source. | `src/server/config/secret-policy.ts` menolak placeholder dan nilai kosong; dipakai `rate-limit.ts` dan `submission-service.ts`. | `secret-policy.test.ts` (4), `abuse-signal-secret.test.ts` (6) |
+| `robots.txt` memancarkan `Sitemap: /sitemap.xml`. URL relatif tidak sah pada robots.txt (RFC 9309 §2.2.3) dan diabaikan crawler.                                                                                                                              | `src/lib/app-url.ts` menjadi satu resolver origin; `robots.ts` dan `sitemap.ts` memakainya.                                     | `app-url.test.ts` (7)                                          |
+| Tidak ada `metadataBase`, sehingga canonical dan Open Graph URL pada halaman ter-deploy dihitung terhadap localhost.                                                                                                                                          | `src/app/layout.tsx` memakai `getAppUrl()`.                                                                                     | Tercakup `app-url.test.ts`                                     |
+| Tidak ada gate konfigurasi pre-deploy yang deterministik.                                                                                                                                                                                                     | `scripts/release-preflight.mjs` + `npm run release:preflight`.                                                                  | `release-preflight.test.mjs` (26)                              |
+
+Setiap perbaikan diverifikasi non-vacuous dengan melumpuhkan guard-nya dan memastikan test yang seharusnya gagal memang gagal, lalu memulihkan file. Contoh: mengembalikan pemeriksaan `!secret` yang lama membuat dua test placeholder gagal.
+
+**Batas jujur `release:preflight`.** Skrip memvalidasi _bentuk_ konfigurasi tanpa credential, network, atau database. Lulus berarti bentuknya wajar; itu bukan bukti deploy, bukan bukti provider menerima nilainya, dan tidak menutup satu pun gate owner di bagian 10.
+
+### Follow-up hardening — 1 September 2026
+
+| Temuan                                                                                                                                                                                                                                                                                                                              | Perbaikan                                                                                                 | Test                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `getAppUrl()` menerima skema apa pun yang dapat di-parse. `new URL("javascript:alert(1)").origin` bernilai string `"null"`, sehingga `absoluteUrl()` **melempar TypeError** dan akan mematikan `sitemap.xml`, `robots.txt`, serta root layout melalui `metadataBase`. `ftp://host` lolos diam-diam dan akan tercetak ke robots.txt. | Allowlist `http:`/`https:` pada `src/lib/app-url.ts`; fallback localhost dipertahankan untuk development. | `app-url.test.ts` — kini 17 test            |
+| Preflight tidak memeriksa skema, sehingga `javascript:`/`ftp:` lolos tanpa temuan pada context `preview`.                                                                                                                                                                                                                           | Allowlist skema pada `scripts/release-preflight.mjs` sebelum pemeriksaan localhost/https.                 | `release-preflight.test.mjs` — kini 39 test |
+| Preflight hanya menolak `AUTH_BOOTSTRAP_EMAIL` dan `AUTH_BOOTSTRAP_PASSWORD`, padahal `DEPLOYMENT_RUNBOOK.md` langkah 6 bootstrap meminta menghapus **seluruh** `AUTH_BOOTSTRAP_*`, termasuk `AUTH_BOOTSTRAP_NAME`.                                                                                                                 | Pemeriksaan berbasis prefix `AUTH_BOOTSTRAP_`, sehingga variabel bootstrap baru ikut tercakup.            | `release-preflight.test.mjs`                |
+
+Dilumpuhkannya kedua guard membuat **17 test gagal**; file lalu dipulihkan dan diverifikasi identik melalui checksum.
+
+### Penilaian: preflight sebagai build gate Netlify
+
+`SECURITY_PRIVACY.md` bagian 12 mensyaratkan build gagal ketika required server secret hilang. **Diverifikasi bahwa syarat ini belum terpenuhi**: build dijalankan dengan `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PUBLIC_ABUSE_SIGNAL_SECRET`, dan `TURNSTILE_SECRET_KEY` dikosongkan, dan tetap **berhasil** — seluruh halaman dinamis sehingga secret hanya dibaca saat request. Aplikasi fail-closed pada runtime, bukan pada build.
+
+Wiring preflight ke build adalah mekanisme yang benar untuk menutupnya, tetapi **tidak diaktifkan pada wave ini**: `DATABASE_ENVIRONMENT` dan `NEXT_PUBLIC_APP_URL` per context Netlify tidak dapat diverifikasi dari repository, URL Deploy Preview bersifat dinamis sehingga membutuhkan `$DEPLOY_PRIME_URL`, dan mengaktifkannya tanpa verifikasi akan mematikan Deploy Preview PR #2 yang sekarang hijau. Perintah satu baris beserta tiga prasyaratnya dicatat pada `DEPLOYMENT_RUNBOOK.md` bagian 7. Status gate: **Keputusan owner**.
+
 ## Evidence run — 31 Agustus 2026
 
 Dijalankan lokal pada worktree aktif `C:/Users/USER/Documents/muara aspirasi`, Windows, Node 22.16.0, stempel waktu `UTC 2026-08-31T05:10:18Z`. Seluruh perintah bersifat read-only terhadap remote dan tidak menyentuh resource production.
@@ -121,13 +168,17 @@ Catatan jujur: test aksesibilitas yang ada adalah **source-level guard**, bukan 
 
 ## 7. Environment separation
 
-| Gate                                      | Status              | Bukti                                                                                                               |
-| ----------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| Neon `main`/production tidak disentuh     | Lulus               | Tidak ada migration dibuat/diterapkan pada M8; `db:check` bersih. Waves 1–4 tidak menjalankan perintah mutasi Neon. |
-| Branch non-production terpisah            | Lulus               | `development` dan `preview` terdokumentasi di `IMPLEMENTATION_STATUS.md` bagian M3.                                 |
-| Secret hanya server-side                  | Lulus               | `src/server/db/client.ts` membaca `DATABASE_URL` server-side; tidak ada prefix `NEXT_PUBLIC_` pada secret.          |
-| Deploy Preview tidak menyentuh production | Code-complete       | Dinyatakan pada `DEPLOYMENT_RUNBOOK.md` bagian 6; belum diverifikasi ulang pada wave ini.                           |
-| Credential production                     | **Keputusan owner** | Belum ada dan tidak boleh dibuat oleh worker.                                                                       |
+| Gate                                                                      | Status                 | Bukti                                                                                                                                                                                                                                                                                |
+| ------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Neon `main`/production tidak disentuh                                     | Lulus                  | Tidak ada migration dibuat/diterapkan pada M8; `db:check` bersih. Waves 1–6 tidak menjalankan perintah mutasi Neon.                                                                                                                                                                  |
+| Branch non-production terpisah                                            | Lulus                  | `development` dan `preview` terdokumentasi di `IMPLEMENTATION_STATUS.md` bagian M3.                                                                                                                                                                                                  |
+| Secret hanya server-side                                                  | Lulus                  | `src/server/db/client.ts` membaca `DATABASE_URL` server-side; tidak ada prefix `NEXT_PUBLIC_` pada secret.                                                                                                                                                                           |
+| Deploy Preview tidak menyentuh production                                 | Code-complete          | Dinyatakan pada `DEPLOYMENT_RUNBOOK.md` bagian 6; belum diverifikasi ulang pada wave ini.                                                                                                                                                                                            |
+| Credential production                                                     | **Keputusan owner**    | Belum ada dan tidak boleh dibuat oleh worker.                                                                                                                                                                                                                                        |
+| Secret placeholder ditolak fail-closed                                    | Lulus                  | `src/server/config/secret-policy.ts`; `secret-policy.test.ts` dan `abuse-signal-secret.test.ts` menegaskan placeholder `.env.example` ditolak sebelum rate limiter menyentuh database. `BETTER_AUTH_SECRET` sudah menerapkan aturan yang sama sejak M4 di `src/server/auth/auth.ts`. |
+| Gate konfigurasi pre-deploy                                               | Lulus (skrip tersedia) | `npm run release:preflight` (`scripts/release-preflight.mjs`), 39 test setelah Wave 6. Memvalidasi bentuk konfigurasi tanpa credential; bukan bukti deploy.                                                                                                                          |
+| Konfigurasi production dijalankan melalui preflight                       | **Keputusan owner**    | Skripnya siap, tetapi hanya owner yang memegang environment production untuk menjalankannya.                                                                                                                                                                                         |
+| Build gagal saat required secret hilang (`SECURITY_PRIVACY.md` bagian 12) | **Belum terpenuhi**    | Diverifikasi 1 September 2026: build tetap berhasil dengan keempat secret dikosongkan. Mekanisme penutup tersedia (`release:preflight` sebagai build command); prasyarat Netlify tercatat di `DEPLOYMENT_RUNBOOK.md` bagian 7. Pengaktifan adalah keputusan owner.                   |
 
 ## 8. CI dan Netlify preview
 

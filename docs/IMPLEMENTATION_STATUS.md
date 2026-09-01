@@ -1,7 +1,7 @@
 # Implementation Status — Muara Aspirasi
 
-> Terakhir diperbarui: 31 Agustus 2026
-> Milestone aktif: **Milestone 7 selesai pada source; Milestone 8 Wave 1 (security headers baseline, CSP report-only, konsolidasi origin guard), Wave 2 (regression coverage loop publikasi), Wave 3 (aksesibilitas, responsif, ketahanan UX), dan Wave 4 (release evidence index) selesai pada source. R2, scheduler, notifikasi eksternal, HSTS, CSP enforcing, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
+> Terakhir diperbarui: 1 September 2026
+> Milestone aktif: **Milestone 7 selesai pada source; Milestone 8 Wave 1 (security headers baseline, CSP report-only, konsolidasi origin guard), Wave 2 (regression coverage loop publikasi), Wave 3 (aksesibilitas, responsif, ketahanan UX), Wave 4 (release evidence index), Wave 5 (penutupan gap konfigurasi fail-closed), dan Wave 6 (hardening skema URL dan bootstrap) selesai pada source. R2, scheduler, notifikasi eksternal, HSTS, CSP enforcing, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
 
 ## Ringkasan status
 
@@ -359,6 +359,96 @@ Tiga temuan dari wave ini yang mengubah gambaran kesiapan:
 4. **Deploy Preview PR #2 mengembalikan `HTTP 401`.** Baik untuk privasi karena preview tidak publik dan membawa `X-Robots-Tag: noindex`, tetapi memblokir QA browser dan verifikasi header ter-deploy sampai owner menyediakan kredensial akses preview. Host preview juga sudah mengembalikan `Strict-Transport-Security` dari sisi Netlify, sehingga keputusan HSTS menyempit menjadi konfigurasi domain production, bukan perubahan kode.
 
 Bukti perintah 31 Agustus 2026 (`UTC 2026-08-31T05:10:18Z`): `format:check`, `lint`, `typecheck`, `db:check`, dan `build` lulus; `npm test` 122 passed / 3 skipped; `npm audit` 0 vulnerabilities. Rincian per gate ada di checklist.
+
+## Implementasi Milestone 8 Wave 5 — penutupan gap code-owned
+
+Audit final terhadap perilaku fail-closed konfigurasi production dan korektnya URL publik pada branch `milestone-8-readiness`. Tiga defect nyata ditemukan dan diperbaiki, satu gate otomatis ditambahkan.
+
+### 1. Placeholder secret lolos ke environment ter-deploy
+
+`PUBLIC_ABUSE_SIGNAL_SECRET` hanya diperiksa non-empty pada `rate-limit.ts` dan `submission-service.ts`. Placeholder `.env.example` (`replace-with-a-separate-random-rate-limit-secret`, 48 karakter) karena itu **lolos**, padahal nilainya ada di dalam repository. Konsekuensinya bucket key rate limit dan hash idempotency dapat dihitung siapa pun yang memegang source. `BETTER_AUTH_SECRET` sudah menolak pola yang sama sejak M4; inkonsistensi inilah defect-nya.
+
+`src/server/config/secret-policy.ts` kini menjadi aturan bersama dan menolak nilai kosong maupun placeholder. Pesan error menyebut nama variable, tidak pernah nilainya.
+
+Sengaja **hanya** placeholder dan nilai kosong yang gagal saat runtime. Aturan panjang minimum ditempatkan pada preflight, bukan sebagai throw runtime, karena environment preview yang sedang berjalan tidak dapat diperiksa dari repository ini dan sebuah throw dapat mematikannya. `SECURITY_PRIVACY.md` bagian 12 mensyaratkan build gagal saat secret hilang, bukan menetapkan panjang minimum.
+
+### 2. `robots.txt` memancarkan sitemap relatif
+
+Build menghasilkan `Sitemap: /sitemap.xml`. Nilai relatif tidak sah pada robots.txt — RFC 9309 bagian 2.2.3 dan referensi Google sama-sama mewajibkan URL absolut — sehingga direktif itu diabaikan crawler. `src/lib/app-url.ts` kini menjadi satu resolver origin yang dipakai `robots.ts` dan `sitemap.ts`. Diverifikasi pada output build: `Sitemap: http://localhost:3000/sitemap.xml` secara lokal, dan origin nyata setelah `NEXT_PUBLIC_APP_URL` diisi.
+
+### 3. `metadataBase` tidak diatur
+
+Tanpa base, Next.js menghitung canonical dan Open Graph URL terhadap localhost, sehingga halaman ter-deploy mengiklankan tautan localhost. `src/app/layout.tsx` memakai `getAppUrl()`.
+
+### 4. Gate konfigurasi pre-deploy
+
+`scripts/release-preflight.mjs` + `npm run release:preflight`. Deterministik, tanpa credential, tanpa panggilan network atau database, sehingga aman dijalankan di CI maupun lokal. Memeriksa placeholder secret, `NEXT_PUBLIC_APP_URL` kosong/localhost/non-https, Cloudflare test secret pada production, `DATABASE_ENVIRONMENT` tidak dikenal, dan input bootstrap sekali pakai yang tertinggal. Ditulis sebagai `.mjs` mengikuti konvensi `scripts/` yang sudah ada, sehingga dapat dijalankan tanpa loader TypeScript, dan diuji langsung oleh `scripts/release-preflight.test.mjs`.
+
+Batasnya dinyatakan di dalam skrip dan pada outputnya sendiri: lulus berarti bentuk konfigurasi wajar, **bukan** bukti deploy, bukan bukti provider menerima nilainya, dan tidak menutup satu pun gate owner.
+
+### Verifikasi bahwa test benar-benar mengamati perbaikan
+
+Setiap guard dilumpuhkan lalu dipulihkan. Mengembalikan pemeriksaan `!secret` yang lama membuat dua test placeholder gagal; itulah bukti test tidak vacuous.
+
+### Validasi Wave 5 — `UTC 2026-09-01T12:05:07Z`
+
+| Pemeriksaan                    | Hasil                                                        |
+| ------------------------------ | ------------------------------------------------------------ |
+| `npm run format:check`         | Lulus                                                        |
+| `npm run lint`                 | Lulus (`--max-warnings=0`)                                   |
+| `npm run typecheck`            | Lulus                                                        |
+| `npm test`                     | Lulus — **169 passed, 3 skipped**; sebelum wave ini 122      |
+| `npm run db:check`             | Lulus; tidak ada migration                                   |
+| `npm run build`                | Lulus                                                        |
+| `npm audit --audit-level=high` | Lulus — 0 vulnerabilities                                    |
+| `git diff --check`             | Bersih                                                       |
+| `npm run release:preflight`    | Lulus pada `development`, satu WARNING Turnstile test secret |
+
+Diff: 6 file diubah (+27/−14) dan 6 file baru; pemindaian diff tidak menemukan string berbentuk credential, dan hanya `.env.example` yang tracked.
+
+### Yang tetap menjadi gate owner setelah Wave 5
+
+Tidak berubah dan tidak boleh dianggap tertutup: MFA/recovery, copy kebijakan/kontak/eskalasi, izin aset dan R2, scheduler dan notifikasi eksternal, retention/deletion, Neon production beserta domain dan monitoring, kepemilikan backup/restore, promosi CSP ke enforcing, HSTS pada domain production, izin integration test Neon, DOM test environment, browser journey, dan kredensial akses Deploy Preview. Rinciannya di `docs/M8_RELEASE_CHECKLIST.md` bagian 10.
+
+## Implementasi Milestone 8 Wave 6 — follow-up hardening URL dan bootstrap
+
+Tindak lanjut terfokus atas Wave 5. Dua defect terverifikasi diperbaiki, satu gate terdokumentasi dinilai dengan bukti.
+
+### 1. Skema URL publik tidak dibatasi — `absoluteUrl` dapat melempar
+
+`getAppUrl()` menerima skema apa pun yang dapat di-parse. Ini bukan sekadar kerapian: `new URL("javascript:alert(1)").origin` bernilai **string** `"null"`, sehingga `getAppUrl()` mengembalikan `"null"` dan setiap konsumennya melempar `TypeError` — `new URL(path, "null")` gagal. Karena `absoluteUrl()` dipakai `sitemap.ts` dan `robots.ts`, sementara `metadataBase` memanggil `new URL(getAppUrl())` pada root layout, satu nilai `NEXT_PUBLIC_APP_URL` yang salah dapat mematikan ketiganya. `data:` dan `file:` berperilaku sama. `ftp://host` adalah sisi yang lebih senyap: ia ter-parse, sehingga skema tidak sah tercetak apa adanya ke robots.txt.
+
+`src/lib/app-url.ts` kini memakai allowlist `http:`/`https:` dan jatuh ke fallback localhost untuk nilai lain, sehingga `absoluteUrl()` menjadi total — tidak pernah melempar dan tidak pernah memancarkan skema tidak sah. Fallback localhost untuk development dipertahankan.
+
+`scripts/release-preflight.mjs` mendapat allowlist yang sama. Sebelumnya `javascript:` dan `ftp:` lolos tanpa temuan pada context `preview`, karena preflight hanya memeriksa localhost dan https-di-production.
+
+### 2. Preflight melewatkan `AUTH_BOOTSTRAP_NAME`
+
+`DEPLOYMENT_RUNBOOK.md` langkah 6 bootstrap auth meminta menghapus **seluruh** `AUTH_BOOTSTRAP_*` setelah bootstrap berhasil, sedangkan preflight hanya menolak `AUTH_BOOTSTRAP_EMAIL` dan `AUTH_BOOTSTRAP_PASSWORD`. Pemeriksaan kini berbasis prefix `AUTH_BOOTSTRAP_`, sehingga `AUTH_BOOTSTRAP_NAME` dan variabel bootstrap yang ditambahkan kemudian ikut tercakup. Nilai kosong tetap diabaikan karena memang sudah dibersihkan, dan pemeriksaan hanya berlaku pada `production`.
+
+### 3. Penilaian: apakah preflight harus menjadi build gate Netlify
+
+`SECURITY_PRIVACY.md` bagian 12 mensyaratkan build gagal ketika required server secret hilang. **Syarat itu belum terpenuhi, dan itu diverifikasi, bukan diasumsikan**: build dijalankan dengan `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PUBLIC_ABUSE_SIGNAL_SECRET`, dan `TURNSTILE_SECRET_KEY` dikosongkan, dan tetap berhasil. Penyebabnya wajar — seluruh halaman dinamis sehingga secret hanya dibaca saat request. Aplikasi fail-closed pada runtime, tidak pada build.
+
+Menjadikan preflight sebagai build command adalah mekanisme yang benar untuk menutup gate itu, dan perubahannya hanya satu baris pada `netlify.toml`. **Tidak diaktifkan pada wave ini** karena tiga prasyarat berada di sisi Netlify dan tidak dapat diverifikasi dari repository: `DATABASE_ENVIRONMENT` per context, `NEXT_PUBLIC_APP_URL` per context (URL Deploy Preview dinamis sehingga perlu dipetakan ke `$DEPLOY_PRIME_URL`), dan keempat secret terisi nilai nyata. Mengaktifkannya tanpa verifikasi akan membuat build gagal dan mematikan Deploy Preview PR #2 yang sekarang hijau. Perintah dan prasyaratnya dicatat pada `DEPLOYMENT_RUNBOOK.md` bagian 7; pengaktifan adalah keputusan owner.
+
+### Verifikasi bahwa test mengamati perbaikan
+
+Kedua guard dilumpuhkan bersamaan: **17 test gagal**. File dipulihkan dan diverifikasi identik melalui checksum.
+
+### Validasi Wave 6 — `UTC 2026-09-01T12:26Z`
+
+| Pemeriksaan                    | Hasil                                                         |
+| ------------------------------ | ------------------------------------------------------------- |
+| `npm run format:check`         | Lulus                                                         |
+| `npm run lint`                 | Lulus (`--max-warnings=0`)                                    |
+| `npm run typecheck`            | Lulus                                                         |
+| `npm test`                     | Lulus — **191 passed, 3 skipped** (194 total); sebelumnya 169 |
+| `npm run db:check`             | Lulus; tidak ada migration                                    |
+| `npm run build`                | Lulus                                                         |
+| `npm audit --audit-level=high` | Lulus — 0 vulnerabilities                                     |
+| `git diff --check`             | Bersih                                                        |
+| `npm run release:preflight`    | Lulus pada `development`                                      |
 
 ## Pekerjaan milestone berikutnya
 

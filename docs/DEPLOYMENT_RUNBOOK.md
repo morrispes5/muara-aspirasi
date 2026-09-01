@@ -183,8 +183,29 @@ dan hanya mengulang artifact commit `012222aa` (M6), tanpa kode M8.
 - content, contact, privacy notice, asset permission, dan escalation SOP disetujui;
 - release owner dan on-call contact ditetapkan.
 
+### Preflight sebagai build gate — status dan cara mengaktifkan
+
+`SECURITY_PRIVACY.md` bagian 12 mensyaratkan: "Build harus gagal dengan pesan aman ketika required server secret hilang."
+
+**Syarat itu saat ini belum terpenuhi.** Diverifikasi 1 September 2026 dengan menjalankan build sambil mengosongkan `DATABASE_URL`, `BETTER_AUTH_SECRET`, `PUBLIC_ABUSE_SIGNAL_SECRET`, dan `TURNSTILE_SECRET_KEY`: build tetap **berhasil**. Penyebabnya wajar — seluruh halaman dinamis dan setiap secret baru dibaca saat request, sehingga aplikasi fail-closed pada runtime tetapi tidak pada build.
+
+`npm run release:preflight` adalah mekanisme yang tepat untuk menutup gate ini, dan pengaktifannya cukup satu baris pada `netlify.toml`:
+
+```toml
+command = "npm run release:preflight && npm run build -- --webpack"
+```
+
+**Jangan aktifkan sebelum prasyarat berikut diverifikasi owner pada Netlify**, karena mengaktifkannya tanpa itu akan membuat build gagal dan mematikan Deploy Preview yang sekarang hijau:
+
+1. `DATABASE_ENVIRONMENT` terisi pada setiap context — `production` untuk production, `preview` untuk Deploy Preview dan branch deploy. Bila kosong, preflight menghasilkan ERROR dan build berhenti.
+2. `NEXT_PUBLIC_APP_URL` terisi per context. URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.app`), sehingga satu nilai statis tidak dapat benar untuk semua preview; petakan ke variabel bawaan Netlify `$DEPLOY_PRIME_URL` pada context preview, dan ke domain resmi pada production.
+3. Keempat secret wajib terisi nilai nyata per context, bukan placeholder `.env.example`, minimal 32 karakter.
+
+Worker tidak mengaktifkan wiring ini dan tidak mengubah environment variable Netlify: isi environment per context tidak dapat diverifikasi dari repository, dan menebaknya berisiko mematahkan preview. Ini keputusan owner.
+
 ### Release
 
+0. Jalankan `npm run release:preflight` pada environment target. Skrip menolak secret yang masih memakai placeholder `.env.example`, `NEXT_PUBLIC_APP_URL` yang kosong/localhost/non-https, Cloudflare test secret pada production, `DATABASE_ENVIRONMENT` yang tidak dikenal, serta input bootstrap sekali pakai yang tertinggal. Skrip tidak melakukan panggilan network atau database dan hanya mencetak nama variable beserta alasannya, tidak pernah nilainya. Lulus berarti bentuk konfigurasi wajar — bukan bukti deploy maupun penerimaan provider, dan tidak menggantikan gate manual mana pun di bawah.
 1. Buat release note: scope, migration, environment change, risk, rollback owner.
 2. Ambil/verifikasi restore point atau backup sesuai Neon plan.
 3. Terapkan backward-compatible migration ke production melalui credential migration khusus.
