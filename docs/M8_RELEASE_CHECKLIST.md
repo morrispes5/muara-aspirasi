@@ -81,7 +81,7 @@ Deploy `6a96d0f38086ad0008e5660f` gagal meskipun literal Turnstile sudah dihapus
 
 **Scanner tetap aktif penuh**: tidak ada `SECRETS_SCAN_OMIT_*`, tidak ada penonaktifan, tidak ada redaksi dokumentasi.
 
-**Belum terbukti.** Preview belum hijau. Perbaikan source baru berlaku setelah owner mengganti nilai context Netlify; nilainya sengaja tidak ditulis di dokumen mana pun.
+**Provider fix diterapkan.** Pada 2 September 2026, owner mengganti nilai context Netlify ke marker non-dictionary yang dipetakan source ke environment preview; nilainya sengaja tidak ditulis di dokumen mana pun. Deploy Preview perlu dipicu ulang untuk membuktikan scanner sudah melewati tahap ini.
 
 ### Deploy Preview `bbb7d11` gagal — secret scanner, bukan build gate
 
