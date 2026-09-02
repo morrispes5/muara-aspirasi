@@ -23,8 +23,15 @@ function productionEnv(overrides = {}) {
     BETTER_AUTH_SECRET: realSecret,
     DATABASE_ENVIRONMENT: "production",
     DATABASE_URL: `postgresql://user:pw@host/db?sslmode=require&x=${realSecret}`,
+    MFA_REQUIRED: "true",
     NEXT_PUBLIC_APP_URL: "https://muara.example.ac.id",
+    NEXT_PUBLIC_TURNSTILE_SITE_KEY: "site-key-for-tests",
     PUBLIC_ABUSE_SIGNAL_SECRET: realSecret,
+    R2_ACCOUNT_ID: "account-id",
+    R2_ACCESS_KEY_ID: "access-key-id",
+    R2_EVIDENCE_BUCKET: "muara-evidence",
+    R2_EVIDENCE_ENABLED: "true",
+    R2_SECRET_ACCESS_KEY: realSecret,
     TURNSTILE_SECRET_KEY: realSecret,
     ...overrides,
   };
@@ -137,6 +144,38 @@ describe("release preflight", () => {
     expect(result.ok).toBe(true);
   });
 
+  it("requires R2 evidence and MFA before production", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        MFA_REQUIRED: "false",
+        R2_EVIDENCE_ENABLED: "false",
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "MFA_REQUIRED")).toHaveLength(1);
+    expect(errorsFor(result, "R2_EVIDENCE_ENABLED")).toHaveLength(1);
+  });
+
+  it("keeps preview usable while making missing launch capabilities visible", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        MFA_REQUIRED: "false",
+        R2_EVIDENCE_ENABLED: "false",
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(
+      result.findings.some(
+        (finding) =>
+          finding.variable === "R2_EVIDENCE_ENABLED" &&
+          finding.severity === "warning",
+      ),
+    ).toBe(true);
+  });
+
   it.each([
     "BETTER_AUTH_SECRET",
     "DATABASE_URL",
@@ -163,6 +202,22 @@ describe("release preflight", () => {
 
     expect(result.ok).toBe(false);
     expect(errorsFor(result, variable)).toHaveLength(1);
+  });
+
+  it("requires the Turnstile browser key on deployed environments", () => {
+    for (const environment of ["preview", "production"]) {
+      const result = runReleasePreflight(
+        productionEnv({
+          DATABASE_ENVIRONMENT: environment,
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: undefined,
+        }),
+      );
+
+      expect(result.ok).toBe(false);
+      expect(errorsFor(result, "NEXT_PUBLIC_TURNSTILE_SITE_KEY")).toHaveLength(
+        1,
+      );
+    }
   });
 
   it("rejects a localhost app URL on a deployed environment", () => {

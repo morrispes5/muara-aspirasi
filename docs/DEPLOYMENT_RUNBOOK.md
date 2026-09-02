@@ -1,8 +1,10 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M6 tidak menambah migration dan quality gate source sudah lulus. Deployment dan seluruh konfigurasi production belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M8 menambahkan migration additive lokal, evidence private R2, admin user management, MFA guard, production bootstrap terpisah, dan browser/CI gates. Deployment, migration M8, dan seluruh konfigurasi production belum dilakukan.
 
 > Addendum 31 Agustus 2026: M7 source sekarang memiliki admin/public publication routes dan regression tests. Preview deploy boleh dilakukan setelah quality gates lulus; jangan menjalankan migration baru, memasukkan credential production, atau mempublikasikan konten nyata sebelum owner approval.
+
+> Addendum 2 September 2026: source M8 siap diuji pada Deploy Preview terkontrol. Evidence hanya JPEG/PNG/PDF melalui private R2 intent + presigned URL; admin access diaudit dan status awal `QUARANTINED` karena malware scanner belum ada. Preview/production tetap membutuhkan provider-owned secrets, schema migration terpisah, CORS/lifecycle verification, serta akses QA owner.
 
 ## 1. Tujuan dan ownership
 
@@ -26,7 +28,7 @@ Prinsip ownership:
 | ORM/migration     | Drizzle ORM + Drizzle Kit                                                 | Schema, migration reviewable, data access awal, dan command operasional M3 tersedia.                                               |
 | Auth              | Better Auth pada Next.js                                                  | Milestone 4 selesai pada development/preview; production belum dikonfigurasi.                                                      |
 | Anti-spam         | Cloudflare Turnstile                                                      | Kode M5 memakai Siteverify; dummy key resmi hanya ada di development/preview, widget production belum dibuat.                      |
-| Object storage    | Cloudflare R2                                                             | Belum dikonfigurasi.                                                                                                               |
+| Object storage    | Cloudflare R2                                                             | Adapter source-ready; private bucket, credential, CORS, lifecycle, dan ownership belum dikonfigurasi/diverifikasi.                 |
 | DNS/TLS           | Domain organisasi melalui provider yang disetujui                         | Domain belum diputuskan.                                                                                                           |
 | Monitoring        | Netlify logs/metrics + application error/health monitoring yang disetujui | Provider tambahan belum dipilih.                                                                                                   |
 
@@ -52,28 +54,34 @@ Aturan:
 
 Daftar berikut hanya nama dan fungsi. Placeholder database dan auth tersedia di `.env.example`; value nyata tetap hanya berada di `.env.local`/secret store.
 
-| Nama                                   | Scope            | Fungsi                                                                                                     |                            Secret? |
-| -------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------: |
-| `NEXT_PUBLIC_APP_URL`                  | Client + server  | Base URL/canonical origin aplikasi.                                                                        |                              Tidak |
-| `DEPLOY_PRIME_URL`                     | Build (Netlify)  | URL per-deploy bawaan Netlify; fallback origin hanya untuk preview/branch deploy, tidak pernah production. |                              Tidak |
-| `DATABASE_URL`                         | Server           | Neon pooled connection string untuk runtime aplikasi.                                                      |                                 Ya |
-| `DATABASE_URL_UNPOOLED`                | Build/ops server | Direct connection untuk migration terkontrol.                                                              |                                 Ya |
-| `BETTER_AUTH_SECRET`                   | Server           | Signing/encryption secret Better Auth.                                                                     |                                 Ya |
-| `BETTER_AUTH_URL`                      | Server           | Trusted canonical auth origin.                                                                             | Tidak, tetapi environment-specific |
-| `BETTER_AUTH_TRUSTED_ORIGINS`          | Server           | Comma-separated origin allowlist untuk callback/auth request.                                              | Tidak, tetapi environment-specific |
-| `BEM_ALLOWED_EMAIL_DOMAINS`            | Ops              | Optional domain allowlist untuk bootstrap admin BEM.                                                       |                              Tidak |
-| `AUTH_BOOTSTRAP_NAME`                  | One-time ops     | Nama admin awal; hapus setelah bootstrap.                                                                  |                              Tidak |
-| `AUTH_BOOTSTRAP_EMAIL`                 | One-time ops     | Email admin awal; hapus setelah bootstrap.                                                                 |                              Tidak |
-| `AUTH_BOOTSTRAP_PASSWORD`              | One-time ops     | Password admin awal; hapus setelah bootstrap.                                                              |                                 Ya |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server  | Public Turnstile widget site key.                                                                          |                              Tidak |
-| `TURNSTILE_SECRET_KEY`                 | Server           | Server-side Siteverify credential.                                                                         |                                 Ya |
-| `R2_ACCOUNT_ID`                        | Server           | Cloudflare account identifier.                                                                             |                  Restricted config |
-| `R2_ACCESS_KEY_ID`                     | Server           | R2 S3 API credential ID.                                                                                   |                                 Ya |
-| `R2_SECRET_ACCESS_KEY`                 | Server           | R2 S3 API credential secret.                                                                               |                                 Ya |
-| `R2_EVIDENCE_BUCKET`                   | Server           | Private evidence bucket name.                                                                              |                  Restricted config |
-| `R2_EDITORIAL_BUCKET`                  | Server           | Approved editorial media bucket name.                                                                      |                  Restricted config |
-| `NEXT_PUBLIC_EDITORIAL_ASSET_BASE_URL` | Client + server  | Public base URL media editorial jika custom domain disetujui.                                              |                              Tidak |
-| `LOG_LEVEL`                            | Server           | Logging verbosity tanpa menyalakan body/PII logging.                                                       |                              Tidak |
+| Nama                                   | Scope               | Fungsi                                                                                                     |                            Secret? |
+| -------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------: |
+| `NEXT_PUBLIC_APP_URL`                  | Client + server     | Base URL/canonical origin aplikasi.                                                                        |                              Tidak |
+| `DEPLOY_PRIME_URL`                     | Build (Netlify)     | URL per-deploy bawaan Netlify; fallback origin hanya untuk preview/branch deploy, tidak pernah production. |                              Tidak |
+| `DATABASE_URL`                         | Server              | Neon pooled connection string untuk runtime aplikasi.                                                      |                                 Ya |
+| `DATABASE_URL_UNPOOLED`                | Build/ops server    | Direct connection untuk migration terkontrol.                                                              |                                 Ya |
+| `BETTER_AUTH_SECRET`                   | Server              | Signing/encryption secret Better Auth.                                                                     |                                 Ya |
+| `BETTER_AUTH_URL`                      | Server              | Trusted canonical auth origin.                                                                             | Tidak, tetapi environment-specific |
+| `BETTER_AUTH_TRUSTED_ORIGINS`          | Server              | Comma-separated origin allowlist untuk callback/auth request.                                              | Tidak, tetapi environment-specific |
+| `BEM_ALLOWED_EMAIL_DOMAINS`            | Ops                 | Optional domain allowlist untuk bootstrap admin BEM.                                                       |                              Tidak |
+| `AUTH_BOOTSTRAP_NAME`                  | One-time ops        | Nama admin awal; hapus setelah bootstrap.                                                                  |                              Tidak |
+| `AUTH_BOOTSTRAP_EMAIL`                 | One-time ops        | Email admin awal; hapus setelah bootstrap.                                                                 |                              Tidak |
+| `AUTH_BOOTSTRAP_PASSWORD`              | One-time ops        | Password admin awal; hapus setelah bootstrap.                                                              |                                 Ya |
+| `AUTH_PRODUCTION_BOOTSTRAP_CONFIRM`    | One-time production | Nilai konfirmasi `CREATE_FIRST_ADMIN`; hapus segera setelah bootstrap.                                     |                              Tidak |
+| `AUTH_PRODUCTION_BOOTSTRAP_NAME`       | One-time production | Nama admin pertama production; hapus segera setelah bootstrap.                                             |                              Tidak |
+| `AUTH_PRODUCTION_BOOTSTRAP_EMAIL`      | One-time production | Email admin pertama production; domain harus masuk allowlist.                                              |                              Tidak |
+| `AUTH_PRODUCTION_BOOTSTRAP_PASSWORD`   | One-time production | Password admin pertama production; hapus segera setelah bootstrap.                                         |                                 Ya |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server     | Public Turnstile widget site key.                                                                          |                              Tidak |
+| `TURNSTILE_SECRET_KEY`                 | Server              | Server-side Siteverify credential.                                                                         |                                 Ya |
+| `R2_EVIDENCE_ENABLED`                  | Server              | `true` hanya setelah private evidence bucket siap; wajib `true` untuk production.                          |                              Tidak |
+| `R2_ACCOUNT_ID`                        | Server              | Cloudflare account identifier.                                                                             |                  Restricted config |
+| `R2_ACCESS_KEY_ID`                     | Server              | R2 S3 API credential ID.                                                                                   |                                 Ya |
+| `R2_SECRET_ACCESS_KEY`                 | Server              | R2 S3 API credential secret.                                                                               |                                 Ya |
+| `R2_EVIDENCE_BUCKET`                   | Server              | Private evidence bucket name.                                                                              |                  Restricted config |
+| `MFA_REQUIRED`                         | Server              | `true` pada production agar ADMIN tanpa enrollment tidak masuk workspace.                                  |                              Tidak |
+| `R2_EDITORIAL_BUCKET`                  | Server              | Approved editorial media bucket name.                                                                      |                  Restricted config |
+| `NEXT_PUBLIC_EDITORIAL_ASSET_BASE_URL` | Client + server     | Public base URL media editorial jika custom domain disetujui.                                              |                              Tidak |
+| `LOG_LEVEL`                            | Server              | Logging verbosity tanpa menyalakan body/PII logging.                                                       |                              Tidak |
 
 Variable future untuk email/WhatsApp tidak ditetapkan sampai kanal notifikasi disetujui.
 
@@ -102,10 +110,11 @@ npm run format:check
 npm run lint
 npm run typecheck
 npm test
+npm run test:e2e
 npm run build
 ```
 
-`npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; M6 tidak menghasilkan migration baru. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
+`npm run test:e2e` membutuhkan Chromium Playwright dan menjalankan smoke route publik tanpa membuat data. `npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; migration additive M8 baru dibuat lokal dan belum diterapkan. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
 
 ### Setelah database milestone (status M3)
 
@@ -121,7 +130,7 @@ Proposed sequence:
 
 ### Auth local/preview (Milestone 4)
 
-1. Isi `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `DATABASE_ENVIRONMENT`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, dan `BETTER_AUTH_TRUSTED_ORIGINS` untuk environment non-production.
+1. Isi `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `DATABASE_ENVIRONMENT`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, dan `BETTER_AUTH_TRUSTED_ORIGINS` untuk environment non-production. Isi `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, dan `PUBLIC_ABUSE_SIGNAL_SECRET` dengan value khusus environment.
 2. Review migration M4 di `drizzle/20260830054722_wise_dexter_bennett/migration.sql`, lalu jalankan `npm run db:migrate` hanya terhadap branch development/preview yang dipilih.
 3. Set `AUTH_BOOTSTRAP_NAME`, `AUTH_BOOTSTRAP_EMAIL`, dan `AUTH_BOOTSTRAP_PASSWORD`; bila dipakai, isi `BEM_ALLOWED_EMAIL_DOMAINS`.
 4. Jalankan `npm run auth:bootstrap` satu kali. Script menolak environment selain `development`/`preview`, membuat akun `ADMIN`, dan tidak mencetak password.
@@ -139,7 +148,24 @@ Proposed sequence:
 6. Verifikasi status guard, reason untuk `CANNOT_PROCESS`/archive/reopen, soft-delete note, stale `updatedAt` conflict, dan admin-only archive/reopen.
 7. Smoke end-to-end yang membuat report sintetis hanya boleh dijalankan terhadap Neon `development`/`preview` setelah owner memberi izin eksplisit; script wajib membersihkan seluruh row turunan dan report sintetis.
 
-M6 tidak memerlukan `npm run db:migrate`: tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah tersedia dari foundation M3. R2 binary upload/download tetap belum aktif.
+M6 tidak memerlukan migration baru: tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah tersedia dari foundation M3.
+
+### Evidence storage local/preview (M8)
+
+1. Review `drizzle/20260902113654_minor_emma_frost/migration.sql` dan jalankan `npm run db:check`; terapkan hanya ke branch Neon development/preview yang sudah dipastikan targetnya.
+2. Set `R2_EVIDENCE_ENABLED=true` hanya pada environment yang memiliki `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, dan `R2_EVIDENCE_BUCKET` milik bucket private non-production. Bila false, form menjelaskan bahwa upload masih tertutup.
+3. Konfigurasikan R2 CORS hanya untuk origin aplikasi environment itu. Izinkan `PUT` untuk presigned upload dan `GET`/`HEAD` hanya bila QA memerlukannya; izinkan header `Content-Type` serta header `x-amz-*` yang benar-benar dipakai, dan expose `ETag`/`Content-Length` bila dibutuhkan.
+4. Pisahkan bucket/prefix evidence dari media editorial. Aktifkan abort incomplete multipart upload; jangan memasang expiry buta pada seluruh prefix `evidence/quarantine/` karena object yang sudah tertaut report masih perlu mengikuti retention policy. Orphan cleanup harus merekonsiliasi intent/database/object sebelum menghapus.
+5. Uji upload dengan JPEG/PNG/PDF valid, MIME salah, extension salah, magic bytes salah, ukuran 5 MiB/10 MiB, intent expired/used, origin asing, dan unauthenticated/admin-non-authorized read. Tidak ada malware scanner pada implementasi ini; evidence tetap `QUARANTINED` dan private.
+
+### Production first-admin dan MFA
+
+1. Pastikan ownership organisasi, domain resmi, production Neon branch, private R2 bucket, Turnstile widget/hostname, recovery mailbox, dan minimal dua owner sudah disetujui.
+2. Terapkan migration additive M8 ke production hanya melalui migration credential/direct connection yang direview, setelah restore point/backup dan rollback plan tersedia. Jangan menjalankan seed development/preview pada production.
+3. Isi `AUTH_PRODUCTION_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN`, `AUTH_PRODUCTION_BOOTSTRAP_NAME`, `AUTH_PRODUCTION_BOOTSTRAP_EMAIL`, dan `AUTH_PRODUCTION_BOOTSTRAP_PASSWORD` hanya pada secure operator context. Jalankan `npm run auth:bootstrap:production` satu kali; script menolak environment selain `production` dan menolak email di luar allowlist.
+4. Hapus keempat `AUTH_PRODUCTION_BOOTSTRAP_*` segera setelah sukses. `npm run release:preflight` production harus gagal bila salah satunya masih tersisa.
+5. Login sebagai admin pertama ke `/admin/security`, enroll TOTP, simpan backup code melalui SOP dua owner, lalu verifikasi login ulang dan backup-code recovery. Set `MFA_REQUIRED=true` dan jalankan preflight ulang.
+6. Baru setelah semua smoke/QA lulus, merge commit yang disetujui ke `main` dan biarkan Netlify membangun production dari commit immutable. Jangan mengirim credential production melalui chat, repository, atau `.env.example`.
 
 ## 6. Pull request dan Deploy Preview
 
@@ -200,12 +226,16 @@ Preflight membaca konfigurasi dari environment context Netlify. **Tidak ada secr
 
 #### Variable yang wajib ada per context
 
-| Variable                                                                                   | Production                                   | Deploy Preview / branch deploy                    |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------- |
-| `DATABASE_ENVIRONMENT`                                                                     | `production`                                 | `preview`                                         |
-| `NEXT_PUBLIC_APP_URL`                                                                      | **Wajib**, absolut dan `https`, domain resmi | Opsional; bila kosong, `DEPLOY_PRIME_URL` dipakai |
-| `DEPLOY_PRIME_URL`                                                                         | Diabaikan sebagai pengganti origin           | Disediakan otomatis oleh Netlify                  |
-| `BETTER_AUTH_SECRET`, `DATABASE_URL`, `PUBLIC_ABUSE_SIGNAL_SECRET`, `TURNSTILE_SECRET_KEY` | Nilai nyata per context, minimal 32 karakter | Nilai nyata per context, minimal 32 karakter      |
+| Variable                                                                                   | Production                                   | Deploy Preview / branch deploy                                    |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------- |
+| `DATABASE_ENVIRONMENT`                                                                     | `production`                                 | `preview`                                                         |
+| `NEXT_PUBLIC_APP_URL`                                                                      | **Wajib**, absolut dan `https`, domain resmi | Opsional; bila kosong, `DEPLOY_PRIME_URL` dipakai                 |
+| `DEPLOY_PRIME_URL`                                                                         | Diabaikan sebagai pengganti origin           | Disediakan otomatis oleh Netlify                                  |
+| `BETTER_AUTH_SECRET`, `DATABASE_URL`, `PUBLIC_ABUSE_SIGNAL_SECRET`, `TURNSTILE_SECRET_KEY` | Nilai nyata per context, minimal 32 karakter | Nilai nyata per context, minimal 32 karakter                      |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                                                           | Widget production asli, bukan placeholder    | Site key widget preview; wajib ada                                |
+| `R2_EVIDENCE_ENABLED`                                                                      | `true`                                       | `true` untuk menguji evidence; `false` hanya preview tanpa upload |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_EVIDENCE_BUCKET`          | Nilai bucket private production              | Nilai bucket private preview; tidak boleh silang                  |
+| `MFA_REQUIRED`                                                                             | `true`                                       | Boleh `false` hanya untuk setup/UAT terkontrol                    |
 
 URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.app`), sehingga satu nilai statis tidak dapat benar untuk semua preview. Karena itu `DEPLOY_PRIME_URL` — variabel bawaan Netlify — boleh memenuhi syarat URL pada preview dan branch deploy.
 
@@ -231,7 +261,7 @@ Perilaku fail-closed dijaga: nilai `DATABASE_ENVIRONMENT` yang tidak dikenal tid
 
 #### Risiko yang tersisa dan cara mundur
 
-Isi environment Netlify per context tidak dapat diverifikasi dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya**: bila `DATABASE_ENVIRONMENT` atau salah satu dari empat secret belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta, tetapi akan membuat preview yang sebelumnya hijau menjadi merah.
+Isi environment Netlify per context tidak dapat diverifikasi dari repository. **Build Deploy Preview berikutnya adalah pengujian sesungguhnya**: bila `DATABASE_ENVIRONMENT`, site key Turnstile, salah satu dari empat secret, atau R2 saat diaktifkan belum terisi pada context preview, build akan gagal dengan pesan yang menyebut variable-nya — itu memang perilaku fail-closed yang diminta, tetapi akan membuat preview yang sebelumnya hijau menjadi merah.
 
 Bila perlu mundur sementara, kembalikan satu baris berikut pada `netlify.toml` lalu perbaiki environment sebelum memasangnya kembali:
 
@@ -243,7 +273,7 @@ Jangan menonaktifkan gate ini secara permanen untuk mengejar build hijau; itu me
 
 ### Release
 
-0. Jalankan `npm run release:preflight` pada environment target. Skrip menolak secret yang masih memakai placeholder `.env.example`, `NEXT_PUBLIC_APP_URL` yang kosong/localhost/non-https, Cloudflare test secret pada production, `DATABASE_ENVIRONMENT` yang tidak dikenal, serta input bootstrap sekali pakai yang tertinggal. Skrip tidak melakukan panggilan network atau database dan hanya mencetak nama variable beserta alasannya, tidak pernah nilainya. Lulus berarti bentuk konfigurasi wajar — bukan bukti deploy maupun penerimaan provider, dan tidak menggantikan gate manual mana pun di bawah.
+0. Jalankan `npm run release:preflight` pada environment target. Skrip menolak secret yang masih memakai placeholder `.env.example`, `NEXT_PUBLIC_APP_URL` yang kosong/localhost/non-https, site key Turnstile yang hilang pada deploy, Cloudflare test secret pada production, `DATABASE_ENVIRONMENT` yang tidak dikenal, R2 production yang belum aktif/terisi, MFA production yang belum aktif, serta input bootstrap sekali pakai yang tertinggal. Skrip tidak melakukan panggilan network atau database dan hanya mencetak nama variable beserta alasannya, tidak pernah nilainya. Lulus berarti bentuk konfigurasi wajar — bukan bukti deploy maupun penerimaan provider, dan tidak menggantikan gate manual mana pun di bawah.
 1. Buat release note: scope, migration, environment change, risk, rollback owner.
 2. Ambil/verifikasi restore point atau backup sesuai Neon plan.
 3. Terapkan backward-compatible migration ke production melalui credential migration khusus.

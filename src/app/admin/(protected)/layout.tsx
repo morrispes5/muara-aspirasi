@@ -40,6 +40,7 @@ export default async function AdminProtectedLayout({
           session.user.role,
           "DRAFT_STUDENT_INFO",
         ),
+        canManageUsers: hasPermission(session.user.role, "MANAGE_USERS"),
         canViewReports: hasPermission(session.user.role, "VIEW_REPORTS"),
         email: session.user.email,
         name: session.user.name,

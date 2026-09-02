@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Container } from "@/components/layout/container";
 import { createCategoryRepository } from "@/server/db/repositories";
 import { getTurnstileSiteKey } from "@/server/aspirations/turnstile";
+import { isR2EvidenceEnabled } from "@/server/storage/r2";
 import { PublicPageIntro } from "@/components/public/public-page-intro";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,9 @@ export default async function KirimAspirasiPage() {
                   perlu.
                 </li>
                 <li>
-                  Upload bukti belum dibuka sampai penyimpanan privat disetujui.
+                  {isR2EvidenceEnabled()
+                    ? "Bukti boleh berupa JPEG, PNG, atau PDF sesuai batas yang ditampilkan di form."
+                    : "Upload bukti belum dibuka sampai penyimpanan privat disetujui."}
                 </li>
               </ul>
             </Card>
@@ -63,6 +66,7 @@ export default async function KirimAspirasiPage() {
             {turnstileSiteKey ? (
               <AspirationForm
                 categories={categories.map(({ id, name }) => ({ id, name }))}
+                evidenceEnabled={isR2EvidenceEnabled()}
                 turnstileSiteKey={turnstileSiteKey}
               />
             ) : (

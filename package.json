@@ -13,6 +13,7 @@
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -21,12 +22,15 @@
     "db:migrate": "node --env-file-if-exists=.env.local scripts/db-migrate.mjs",
     "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
     "auth:bootstrap": "node --env-file-if-exists=.env.local scripts/auth-bootstrap.mjs",
+    "auth:bootstrap:production": "node --env-file-if-exists=.env.local scripts/auth-production-bootstrap.mjs",
     "auth:smoke": "node --env-file-if-exists=.env.local scripts/auth-smoke.mjs",
     "m5:smoke": "node --env-file-if-exists=.env.local scripts/m5-smoke.mjs",
     "test:auth-integration": "node --env-file-if-exists=.env.local scripts/run-auth-integration-tests.mjs",
     "release:preflight": "node --env-file-if-exists=.env.local scripts/release-preflight.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1124.0",
+    "@aws-sdk/s3-request-presigner": "^3.1124.0",
     "@better-auth/drizzle-adapter": "^1.7.2",
     "@neondatabase/serverless": "1.1.0",
     "better-auth": "^1.7.2",
@@ -37,6 +41,7 @@
     "ws": "^8.21.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.4.0",
     "@types/react": "19.2.18",

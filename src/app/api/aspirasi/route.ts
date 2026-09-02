@@ -7,9 +7,14 @@ import {
 } from "@/server/aspirations/rate-limit";
 import {
   DuplicateSubmissionError,
+  EvidenceIntentError,
   InactiveCategoryError,
   submitPublicReport,
 } from "@/server/aspirations/submission-service";
+import {
+  EvidenceUploadError,
+  prepareEvidenceForSubmission,
+} from "@/server/aspirations/evidence-service";
 import {
   parseSubmissionInput,
   PublicInputError,
@@ -83,7 +88,14 @@ export async function POST(request: Request) {
     await consumePublicRateLimit(submissionCircuitBreaker, "all-submissions");
     await verifyTurnstile(input.turnstileToken, new URL(request.url).hostname);
 
-    const credential = await submitPublicReport(input, idempotencyKey);
+    const preparedEvidence = await prepareEvidenceForSubmission(
+      input.evidence.map((item) => item.intentId),
+    );
+    const credential = await submitPublicReport(
+      input,
+      idempotencyKey,
+      preparedEvidence,
+    );
 
     return NextResponse.json(
       {
@@ -132,6 +144,28 @@ export async function POST(request: Request) {
         "VALIDATION_ERROR",
         "Pilih kategori aspirasi yang tersedia.",
         "categoryId",
+      );
+    }
+
+    if (error instanceof EvidenceUploadError) {
+      const status =
+        error.code === "CONFIGURATION" || error.code === "STORAGE" ? 503 : 422;
+      return publicError(
+        status,
+        status === 503 ? "EVIDENCE_UNAVAILABLE" : "EVIDENCE_INVALID",
+        status === 503
+          ? "Evidence belum tersedia di penyimpanan privat."
+          : error.message,
+        "evidence",
+      );
+    }
+
+    if (error instanceof EvidenceIntentError) {
+      return publicError(
+        409,
+        "EVIDENCE_REPLAYED",
+        "Sesi upload evidence sudah tidak dapat digunakan.",
+        "evidence",
       );
     }
 

@@ -36,6 +36,15 @@ const requiredSecrets = [
   "TURNSTILE_SECRET_KEY",
 ];
 
+const r2Variables = [
+  "R2_ACCOUNT_ID",
+  "R2_ACCESS_KEY_ID",
+  "R2_SECRET_ACCESS_KEY",
+  "R2_EVIDENCE_BUCKET",
+];
+
+const requiredPublicVariables = ["NEXT_PUBLIC_TURNSTILE_SITE_KEY"];
+
 /**
  * Cloudflare's published always-passes test secret. Never valid in production.
  *
@@ -193,6 +202,63 @@ export function runReleasePreflight(env) {
     else warn("TURNSTILE_SECRET_KEY", `${message} Hanya untuk pengujian.`);
   }
 
+  if (isDeployed) {
+    for (const variable of requiredPublicVariables) {
+      if (isPlaceholderSecret(env[variable])) {
+        error(
+          variable,
+          env[variable]?.trim()
+            ? "Masih memakai placeholder .env.example."
+            : "Belum diatur.",
+        );
+      }
+    }
+  }
+
+  const r2Enabled = env.R2_EVIDENCE_ENABLED?.trim().toLowerCase();
+  if (r2Enabled && r2Enabled !== "true" && r2Enabled !== "false") {
+    error("R2_EVIDENCE_ENABLED", "Gunakan true atau false.");
+  }
+
+  if (isProduction && r2Enabled !== "true") {
+    error(
+      "R2_EVIDENCE_ENABLED",
+      "Production limited launch wajib mengaktifkan evidence privat R2.",
+    );
+  } else if (isDeployed && r2Enabled !== "true") {
+    warn(
+      "R2_EVIDENCE_ENABLED",
+      "Evidence upload belum aktif; Preview belum dapat menguji journey evidence.",
+    );
+  }
+
+  if (r2Enabled === "true") {
+    for (const variable of r2Variables) {
+      const value = env[variable];
+      if (isPlaceholderSecret(value)) {
+        error(
+          variable,
+          value?.trim()
+            ? "Masih memakai placeholder atau nilai kosong."
+            : "Belum diatur.",
+        );
+      }
+    }
+  }
+
+  const mfaRequired = env.MFA_REQUIRED?.trim().toLowerCase();
+  if (mfaRequired && mfaRequired !== "true" && mfaRequired !== "false") {
+    error("MFA_REQUIRED", "Gunakan true atau false.");
+  }
+  if (isProduction && mfaRequired !== "true") {
+    error(
+      "MFA_REQUIRED",
+      "Production wajib memakai MFA_REQUIRED=true untuk workspace BEM.",
+    );
+  } else if (isDeployed && mfaRequired !== "true") {
+    warn("MFA_REQUIRED", "MFA enforcement belum aktif pada environment ini.");
+  }
+
   if (isProduction) {
     // `DEPLOYMENT_RUNBOOK.md` step 6 of the auth bootstrap says to remove the
     // whole `AUTH_BOOTSTRAP_*` set — including `AUTH_BOOTSTRAP_NAME` — so this
@@ -200,7 +266,8 @@ export function runReleasePreflight(env) {
     // any bootstrap variable added later.
     for (const variable of Object.keys(env).sort()) {
       if (
-        variable.startsWith(bootstrapVariablePrefix) &&
+        (variable.startsWith(bootstrapVariablePrefix) ||
+          variable.startsWith("AUTH_PRODUCTION_BOOTSTRAP_")) &&
         env[variable]?.trim()
       ) {
         error(

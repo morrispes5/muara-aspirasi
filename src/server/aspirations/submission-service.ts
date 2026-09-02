@@ -1,10 +1,12 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import {
   aspirationReports,
   auditEvents,
   categories,
+  evidenceUploadIntents,
   reporterIdentities,
+  reportEvidence,
   reportStatusEvents,
 } from "@/server/db/schema";
 import {
@@ -15,6 +17,7 @@ import {
   privacyNoticeVersion,
 } from "@/server/aspirations/tracking";
 import { type Database, getDatabase } from "@/server/db/client";
+import { type PreparedEvidence } from "@/server/aspirations/evidence-service";
 import { requireConfiguredSecret } from "@/server/config/secret-policy";
 import { type SubmissionInput } from "@/server/aspirations/validation";
 
@@ -32,6 +35,13 @@ export class DuplicateSubmissionError extends Error {
   }
 }
 
+export class EvidenceIntentError extends Error {
+  constructor() {
+    super("An evidence upload intent could not be committed.");
+    this.name = "EvidenceIntentError";
+  }
+}
+
 function idempotencyKeyHash(key: string) {
   // Same rule as the rate limiter: the committed template salt must never be
   // accepted, or idempotency hashes become computable from the public source.
@@ -43,12 +53,13 @@ function idempotencyKeyHash(key: string) {
   return hashOpaqueValue(`submission:${key}`, secret);
 }
 
-type ReportWriteDatabase = Pick<Database, "insert" | "select">;
+type ReportWriteDatabase = Pick<Database, "insert" | "select" | "update">;
 
 async function insertReport(
   database: ReportWriteDatabase,
   input: SubmissionInput,
   keyHash: string,
+  preparedEvidence: PreparedEvidence[],
 ) {
   const [category] = await database
     .select({ id: categories.id })
@@ -102,6 +113,50 @@ async function insertReport(
     throw new Error("Report insertion did not return a report.");
   }
 
+  const expectedIntentIds = input.evidence.map((item) => item.intentId);
+  if (
+    expectedIntentIds.length !== preparedEvidence.length ||
+    expectedIntentIds.some(
+      (intentId, index) => intentId !== preparedEvidence[index]?.intentId,
+    )
+  ) {
+    throw new EvidenceIntentError();
+  }
+
+  if (preparedEvidence.length > 0) {
+    const validatedAt = new Date();
+
+    for (const evidence of preparedEvidence) {
+      const [claimed] = await database
+        .update(evidenceUploadIntents)
+        .set({ consumedAt: validatedAt, reportId: report.id })
+        .where(
+          and(
+            eq(evidenceUploadIntents.id, evidence.intentId),
+            eq(evidenceUploadIntents.objectKey, evidence.objectKey),
+            eq(evidenceUploadIntents.sizeBytes, evidence.sizeBytes),
+            isNull(evidenceUploadIntents.consumedAt),
+          ),
+        )
+        .returning({ id: evidenceUploadIntents.id });
+
+      if (!claimed) {
+        throw new EvidenceIntentError();
+      }
+
+      await database.insert(reportEvidence).values({
+        checksumSha256: evidence.checksumSha256,
+        mimeType: evidence.mimeType,
+        objectKey: evidence.objectKey,
+        originalFilename: evidence.originalFilename,
+        reportId: report.id,
+        sizeBytes: evidence.sizeBytes,
+        validatedAt,
+        validationStatus: "QUARANTINED",
+      });
+    }
+  }
+
   await database.insert(reporterIdentities).values({
     consentRecordedAt:
       input.identityMode === "CONSENTED_LIMITED_SHARE" ? new Date() : null,
@@ -132,6 +187,16 @@ async function insertReport(
   await database.insert(auditEvents).values({
     action: "PUBLIC_REPORT_SUBMITTED",
     actorType: "PUBLIC",
+    metadata:
+      preparedEvidence.length > 0
+        ? {
+            evidenceBytes: preparedEvidence.reduce(
+              (sum, evidence) => sum + evidence.sizeBytes,
+              0,
+            ),
+            evidenceCount: preparedEvidence.length,
+          }
+        : undefined,
     result: "SUCCESS",
     targetId: report.id,
     targetType: "ASPIRATION_REPORT",
@@ -143,11 +208,12 @@ async function insertReport(
 export async function submitPublicReport(
   input: SubmissionInput,
   idempotencyKey: string,
+  preparedEvidence: PreparedEvidence[] = [],
   database: Database = getDatabase(),
 ) {
   const keyHash = idempotencyKeyHash(idempotencyKey);
 
   return database.transaction((transaction) =>
-    insertReport(transaction, input, keyHash),
+    insertReport(transaction, input, keyHash, preparedEvidence),
   );
 }

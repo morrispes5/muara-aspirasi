@@ -10,6 +10,7 @@ type CategoryOption = {
 
 type AspirationFormProps = {
   categories: CategoryOption[];
+  evidenceEnabled: boolean;
   turnstileSiteKey: string;
 };
 
@@ -34,6 +35,21 @@ type Receipt = {
   trackingCode: string;
   trackingSecret: string;
 };
+
+type EvidenceUpload = {
+  id: string;
+  uploadUrl: string;
+  headers: Record<string, string>;
+};
+
+const maxEvidenceFiles = 3;
+const maxEvidenceFileBytes = 5 * 1024 * 1024;
+const maxEvidenceTotalBytes = 10 * 1024 * 1024;
+const supportedEvidenceTypes = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+]);
 
 type TurnstileApi = {
   render: (
@@ -90,6 +106,7 @@ function fieldErrorMessage(error: unknown) {
 
 export function AspirationForm({
   categories,
+  evidenceEnabled,
   turnstileSiteKey,
 }: AspirationFormProps) {
   const [activeStep, setActiveStep] = useState(0);
@@ -100,6 +117,8 @@ export function AspirationForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [evidenceFiles, setEvidenceFiles] = useState<File[]>([]);
+  const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
   const turnstileContainer = useRef<HTMLDivElement | null>(null);
   const widgetId = useRef<string | null>(null);
@@ -178,6 +197,84 @@ export function AspirationForm({
     setActiveStep((current) => Math.max(current - 1, 0));
   }
 
+  function selectEvidence(files: FileList | null) {
+    const nextFiles = files ? Array.from(files) : [];
+    const totalBytes = nextFiles.reduce((sum, file) => sum + file.size, 0);
+
+    if (nextFiles.length > maxEvidenceFiles) {
+      setErrorMessage(`Pilih maksimal ${maxEvidenceFiles} file evidence.`);
+      return;
+    }
+    if (
+      nextFiles.some(
+        (file) =>
+          !supportedEvidenceTypes.has(file.type) ||
+          file.size < 1 ||
+          file.size > maxEvidenceFileBytes,
+      )
+    ) {
+      setErrorMessage(
+        "Evidence hanya boleh JPEG, PNG, atau PDF maksimal 5 MB per file.",
+      );
+      return;
+    }
+    if (totalBytes > maxEvidenceTotalBytes) {
+      setErrorMessage("Ukuran total evidence maksimal 10 MB.");
+      return;
+    }
+
+    setErrorMessage(null);
+    setEvidenceFiles(nextFiles);
+  }
+
+  async function uploadEvidence() {
+    if (!evidenceFiles.length) return [] as Array<{ intentId: string }>;
+
+    const intentResponse = await fetch("/api/aspirasi/evidence/intents", {
+      body: JSON.stringify({
+        files: evidenceFiles.map((file) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        })),
+      }),
+      headers: { "Content-Type": "application/json" },
+      method: "POST",
+    });
+    const intentBody = (await intentResponse.json()) as {
+      error?: unknown;
+      uploads?: EvidenceUpload[];
+    };
+
+    if (!intentResponse.ok || !intentBody.uploads) {
+      throw intentBody.error;
+    }
+
+    if (intentBody.uploads.length !== evidenceFiles.length) {
+      throw new Error("Sesi upload evidence belum lengkap.");
+    }
+
+    setIsUploadingEvidence(true);
+    try {
+      await Promise.all(
+        intentBody.uploads.map(async (upload, index) => {
+          const response = await fetch(upload.uploadUrl, {
+            body: evidenceFiles[index],
+            headers: upload.headers,
+            method: "PUT",
+          });
+          if (!response.ok) {
+            throw new Error("File evidence belum berhasil diunggah.");
+          }
+        }),
+      );
+    } finally {
+      setIsUploadingEvidence(false);
+    }
+
+    return intentBody.uploads.map((upload) => ({ intentId: upload.id }));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage(null);
@@ -192,9 +289,11 @@ export function AspirationForm({
     setIsSubmitting(true);
 
     try {
+      const evidence = evidenceEnabled ? await uploadEvidence() : [];
       const response = await fetch("/api/aspirasi", {
         body: JSON.stringify({
           ...values,
+          evidence,
           honeypot,
           turnstileToken,
         }),
@@ -465,10 +564,38 @@ export function AspirationForm({
               value={values.suggestedSolution}
             />
           </label>
-          <p className="border-warning/25 bg-warning-soft text-warning rounded-control border p-3 text-sm leading-6">
-            Upload bukti belum dibuka. BEM hanya menerima bukti setelah R2
-            privat dan aturan file disetujui.
-          </p>
+          {evidenceEnabled ? (
+            <label className="text-ink grid gap-2 text-sm font-bold">
+              Bukti pendukung{" "}
+              <span className="text-muted font-normal">(opsional)</span>
+              <input
+                accept="image/jpeg,image/png,application/pdf"
+                className="border-line bg-surface text-ink rounded-control w-full border p-3 text-sm"
+                multiple
+                onChange={(event) => selectEvidence(event.target.files)}
+                type="file"
+              />
+              <span className="text-muted text-xs leading-5">
+                Maksimal 3 file, JPEG/PNG/PDF, 5 MB per file dan 10 MB total.
+                File masuk ke penyimpanan privat dan tetap berada dalam status
+                karantina untuk akses BEM.
+              </span>
+              {evidenceFiles.length ? (
+                <ul className="text-muted grid gap-1 text-xs font-normal">
+                  {evidenceFiles.map((file) => (
+                    <li key={`${file.name}-${file.size}`}>
+                      {file.name} · {(file.size / (1024 * 1024)).toFixed(1)} MB
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </label>
+          ) : (
+            <p className="border-warning/25 bg-warning-soft text-warning rounded-control border p-3 text-sm leading-6">
+              Upload bukti belum dibuka. BEM hanya menerima bukti setelah R2
+              privat dan aturan file disetujui.
+            </p>
+          )}
         </fieldset>
       ) : null}
 
@@ -565,6 +692,12 @@ export function AspirationForm({
                 ? "Rahasia untuk BEM saja"
                 : "Setuju berbagi terbatas"}
             </p>
+            <p>
+              <strong>Bukti:</strong>{" "}
+              {evidenceFiles.length
+                ? `${evidenceFiles.length} file privat dipilih`
+                : "Tidak ada"}
+            </p>
           </div>
           <div className="grid gap-2">
             <p className="text-ink text-sm font-bold">Verifikasi anti-spam</p>
@@ -612,7 +745,11 @@ export function AspirationForm({
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? "Mengirim dengan aman…" : "Kirim aspirasi"}
+            {isUploadingEvidence
+              ? "Mengunggah bukti privat…"
+              : isSubmitting
+                ? "Mengirim dengan aman…"
+                : "Kirim aspirasi"}
           </button>
         )}
       </div>

@@ -104,6 +104,7 @@ function auditLabel(action: string) {
     REPORT_ASSIGNMENT_CHANGED: "Assignment diubah",
     REPORT_CASE_FIELDS_UPDATED: "Detail kasus diubah",
     REPORT_DETAIL_VIEWED: "Detail dibuka",
+    EVIDENCE_ACCESSED: "Evidence dibuka",
     REPORT_INTERNAL_NOTE_ADDED: "Catatan internal ditambahkan",
     REPORT_INTERNAL_NOTE_DELETED: "Catatan internal dihapus",
     REPORT_REOPENED: "Laporan dibuka kembali",
@@ -874,8 +875,8 @@ export function ReportDetailView({
                 Metadata evidence
               </h2>
               <p className="text-muted mt-2 text-sm leading-6">
-                File belum memiliki jalur download pada M6. Tidak ada object URL
-                yang dikirim ke browser.
+                File tetap privat. Link di bawah hanya membuat akses singkat
+                setelah izin confidential report diverifikasi dan dicatat.
               </p>
               <div className="mt-5 grid gap-3">
                 {initial.evidence.map((item) => (
@@ -893,13 +894,20 @@ export function ReportDetailView({
                     <p className="text-muted mt-1 font-mono break-all">
                       SHA-256 {item.checksumSha256}
                     </p>
+                    <a
+                      className="text-brand hover:text-brand-dark mt-3 inline-flex font-bold underline underline-offset-4"
+                      href={`/api/admin/reports/${initial.report.id}/evidence/${item.id}`}
+                      rel="noreferrer"
+                    >
+                      Buka file privat
+                    </a>
                   </div>
                 ))}
               </div>
             </Card>
           ) : (
             <StateCard
-              description="Tidak ada evidence yang tersimpan pada laporan ini. Upload dan R2 tetap berada di milestone berikutnya."
+              description="Tidak ada evidence yang tersimpan pada laporan ini."
               title="Belum ada evidence"
             />
           )}

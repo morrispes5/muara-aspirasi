@@ -1,13 +1,13 @@
 # Implementation Status — Muara Aspirasi
 
-> Terakhir diperbarui: 1 September 2026
-> Milestone aktif: **Milestone 7 selesai pada source; Milestone 8 Wave 1 (security headers baseline, CSP report-only, konsolidasi origin guard), Wave 2 (regression coverage loop publikasi), Wave 3 (aksesibilitas, responsif, ketahanan UX), Wave 4 (release evidence index), Wave 5 (penutupan gap konfigurasi fail-closed), dan Wave 6 (hardening skema URL dan bootstrap) selesai pada source. R2, scheduler, notifikasi eksternal, HSTS, CSP enforcing, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
+> Terakhir diperbarui: 2 September 2026
+> Milestone aktif: **Milestone 7 selesai pada source; Milestone 8 Wave 1–6 selesai, dan Wave 10 launch-readiness (private R2 evidence boundary, admin user management, Better Auth TOTP/backup code, production bootstrap guard, Playwright smoke, CI browser/secret-scan workflow, serta additive migration) selesai pada source. R2 provider, scheduler, notifikasi eksternal, HSTS, CSP enforcing, full manual QA, migration Neon, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
 
 ## Ringkasan status
 
 Milestone 0, Documentation Gate, Milestone 1 (UI foundation), Milestone 2 (halaman publik statis), Milestone 3 (database/ORM), **Milestone 4 (BEM auth/roles/admin foundation)**, **Milestone 5 (kirim dan lacak aspirasi)**, dan **Milestone 6 (moderasi dan admin case management)** selesai pada source. Acceptance M4/M5 lulus pada aplikasi lokal serta Neon development/preview dengan identitas sintetis. M6 memakai schema report yang sudah tersedia dari M3, menambahkan runtime queue/detail/workflow tanpa migration baru; smoke mutasi Neon M6 masih membutuhkan izin eksplisit owner.
 
-M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. M6 menambahkan dashboard kasus BEM dengan filter, detail privacy-aware, status workflow, assignment, internal note, reporter-visible message, archive/reopen, concurrency guard, dan audit. M7 menambahkan publication service untuk Update Advokasi dan Info Mahasiswa, workflow approval, archive/detail/filter/pagination publik berbasis projection database, serta feedback UI. Database production, R2/evidence binary, scheduler, dan notifikasi eksternal tetap belum diaktifkan.
+M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. M6 menambahkan dashboard kasus BEM dengan filter, detail privacy-aware, status workflow, assignment, internal note, reporter-visible message, archive/reopen, concurrency guard, dan audit. M7 menambahkan publication service untuk Update Advokasi dan Info Mahasiswa, workflow approval, archive/detail/filter/pagination publik berbasis projection database, serta feedback UI. Wave 10 menambahkan evidence upload intent ke private R2, validasi ulang binary, authorized signed read, admin user management, MFA enforcement guard, production bootstrap terpisah, dan browser/CI gates. Database production, provider activation, scheduler, dan notifikasi eksternal tetap belum diaktifkan.
 
 Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project Neon `morrizstore` tidak disentuh.
 
@@ -570,6 +570,41 @@ Deploy Preview **belum** diverifikasi hijau. Perbaikan ini menghilangkan tabraka
 
 Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan production acceptance.
 
+## Implementasi Milestone 8 Wave 10 — launch-readiness surface
+
+### Evidence private
+
+- `src/server/storage/r2.ts` menjadi adapter S3-compatible server-only untuk Cloudflare R2. Object key dibuat random dan dibatasi ke prefix `evidence/quarantine/`; upload presigned berlaku 10 menit dan download signed GET berlaku 1 menit.
+- `src/server/aspirations/evidence.ts` dan `evidence-service.ts` menerapkan allowlist JPEG/PNG/PDF, maksimal tiga file, 5 MiB per file, 10 MiB total, sanitasi nama/extension, magic bytes, HEAD/GET size+MIME verification, dan SHA-256.
+- `evidence_upload_intents` menyimpan intent opaque yang expired/consumed dan diklaim atomik bersama report. Public submission hanya menerima UUID intent; object key, signed URL, dan isi file tidak pernah masuk response public.
+- `/api/admin/reports/[id]/evidence/[evidenceId]` hanya dapat diakses dengan `VIEW_CONFIDENTIAL_REPORT`, menulis audit `EVIDENCE_ACCESSED`, dan me-redirect ke private signed attachment. Metadata report memakai status `QUARANTINED`; malware scanner belum ada dan tidak diklaim tersedia.
+
+### Admin access dan MFA
+
+- `/admin/users` serta `/api/admin/users*` menyediakan list/create/update status-role yang ADMIN-only, password di-hash server-side, self-lockout/last-active-admin tetap dijaga, dan perubahan diaudit.
+- Better Auth two-factor plugin menyimpan TOTP/backup code terenkripsi; `/admin/security` menangani enrollment, `/admin/2fa` menangani challenge, dan `trustDeviceMaxAge: 0` mencegah trust device permanen.
+- `MFA_REQUIRED=true` atau environment production menahan ADMIN yang belum enroll dari workspace, dengan pengecualian enrollment terkontrol pada `/admin/security`. `scripts/auth-production-bootstrap.mjs` terpisah dari bootstrap non-production dan menolak input one-time yang tidak dikonfirmasi.
+
+### Release tooling
+
+- Migration additive dibuat di `drizzle/20260902113654_minor_emma_frost/` dan lulus `npm run db:check`; belum diterapkan ke Neon mana pun pada wave ini.
+- `playwright.config.ts` + `tests/e2e/public-journey.spec.ts` menambahkan public browser smoke; `vitest.config.ts` mengecualikan suite E2E dari Vitest agar runner tidak saling membaca.
+- CI menambahkan job Playwright Chromium smoke dan `gitleaks/gitleaks-action@v2`; secret scanner tidak dimatikan atau dikecualikan.
+
+### Validasi Wave 10 — 2 September 2026
+
+| Pemeriksaan                                                        | Hasil                                                                          |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
+| `npm run format:check`                                             | Lulus                                                                          |
+| `npm run lint`                                                     | Lulus (`--max-warnings=0`)                                                     |
+| `npm run typecheck`                                                | Lulus                                                                          |
+| `npm test`                                                         | Lulus — **242 passed, 3 skipped** (26 file passed, 1 integration file skipped) |
+| `npm run db:check`                                                 | Lulus                                                                          |
+| `npm run build -- --webpack`                                       | Lulus; route map mencakup evidence, users, security, dan 2FA                   |
+| `npm run test:e2e -- tests/e2e/public-journey.spec.ts --workers=1` | Lulus — **2 passed**, tanpa page/console error pada home dan privacy           |
+
+Provider R2/CORS/lifecycle, migration Neon, Netlify Deploy Preview baru, production bootstrap, MFA recovery drill, dan production release tidak dijalankan karena membutuhkan owner/provider authority. Scheduler, email/WhatsApp/push, retention job, serta public media tetap deferred.
+
 ## Pekerjaan milestone berikutnya
 
 - Milestone 8 Wave 4 dan seterusnya: browser journey, retention/deletion job, backup/restore dan incident drill, serta dependency/secret scan.
@@ -587,7 +622,7 @@ Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan p
 - Endpoint connection development dan preview tidak menerima pasangan credential yang sama untuk direct/pooler. ENV lokal memakai endpoint yang masing-masing sudah diuji; credential harus dirotasi dan direct/pooler diverifikasi ulang sebelum production.
 - Smoke mutation M6 terhadap Neon non-production belum dijalankan pada sesi ini karena memerlukan explicit approval untuk membuat dan membersihkan report sintetis; hal ini tidak mengubah source quality gate dan tidak menyentuh Neon main/production.
 
-### Keputusan owner yang tertunda setelah M8 Wave 1
+### Keputusan owner yang masih tertunda setelah Wave 10
 
 1. **HSTS.** Owner menetapkan `max-age`, `includeSubDomains`, dan preload setelah domain resmi serta HTTPS stabil. Tidak dapat dibatalkan dari kode setelah di-cache browser.
 2. **Promosi CSP dari report-only ke enforcing.** Membutuhkan QA browser pada Deploy Preview untuk Turnstile, font, dan hydration.
@@ -595,7 +630,7 @@ Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan p
 4. **CSP report endpoint.** Tanpa `report-to`/`report-uri`, pelanggaran hanya terlihat di devtools; owner memutuskan apakah endpoint atau vendor pelaporan diperlukan.
 5. **Origin tanpa header `Origin`.** Kebijakan saat ini menerimanya. Bila owner menginginkan fail-closed penuh, ini harus diputuskan bersama dampaknya pada health check dan tooling non-browser.
 
-### Blocker yang tersisa untuk M8 Wave berikutnya
+### Blocker yang tersisa setelah Wave 10
 
 Diselesaikan pada Wave 2: negative access-control suite tingkat route handler kini ada, dan draft invisibility terbukti pada tingkat SQL tanpa memerlukan database.
 
@@ -604,14 +639,15 @@ Yang masih terbuka:
 - **Batas jujur dari coverage Wave 2.** Test membuktikan SQL yang dibangun aplikasi dan keputusan yang diambil route handler. Test tidak membuktikan bahwa Postgres mengeksekusi SQL itu sesuai harapan, tidak menjalankan Better Auth yang sebenarnya (`requireBemPermission` distub pada test route), dan tidak merender halaman publik di browser.
 - **Prasyarat integration test pada Neon.** Untuk membuktikan loop publish-ke-publik secara end-to-end diperlukan: branch Neon `development` atau `preview` (jangan `main`), `DATABASE_URL` untuk branch tersebut pada `.env.local`, `DATABASE_ENVIRONMENT` bernilai `development` atau `preview`, akun BEM sintetis per role melalui `npm run auth:bootstrap`, serta izin eksplisit owner untuk membuat dan membersihkan baris sintetis. Ikuti pola opt-in yang sudah ada pada `src/server/auth/user-management.integration.test.ts` (`process.env.AUTH_INTEGRATION === "1" ? describe : describe.skip`). Test semacam ini sengaja belum dibuat pada wave ini karena akan berupa test yang selalu skip tanpa credential, sehingga memberi kesan coverage yang tidak benar-benar ada.
 - **Happy path report linkage** (`syncAdvocacyReports`: existence check, delete-then-insert) belum tertutup; yang tertutup baru penolakan validasi dan boundary permission. Jalur ini membutuhkan integration test dengan prasyarat di atas.
-- Accessibility audit, browser journey, dependency/secret scan, retention job, serta backup/restore drill belum dimulai.
+- Accessibility audit manual, remote secret-scan result, integration test Neon, provider R2 CORS/lifecycle, retention job, serta backup/restore drill belum dijalankan.
 
-### Keputusan owner yang diperlukan setelah Wave 2
+### Keputusan owner yang diperlukan untuk handoff berikutnya
 
-1. **Apakah browser journey (Playwright) masuk M8 atau ditunda.** Menambahkannya berarti dependency baru, unduhan browser, dan langkah CI tambahan.
+1. **Akses dan konfigurasi Deploy Preview.** Owner perlu memastikan context marker, database preview, Turnstile site key/secret, private R2 bucket, CORS, dan akses QA.
 2. **Izin menjalankan integration test pada Neon `development`/`preview`** dengan data sintetis, beserta siapa yang memiliki credential-nya.
-3. **Konfirmasi perilaku penurunan status.** Mengedit konten yang sudah terbit menariknya kembali ke `DRAFT`, sehingga konten hilang dari arsip publik sampai disetujui ulang. Ini konsisten dengan kebijakan "selalu melewati review", tetapi berarti seorang Admin yang memperbaiki satu salah ketik akan menurunkan konten dari halaman publik. Owner perlu mengonfirmasi bahwa ini memang yang diinginkan secara operasional.
+3. **Production migration/bootstrap/MFA.** Owner perlu menyetujui migration M8, first-admin bootstrap, dua-owner recovery, domain/TLS, monitoring, backup/restore, dan release window.
+4. **Konfirmasi perilaku penurunan status.** Mengedit konten yang sudah terbit menariknya kembali ke `DRAFT`, sehingga konten hilang dari arsip publik sampai disetujui ulang. Ini konsisten dengan kebijakan "selalu melewati review", tetapi berarti seorang Admin yang memperbaiki satu salah ketik akan menurunkan konten dari halaman publik. Owner perlu mengonfirmasi bahwa ini memang yang diinginkan secara operasional.
 
 ## Rekomendasi milestone berikutnya
 
-Lanjutkan ke Milestone 8: security hardening dan production readiness, tanpa melemahkan boundary M6/M7. Public update tetap harus ditulis sebagai projection independen yang disetujui; original report, identity, internal note, route, evidence object, dan tracking secret tidak boleh masuk response publik. Mahasiswa tetap tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, dan Neon main/production tidak boleh disentuh tanpa approval terpisah.
+Lanjutkan ke **Deploy Preview terkontrol dan handoff owner**, tanpa melemahkan boundary M6/M7/M8. Public update tetap harus ditulis sebagai projection independen yang disetujui; original report, identity, internal note, route, evidence object, dan tracking secret tidak boleh masuk response publik. Mahasiswa tetap tidak memiliki akun, public signup tetap mati, operasi admin wajib permission server-side, evidence tetap private/quarantine, dan Neon main/production tidak boleh disentuh tanpa approval terpisah.

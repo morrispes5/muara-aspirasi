@@ -33,6 +33,12 @@ export const submissionRateLimit: RateLimitRule = {
   windowSeconds: 60 * 60,
 };
 
+export const evidenceIntentRateLimit: RateLimitRule = {
+  limit: 10,
+  scope: "evidence-intent-ip",
+  windowSeconds: 60 * 60,
+};
+
 export const trackingIpRateLimit: RateLimitRule = {
   limit: 20,
   scope: "tracking-ip",

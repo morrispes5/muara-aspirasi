@@ -2,10 +2,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
+import { getBemSession, isMfaRequired } from "@/server/auth/session";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import { Card } from "@/components/ui/card";
 import { Container } from "@/components/layout/container";
-import { getBemSession } from "@/server/auth/session";
 import { getSafeAdminRedirectPath } from "@/server/auth/redirect";
 
 export const dynamic = "force-dynamic";
@@ -46,7 +46,10 @@ export default async function AdminLoginPage({
             </p>
           </div>
           <Card>
-            <AdminLoginForm redirectPath={redirectPath} />
+            <AdminLoginForm
+              mfaRequired={isMfaRequired()}
+              redirectPath={redirectPath}
+            />
           </Card>
           <Link
             className="text-brand hover:text-brand-dark rounded-control text-center text-sm font-bold underline underline-offset-4"

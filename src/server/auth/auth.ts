@@ -2,12 +2,14 @@ import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins";
 
 import {
   authAccounts,
   authSessions,
   authVerifications,
   bemUsers,
+  twoFactor as twoFactorSchema,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
@@ -80,6 +82,7 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
         auth_sessions: authSessions,
         auth_verifications: authVerifications,
         bem_users: bemUsers,
+        twoFactor: twoFactorSchema,
       },
       transaction: true,
     }),
@@ -132,7 +135,14 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
       maxPasswordLength: 128,
       minPasswordLength: 12,
     },
-    plugins: [nextCookies()],
+    plugins: [
+      nextCookies(),
+      twoFactor({
+        issuer: "Muara Aspirasi BEM",
+        twoFactorTable: "twoFactor",
+        trustDeviceMaxAge: 0,
+      }),
+    ],
     secret,
     trustedOrigins: getConfiguredOrigins(),
     user: {
