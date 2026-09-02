@@ -1,9 +1,11 @@
 # Data Model — Muara Aspirasi
 
-> Status: model domain diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada Milestone 4; tambahan persistence submission/rate-limit Milestone 5 telah diterapkan melalui migration additive pada Neon development dan preview; runtime case management Milestone 6 sudah tersedia tanpa perubahan schema. Neon main/production tidak disentuh.
+> Status: model domain diimplementasikan sebagai foundation Drizzle pada Milestone 3; persistence auth Better Auth ditambahkan pada Milestone 4; tambahan persistence submission/rate-limit Milestone 5 telah diterapkan melalui migration additive pada Neon development dan preview; runtime case management Milestone 6 dan publication projection Milestone 7 sudah tersedia tanpa perubahan schema. Neon main/production tidak disentuh.
 > Terminologi utama mengikuti `PRD.md`.
 
-Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, migration auth `drizzle/20260830054722_wise_dexter_bennett/`, migration submission `drizzle/20260830113406_lowly_spirit/`, dan `src/server/aspirations/case-management.ts`. M6 memakai tabel report yang sudah tersedia; service mutation, report authorization runtime, queue/detail DTO, serta reporter-safe projection sudah diimplementasikan. R2 binary access dan public publication projection tetap berada di milestone berikutnya.
+> Addendum 31 Agustus 2026: `src/server/content/publication.ts` sekarang memakai tabel `advocacy_updates` dan `student_info_posts` untuk workflow draf/review/publish/archive serta query publik yang hanya memproyeksikan status `PUBLISHED`. R2 binary access dan scheduled publish belum diaktifkan.
+
+Implementasi referensi: `src/server/db/schema/`, migration `drizzle/20260829191548_milestone_3_foundation/`, migration auth `drizzle/20260830054722_wise_dexter_bennett/`, migration submission `drizzle/20260830113406_lowly_spirit/`, `src/server/aspirations/case-management.ts`, dan `src/server/content/publication.ts`. M6 memakai tabel report yang sudah tersedia; service mutation, report authorization runtime, queue/detail DTO, reporter-safe projection, serta M7 public publication projection sudah diimplementasikan. R2 binary access dan scheduled publish tetap berada di milestone berikutnya.
 
 ## 1. Tujuan model
 

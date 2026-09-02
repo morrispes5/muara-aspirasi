@@ -1,3 +1,4 @@
+import { isNonProductionEnvironment } from "./deploy-environment.mjs";
 import { randomUUID } from "node:crypto";
 
 import { neon } from "@neondatabase/serverless";
@@ -10,7 +11,7 @@ if (!databaseUrl) {
   throw new Error("DATABASE_URL_UNPOOLED harus tersedia untuk smoke test M5.");
 }
 
-if (environment !== "development" && environment !== "preview") {
+if (!isNonProductionEnvironment(environment)) {
   throw new Error(
     "Smoke test M5 hanya boleh berjalan pada development atau preview.",
   );

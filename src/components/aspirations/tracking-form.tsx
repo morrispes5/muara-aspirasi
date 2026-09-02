@@ -9,6 +9,12 @@ type Timeline = {
     status: string | null;
   }>;
   lastUpdatedAt: string;
+  publicUpdates: Array<{
+    publishedAt: string;
+    slug: string;
+    summary: string;
+    title: string;
+  }>;
   status: string;
   submittedAt: string;
   trackingCode: string;
@@ -138,6 +144,37 @@ export function TrackingForm() {
               {formatDate(timeline.lastUpdatedAt)}
             </p>
           </div>
+          {timeline.publicUpdates.length ? (
+            <section className="border-brand/25 bg-brand-soft rounded-card border p-5">
+              <p className="text-brand text-sm font-bold">
+                Update publik terkait
+              </p>
+              <div className="mt-4 grid gap-3">
+                {timeline.publicUpdates.map((update) => (
+                  <article
+                    className="rounded-control border-line bg-surface border p-4"
+                    key={update.slug}
+                  >
+                    <a
+                      className="text-ink hover:text-brand font-bold"
+                      href={`/update/${update.slug}`}
+                    >
+                      {update.title}
+                    </a>
+                    <p className="text-muted mt-2 text-sm leading-6">
+                      {update.summary}
+                    </p>
+                    <time
+                      className="text-muted mt-2 block text-xs"
+                      dateTime={update.publishedAt}
+                    >
+                      Dipublikasikan {formatDate(update.publishedAt)}
+                    </time>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <ol className="border-line rounded-card grid gap-5 border bg-white p-5 sm:p-6">
             {timeline.events.map((event, index) => (
               <li

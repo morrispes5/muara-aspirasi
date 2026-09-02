@@ -10,6 +10,7 @@ import {
 } from "@/server/auth/roles";
 import { DatabaseConfigurationError, getDatabase } from "@/server/db/client";
 import { bemUsers } from "@/server/db/schema";
+import { resolveDeployEnvironment } from "@/server/config/deploy-environment";
 
 type AuthSessionResponse = Awaited<
   ReturnType<ReturnType<typeof getAuth>["api"]["getSession"]>
@@ -19,8 +20,16 @@ export type BemSession = NonNullable<AuthSessionResponse> & {
   user: NonNullable<AuthSessionResponse>["user"] & {
     role: BemRole;
     status: "ACTIVE";
+    twoFactorEnabled: boolean;
   };
 };
+
+export function isMfaRequired() {
+  return (
+    process.env.MFA_REQUIRED?.trim().toLowerCase() === "true" ||
+    resolveDeployEnvironment(process.env.DATABASE_ENVIRONMENT) === "production"
+  );
+}
 
 function isExpectedConfigurationError(error: unknown): boolean {
   return (
@@ -31,6 +40,7 @@ function isExpectedConfigurationError(error: unknown): boolean {
 
 export async function getBemSession(
   requestHeaders?: Headers,
+  options: { allowMfaEnrollment?: boolean } = {},
 ): Promise<BemSession | null> {
   try {
     const headers = requestHeaders ?? (await getRequestHeaders());
@@ -47,12 +57,22 @@ export async function getBemSession(
         name: bemUsers.name,
         role: bemUsers.role,
         status: bemUsers.status,
+        twoFactorEnabled: bemUsers.twoFactorEnabled,
       })
       .from(bemUsers)
       .where(eq(bemUsers.id, session.user.id))
       .limit(1);
 
     if (!user || user.status !== "ACTIVE" || !isBemRole(user.role)) {
+      return null;
+    }
+
+    if (
+      isMfaRequired() &&
+      user.role === "ADMIN" &&
+      !user.twoFactorEnabled &&
+      !options.allowMfaEnrollment
+    ) {
       return null;
     }
 
@@ -65,6 +85,7 @@ export async function getBemSession(
         name: user.name,
         role: user.role,
         status: "ACTIVE",
+        twoFactorEnabled: user.twoFactorEnabled,
       },
     } as BemSession;
   } catch (error) {

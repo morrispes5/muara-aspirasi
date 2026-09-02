@@ -20,6 +20,7 @@ export const bemUsers = pgTable(
     email: varchar("email", { length: 320 }).notNull(),
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: varchar("image", { length: 2048 }),
+    twoFactorEnabled: boolean("two_factor_enabled").default(false).notNull(),
     role: bemUserRoleEnum("role").default("EDITOR").notNull(),
     status: bemUserStatusEnum("status").default("ACTIVE").notNull(),
     createdByUserId: uuid("created_by_user_id"),

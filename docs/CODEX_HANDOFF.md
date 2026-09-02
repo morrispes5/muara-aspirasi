@@ -2,6 +2,14 @@
 
 This guide keeps implementation sessions focused. Send **one milestone at a time** to Codex. Do not ask it to build the full product in one prompt.
 
+## Current handoff — 2 September 2026
+
+Source wave M8 launch-readiness sudah diimplementasikan pada branch `milestone-8-readiness`: private R2 evidence intent/upload/verification, admin-only evidence read + audit, ADMIN user management, Better Auth TOTP/backup-code guard, separate production bootstrap, Playwright public smoke, CI browser smoke, and gitleaks job. Migration lokal `drizzle/20260902113654_minor_emma_frost/` sudah dibuat dan dicek, tetapi belum diterapkan ke Neon. Tidak ada deploy Netlify, migration production, credential provider, atau production data yang disentuh.
+
+Pada 2 September 2026, nilai `DATABASE_ENVIRONMENT` context Deploy Preview di Netlify sudah dikoreksi menjadi marker non-dictionary yang dipetakan source ke environment preview. Perubahan ini diperlukan agar secret scanner Netlify tidak salah membaca kata umum pada dokumentasi; nilainya sengaja tidak ditulis di repository. Push commit berikutnya akan memicu retry Deploy Preview.
+
+Next handoff is owner-controlled Deploy Preview: configure org-owned preview Neon/R2/Turnstile secrets and CORS, apply the additive migration only to the intended non-production branch, run release preflight, verify the deployed browser/privacy/security journeys, then review production bootstrap/MFA/recovery and rollback gates. Do not use `netlify deploy --trigger --context branch:...`; inspect the resulting context/branch/commit and use the connected PR preview flow.
+
 ## 1. Session rules
 
 At the beginning of a Codex session, provide:

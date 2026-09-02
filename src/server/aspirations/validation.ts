@@ -10,10 +10,15 @@ export const identityModes = [
 
 export type IdentityMode = (typeof identityModes)[number];
 
+export type EvidenceIntentInput = {
+  intentId: string;
+};
+
 export type SubmissionInput = {
   categoryId: string;
   chronology: string;
   contactAllowed: boolean;
+  evidence: EvidenceIntentInput[];
   email: string | null;
   ethicsAccepted: true;
   honeypot: string;
@@ -43,6 +48,7 @@ const submissionKeys = new Set<keyof SubmissionInput>([
   "categoryId",
   "chronology",
   "contactAllowed",
+  "evidence",
   "email",
   "ethicsAccepted",
   "honeypot",
@@ -124,6 +130,32 @@ export function parseSubmissionInput(value: unknown): SubmissionInput {
     throw new PublicInputError("categoryId", "Pilih kategori aspirasi.");
   }
 
+  const evidenceValue = source.evidence;
+  const evidence: EvidenceIntentInput[] = [];
+  if (evidenceValue !== undefined) {
+    if (!Array.isArray(evidenceValue) || evidenceValue.length > 3) {
+      throw new PublicInputError(
+        "evidence",
+        "Evidence maksimal terdiri dari tiga file.",
+      );
+    }
+
+    for (const item of evidenceValue) {
+      if (
+        !item ||
+        typeof item !== "object" ||
+        Array.isArray(item) ||
+        Object.keys(item).length !== 1 ||
+        typeof (item as { intentId?: unknown }).intentId !== "string" ||
+        !isUuid((item as { intentId: string }).intentId)
+      ) {
+        throw new PublicInputError("evidence", "Handle evidence tidak valid.");
+      }
+
+      evidence.push({ intentId: (item as { intentId: string }).intentId });
+    }
+  }
+
   const name = compactText(source.name, "name", 160);
   const nim = compactText(source.nim, "nim", 32).toUpperCase();
 
@@ -192,6 +224,7 @@ export function parseSubmissionInput(value: unknown): SubmissionInput {
     categoryId,
     chronology: compactText(source.chronology, "chronology", 5000),
     contactAllowed,
+    evidence,
     email,
     ethicsAccepted: true,
     honeypot,

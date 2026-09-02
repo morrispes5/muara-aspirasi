@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Fraunces, Outfit } from "next/font/google";
 
+import { getAppUrl } from "@/lib/app-url";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 
@@ -21,6 +22,9 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
+  // Without a base, Next.js resolves canonical and Open Graph URLs against
+  // localhost, so a deployed page would advertise localhost links.
+  metadataBase: new URL(getAppUrl()),
   title: {
     default: "Muara Aspirasi",
     template: "%s | Muara Aspirasi",

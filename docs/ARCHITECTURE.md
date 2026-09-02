@@ -1,7 +1,9 @@
 # Architecture — Muara Aspirasi
 
-> Status: M6 case management inti sudah diimplementasikan pada source; publication publik, R2, notifikasi eksternal, dan production masih direncanakan.
+> Status: M6 case management inti, M7 publication publik, dan M8 launch-readiness surface (R2 evidence, user management, serta MFA guard) sudah tersedia pada source; provider activation dan production masih menjadi gate.
 > Sumber kebenaran produk: `PRD.md`. Bila dokumen ini bertentangan dengan PRD, PRD yang berlaku.
+
+> Addendum 2 September 2026: M8 menambahkan intent upload evidence, adapter private R2, binary validation, authorized signed read, admin user management, Better Auth TOTP/backup code, production bootstrap terpisah, dan browser smoke. Migration additive sudah dibuat lokal tetapi belum diterapkan ke Neon; scheduler, notifikasi eksternal, dan production provider setup tetap menjadi gate.
 
 ## 1. Tujuan sistem
 
@@ -34,22 +36,22 @@ Prinsip utama:
 
 ## 3. Stack dan alasan
 
-| Bagian               | Teknologi                  | Status                             | Alasan                                                                                                                                        |
-| -------------------- | -------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web framework        | Next.js 16 App Router      | Sudah dipasang                     | Mendukung Server Components, Route Handlers, Server Actions, metadata, dan satu deployment full-stack.                                        |
-| UI runtime           | React 19                   | Sudah dipasang                     | Runtime UI yang digunakan Next.js saat ini.                                                                                                   |
-| Bahasa               | TypeScript strict          | Sudah dipasang                     | Menurunkan risiko kontrak data dan otorisasi yang tidak konsisten.                                                                            |
-| Styling              | Tailwind CSS 4             | Sudah dipasang                     | Sistem token/utilitas konsisten dan mobile-first.                                                                                             |
-| UI primitives        | shadcn/ui                  | Direncanakan, belum dipasang       | Roadmap meminta hanya komponen yang benar-benar dipakai.                                                                                      |
-| Quality              | ESLint, Prettier, Vitest   | Sudah dipasang                     | Quality gate lokal dan CI sudah tersedia.                                                                                                     |
-| Hosting              | Netlify                    | Konfigurasi baseline tersedia      | Mendukung Next.js App Router melalui adapter yang dikelola Netlify dan Deploy Preview.                                                        |
-| Database             | Neon PostgreSQL            | Foundation M3 selesai              | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                                                             |
-| ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai              | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.                                                 |
-| Admin authentication | Better Auth                | Milestone 4 selesai                | BEM-only login, session, role enforcement, protected shell, access management, auth audit, dan runtime acceptance non-production sudah lulus. |
-| Case management      | Next.js + Drizzle          | Milestone 6 selesai pada source    | Queue/filter, detail privat, assignment, state transition, internal note, reporter-safe update, archive/reopen, concurrency guard, dan audit. |
-| Anti-spam            | Cloudflare Turnstile       | Milestone 5 selesai non-production | Widget form publik dan Siteverify server-side; development/preview memakai dummy key resmi, production wajib memiliki widget sendiri.         |
-| Object storage       | Cloudflare R2              | Direncanakan                       | Bukti privat dan media editorial dapat dipisahkan dari database.                                                                              |
-| Notification         | Timeline internal aplikasi | MVP default                        | Email/WhatsApp masih open question dalam PRD dan tidak termasuk default MVP.                                                                  |
+| Bagian               | Teknologi                  | Status                             | Alasan                                                                                                                                                |
+| -------------------- | -------------------------- | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web framework        | Next.js 16 App Router      | Sudah dipasang                     | Mendukung Server Components, Route Handlers, Server Actions, metadata, dan satu deployment full-stack.                                                |
+| UI runtime           | React 19                   | Sudah dipasang                     | Runtime UI yang digunakan Next.js saat ini.                                                                                                           |
+| Bahasa               | TypeScript strict          | Sudah dipasang                     | Menurunkan risiko kontrak data dan otorisasi yang tidak konsisten.                                                                                    |
+| Styling              | Tailwind CSS 4             | Sudah dipasang                     | Sistem token/utilitas konsisten dan mobile-first.                                                                                                     |
+| UI primitives        | shadcn/ui                  | Direncanakan, belum dipasang       | Roadmap meminta hanya komponen yang benar-benar dipakai.                                                                                              |
+| Quality              | ESLint, Prettier, Vitest   | Sudah dipasang                     | Quality gate lokal dan CI sudah tersedia.                                                                                                             |
+| Hosting              | Netlify                    | Konfigurasi baseline tersedia      | Mendukung Next.js App Router melalui adapter yang dikelola Netlify dan Deploy Preview.                                                                |
+| Database             | Neon PostgreSQL            | Foundation M3 selesai              | PostgreSQL terkelola dengan branch `development`/`preview`; production belum ada.                                                                     |
+| ORM/migration        | Drizzle ORM + Drizzle Kit  | Foundation M3 selesai              | Schema TypeScript eksplisit dan migration SQL yang direview/dicek pada branch non-production.                                                         |
+| Admin authentication | Better Auth                | Milestone 4 selesai                | BEM-only login, session, role enforcement, protected shell, access management, auth audit, dan runtime acceptance non-production sudah lulus.         |
+| Case management      | Next.js + Drizzle          | Milestone 6 selesai pada source    | Queue/filter, detail privat, assignment, state transition, internal note, reporter-safe update, archive/reopen, concurrency guard, dan audit.         |
+| Anti-spam            | Cloudflare Turnstile       | Milestone 5 selesai non-production | Widget form publik dan Siteverify server-side; development/preview memakai dummy key resmi, production wajib memiliki widget sendiri.                 |
+| Object storage       | Cloudflare R2              | Adapter evidence source-ready      | Bukti masuk private/quarantine melalui opaque intent + presigned PUT; provider bucket, CORS, lifecycle, dan credential organisasi belum diverifikasi. |
+| Notification         | Timeline internal aplikasi | MVP default                        | Email/WhatsApp masih open question dalam PRD dan tidak termasuk default MVP.                                                                          |
 
 ## 4. Konteks sistem
 
@@ -72,13 +74,13 @@ Better Auth berjalan sebagai bagian dari aplikasi Next.js, bukan layanan otorisa
 
 ## 5. Area aplikasi dan boundary akses
 
-| Area                 | Route konseptual                                                    | Siapa yang mengakses                            | Boundary                                                                                                 |
-| -------------------- | ------------------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Public content       | `/`, `/update`, `/info-mahasiswa`, `/tentang`, `/kebijakan-privasi` | Semua pengunjung                                | Hanya content berstatus published dan metadata aman. Tidak boleh membaca original report.                |
-| Kirim aspirasi       | `/aspirasi/kirim`                                                   | Mahasiswa tanpa login                           | Validasi input, ethics consent, Turnstile, rate limit, dan batas upload dilakukan server-side.           |
-| Private tracking     | `/aspirasi/lacak`                                                   | Pemegang tracking code + secret token           | Request menggunakan POST; token tidak masuk URL, analytics, atau log. Hanya timeline reporter-safe.      |
-| Admin authentication | `/admin/login`, `/api/auth/*`                                       | Akun BEM yang dibuat admin                      | Public registration dinonaktifkan. Session divalidasi server-side.                                       |
-| Admin work area      | `/admin`, `/admin/laporan`, `/admin/laporan/[id]`                   | `EDITOR`, `ADVOCATE`, `ADMIN` sesuai permission | Setiap read/mutation sensitif melakukan role check di server. Redirect/proxy bukan satu-satunya kontrol. |
+| Area                 | Route konseptual                                                                     | Siapa yang mengakses                            | Boundary                                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public content       | `/`, `/update`, `/info-mahasiswa`, `/tentang`, `/kebijakan-privasi`                  | Semua pengunjung                                | Hanya content berstatus published dan metadata aman. Tidak boleh membaca original report.                                                      |
+| Kirim aspirasi       | `/aspirasi/kirim`                                                                    | Mahasiswa tanpa login                           | Validasi input, ethics consent, Turnstile, rate limit, dan batas upload dilakukan server-side.                                                 |
+| Private tracking     | `/aspirasi/lacak`                                                                    | Pemegang tracking code + secret token           | Request menggunakan POST; token tidak masuk URL, analytics, atau log. Hanya timeline reporter-safe.                                            |
+| Admin authentication | `/admin/login`, `/api/auth/*`                                                        | Akun BEM yang dibuat admin                      | Public registration dinonaktifkan. Session divalidasi server-side.                                                                             |
+| Admin work area      | `/admin`, `/admin/laporan`, `/admin/laporan/[id]`, `/admin/users`, `/admin/security` | `EDITOR`, `ADVOCATE`, `ADMIN` sesuai permission | Setiap read/mutation sensitif melakukan role check di server. Admin user management dan MFA enrollment/challenge memiliki boundary tersendiri. |
 
 Tidak ada role `MODERATOR` terpisah pada MVP. Tugas triage dan moderasi laporan berada pada `ADVOCATE`; keputusan sensitif dan pengelolaan akun berada pada `ADMIN`.
 
@@ -168,7 +170,20 @@ Gunakan Node.js runtime default. Tidak ada kebutuhan Edge runtime yang sudah dis
 - `src/app/api/admin/reports/*` tetap memeriksa session serta permission pada setiap request. `VIEW_REPORTS` membuka baca; `PROCESS_REPORT` membuka triage; `ARCHIVE_REPORT` dan `REOPEN_REPORT` hanya dimiliki `ADMIN` pada matrix saat ini.
 - Semua mutasi memakai satu transaksi dan optimistic concurrency berbasis `updatedAt`. Jika versi stale, request gagal dengan conflict dan tidak menimpa perubahan actor lain.
 - DTO detail memisahkan original report, identity, evidence metadata, internal notes, status events, assignment history, dan audit. `objectKey`, signed URL, tracking secret/hash, serta isi note yang sudah dihapus tidak dikirim ke browser.
-- M6 tidak menambah migration karena tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah disiapkan pada foundation M3. Binary evidence/R2 read masih menjadi pekerjaan storage milestone berikutnya.
+- M6 tidak menambah migration karena tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah disiapkan pada foundation M3. M8 menambah migration additive untuk `evidence_upload_intents`, Better Auth `two_factor`, `bem_users.two_factor_enabled`, dan batas ukuran evidence; migration tersebut baru dibuat/reviewable lokal dan belum diterapkan ke Neon.
+
+### 8.5 Evidence storage M8
+
+- `POST /api/aspirasi/evidence/intents` menerima metadata allowlisted saja, membatasi tiga file/5 MiB per file/10 MiB total, memberi rate limit, lalu menyimpan intent dengan random object key di prefix `evidence/quarantine/`.
+- Client mengunggah langsung ke private R2 melalui presigned `PUT` berumur sepuluh menit. Final `POST /api/aspirasi` hanya menerima UUID intent; server melakukan `HEAD`/`GET`, memeriksa ukuran, MIME, magic bytes, checksum SHA-256, lalu mengklaim intent sekali di dalam transaksi report.
+- Admin detail hanya menerima metadata restricted. Route `/api/admin/reports/[id]/evidence/[evidenceId]` mengecek `VIEW_CONFIDENTIAL_REPORT`, menulis audit `EVIDENCE_ACCESSED`, lalu mengeluarkan signed `GET` attachment berumur satu menit. Object key dan signed URL tidak masuk response publik.
+- Tanpa malware scanner, status metadata awal tetap `QUARANTINED`; tidak ada public media path dan tidak ada klaim file aman dari malware.
+
+### 8.6 Admin access dan MFA M8
+
+- `/admin/users` dan `/api/admin/users*` hanya dapat digunakan `ADMIN` dengan permission `MANAGE_USERS`; password tidak pernah dikembalikan dan pembuatan akun menulis audit.
+- Better Auth two-factor plugin menyimpan secret/backup code terenkripsi dan memakai TOTP plus backup code dengan `trustDeviceMaxAge: 0`. `MFA_REQUIRED=true` atau environment production mencegah ADMIN yang belum enroll masuk workspace, tetapi `/admin/security` tetap dapat dipakai untuk enrollment.
+- `scripts/auth-production-bootstrap.mjs` hanya menerima environment production dan konfirmasi eksplisit, membuat admin pertama dalam transaction, lalu input one-time wajib dihapus sebelum preflight berikutnya.
 
 ## 9. Database dan persistence
 

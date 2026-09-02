@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { absoluteUrl } from "@/lib/app-url";
+
 const publicPaths = [
   "",
   "/tentang",
@@ -13,9 +15,5 @@ const publicPaths = [
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-  return publicPaths.map((path) => ({
-    url: new URL(path, appUrl).toString(),
-  }));
+  return publicPaths.map((path) => ({ url: absoluteUrl(path) }));
 }

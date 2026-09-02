@@ -8,6 +8,9 @@ import { Container } from "@/components/layout/container";
 type AdminShellProps = {
   children: ReactNode;
   user: {
+    canDraftAdvocacy: boolean;
+    canDraftStudentInfo: boolean;
+    canManageUsers: boolean;
     canViewReports: boolean;
     email: string;
     name: string;
@@ -50,6 +53,38 @@ export function AdminShell({ children, user }: AdminShellProps) {
                 href="/admin/laporan"
               >
                 Antrean laporan
+              </Link>
+            ) : null}
+            {user.canDraftAdvocacy ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/update"
+              >
+                Update advokasi
+              </Link>
+            ) : null}
+            {user.canDraftStudentInfo ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/info-mahasiswa"
+              >
+                Info mahasiswa
+              </Link>
+            ) : null}
+            {user.canManageUsers ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/users"
+              >
+                Kelola akun BEM
+              </Link>
+            ) : null}
+            {user.role === "ADMIN" ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/security"
+              >
+                Keamanan MFA
               </Link>
             ) : null}
           </nav>

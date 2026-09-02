@@ -5,6 +5,8 @@ import { lt, sql } from "drizzle-orm";
 
 import { hashOpaqueValue } from "@/server/aspirations/tracking";
 
+import { isPlaceholderSecret } from "@/server/config/secret-policy";
+
 export class RateLimitConfigurationError extends Error {
   constructor() {
     super("PUBLIC_ABUSE_SIGNAL_SECRET belum diatur.");
@@ -28,6 +30,12 @@ type RateLimitRule = {
 export const submissionRateLimit: RateLimitRule = {
   limit: 5,
   scope: "submission-ip",
+  windowSeconds: 60 * 60,
+};
+
+export const evidenceIntentRateLimit: RateLimitRule = {
+  limit: 10,
+  scope: "evidence-intent-ip",
   windowSeconds: 60 * 60,
 };
 
@@ -55,11 +63,12 @@ function startOfWindow(now: Date, windowSeconds: number) {
 }
 
 function getSignalSecret() {
-  const secret = process.env.PUBLIC_ABUSE_SIGNAL_SECRET?.trim();
-  if (!secret) {
+  // Rejects the `.env.example` placeholder as well as an empty value: that
+  // template salt is public, so accepting it would make bucket keys forgeable.
+  if (isPlaceholderSecret(process.env.PUBLIC_ABUSE_SIGNAL_SECRET)) {
     throw new RateLimitConfigurationError();
   }
-  return secret;
+  return process.env.PUBLIC_ABUSE_SIGNAL_SECRET!.trim();
 }
 
 export function getRequestNetworkSignal(request: Request) {

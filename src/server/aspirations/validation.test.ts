@@ -10,6 +10,7 @@ const validSubmission = {
   categoryId: "1ea889bc-f591-4d08-bf40-7d7d9f71fb0d",
   chronology: "AC ruang kelas mati selama dua pertemuan.",
   contactAllowed: true,
+  evidence: [],
   email: "MAHASISWA@EXAMPLE.TEST",
   ethicsAccepted: true,
   honeypot: "",
@@ -89,6 +90,28 @@ describe("public aspiration validation", () => {
         extra: true,
         trackingCode: "MA-1234ABCD5678EF90",
         trackingSecret: "a-secret-token",
+      }),
+    ).toThrow(PublicInputError);
+  });
+
+  it("accepts only opaque UUID evidence handles", () => {
+    const intentId = "1ea889bc-f591-4d08-bf40-7d7d9f71fb0d";
+    expect(
+      parseSubmissionInput({
+        ...validSubmission,
+        evidence: [{ intentId }],
+      }).evidence,
+    ).toEqual([{ intentId }]);
+    expect(() =>
+      parseSubmissionInput({
+        ...validSubmission,
+        evidence: [{ intentId: "not-a-uuid" }],
+      }),
+    ).toThrow(PublicInputError);
+    expect(() =>
+      parseSubmissionInput({
+        ...validSubmission,
+        evidence: [{ intentId, objectKey: "must-not-be-client-controlled" }],
       }),
     ).toThrow(PublicInputError);
   });

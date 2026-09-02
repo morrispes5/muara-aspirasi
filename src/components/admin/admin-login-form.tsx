@@ -2,15 +2,22 @@
 
 import { FormEvent, useState } from "react";
 import { createAuthClient } from "better-auth/react";
+import { twoFactorClient } from "better-auth/client/plugins";
 import { useRouter } from "next/navigation";
 
-const authClient = createAuthClient();
+const authClient = createAuthClient({
+  plugins: [twoFactorClient({ twoFactorPage: "/admin/2fa" })],
+});
 
 type AdminLoginFormProps = {
+  mfaRequired: boolean;
   redirectPath: string;
 };
 
-export function AdminLoginForm({ redirectPath }: AdminLoginFormProps) {
+export function AdminLoginForm({
+  mfaRequired,
+  redirectPath,
+}: AdminLoginFormProps) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,6 +39,27 @@ export function AdminLoginForm({ redirectPath }: AdminLoginFormProps) {
         "Masuk belum berhasil. Periksa email dan kata sandi, atau hubungi admin jika akun belum aktif.",
       );
       setIsSubmitting(false);
+      return;
+    }
+
+    const authResultData = result.data as
+      { twoFactorRedirect?: unknown; user?: unknown } | undefined;
+    if (authResultData?.twoFactorRedirect === true) {
+      router.replace(`/admin/2fa?next=${encodeURIComponent(redirectPath)}`);
+      return;
+    }
+
+    const signedInUser = result.data?.user as
+      { role?: unknown; twoFactorEnabled?: unknown } | undefined;
+    if (
+      mfaRequired &&
+      signedInUser?.role === "ADMIN" &&
+      signedInUser.twoFactorEnabled !== true
+    ) {
+      router.replace(
+        `/admin/security?next=${encodeURIComponent(redirectPath)}`,
+      );
+      router.refresh();
       return;
     }
 

@@ -1,5 +1,16 @@
 [build]
-  command = "npm run build"
+  # `release:preflight` runs first so the build fails closed when required
+  # server configuration is missing, which docs/SECURITY_PRIVACY.md section 12
+  # requires and the build alone did not do: every page is dynamic, so secrets
+  # are only read per request and a build with all of them blank still compiled.
+  # It reads configuration from the Netlify context environment; no secret is
+  # ever placed in this file. See docs/DEPLOYMENT_RUNBOOK.md section 7 for the
+  # variables each context must define.
+  #
+  # Netlify's Next runtime bundles the admin proxy as an Edge Function. Use
+  # webpack here because the Turbopack middleware artifact cannot be bundled
+  # reliably by the current Windows Netlify CLI path resolver.
+  command = "npm run release:preflight && npm run build -- --webpack"
   publish = ".next"
 
 [build.environment]

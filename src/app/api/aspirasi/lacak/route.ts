@@ -12,6 +12,7 @@ import {
 } from "@/server/aspirations/public-response";
 
 import { findReporterTimeline } from "@/server/aspirations/tracking-service";
+import { isSameOriginRequest } from "@/server/security/origin";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -24,6 +25,13 @@ const genericTrackingFailure = () =>
   );
 
 export async function POST(request: Request) {
+  // Tracking returns a reporter-private timeline, so it gets the same
+  // cross-origin guard as every other sensitive mutation. The failure is the
+  // generic one: a rejected origin must not read differently from a wrong code.
+  if (!isSameOriginRequest(request)) {
+    return genericTrackingFailure();
+  }
+
   let body: unknown;
   try {
     body = await request.json();

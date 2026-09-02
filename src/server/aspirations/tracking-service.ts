@@ -1,6 +1,11 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull } from "drizzle-orm";
 
-import { aspirationReports, reportStatusEvents } from "@/server/db/schema";
+import {
+  advocacyUpdateReports,
+  advocacyUpdates,
+  aspirationReports,
+  reportStatusEvents,
+} from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
 import { type TrackingInput } from "@/server/aspirations/validation";
 import { verifyTrackingSecret } from "@/server/aspirations/tracking";
@@ -12,6 +17,12 @@ export type ReporterTimeline = {
     status: string | null;
   }>;
   lastUpdatedAt: Date;
+  publicUpdates: Array<{
+    publishedAt: Date;
+    slug: string;
+    summary: string;
+    title: string;
+  }>;
   status: string;
   submittedAt: Date;
   trackingCode: string;
@@ -59,9 +70,34 @@ export async function findReporterTimeline(
     )
     .orderBy(asc(reportStatusEvents.createdAt));
 
+  const publicUpdates = await database
+    .select({
+      publishedAt: advocacyUpdates.publishedAt,
+      slug: advocacyUpdates.slug,
+      summary: advocacyUpdates.summary,
+      title: advocacyUpdates.title,
+    })
+    .from(advocacyUpdateReports)
+    .innerJoin(
+      advocacyUpdates,
+      eq(advocacyUpdateReports.advocacyUpdateId, advocacyUpdates.id),
+    )
+    .where(
+      and(
+        eq(advocacyUpdateReports.reportId, report.id),
+        eq(advocacyUpdates.publicationStatus, "PUBLISHED"),
+        isNotNull(advocacyUpdates.publishedAt),
+      ),
+    )
+    .orderBy(desc(advocacyUpdates.publishedAt));
+
   return {
     events,
     lastUpdatedAt: report.updatedAt,
+    publicUpdates: publicUpdates.map((update) => ({
+      ...update,
+      publishedAt: update.publishedAt as Date,
+    })),
     status: report.status,
     submittedAt: report.submittedAt,
     trackingCode: report.trackingCode,

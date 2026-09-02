@@ -8,6 +8,7 @@ export default function NotFound() {
       <Container className="grid max-w-2xl gap-6">
         <StateCard
           description="Alamat yang kamu buka belum tersedia di shell publik Muara Aspirasi."
+          headingLevel="h1"
           title="Halaman tidak ditemukan"
           tone="error"
         />

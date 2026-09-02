@@ -1,5 +1,7 @@
 import {
+  boolean,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -83,4 +85,25 @@ export const authVerifications = pgTable(
       .notNull(),
   },
   (table) => [index("auth_verifications_identifier_idx").on(table.identifier)],
+);
+
+/** Better Auth two-factor plugin storage. Secrets and backup codes are
+ * encrypted by Better Auth before they reach this table. */
+export const twoFactor = pgTable(
+  "two_factor",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    secret: text("secret").notNull(),
+    backupCodes: text("backup_codes").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => bemUsers.id, { onDelete: "cascade" }),
+    verified: boolean("verified").default(true).notNull(),
+    failedVerificationCount: integer("failed_verification_count")
+      .default(0)
+      .notNull(),
+    lockedUntil: timestamp("locked_until", { withTimezone: true }),
+  },
+  (table) => [index("two_factor_user_id_idx").on(table.userId)],
 );

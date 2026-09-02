@@ -1,3 +1,4 @@
+import { isNonProductionEnvironment } from "./deploy-environment.mjs";
 import { randomUUID } from "node:crypto";
 
 import { createLocalAccountIssuer } from "better-auth";
@@ -16,7 +17,7 @@ if (!databaseUrl) {
   );
 }
 
-if (environment !== "development" && environment !== "preview") {
+if (!isNonProductionEnvironment(environment)) {
   throw new Error(
     "DATABASE_ENVIRONMENT harus development atau preview untuk bootstrap aman non-production.",
   );

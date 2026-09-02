@@ -169,11 +169,46 @@ export const reportEvidence = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (table) => [
-    check("report_evidence_size_positive", sql`${table.sizeBytes} > 0`),
+    check(
+      "report_evidence_size_positive",
+      sql`${table.sizeBytes} > 0 AND ${table.sizeBytes} <= 5242880`,
+    ),
     index("report_evidence_report_created_at_idx").on(
       table.reportId,
       table.createdAt,
     ),
+  ],
+);
+
+/**
+ * Short-lived server-issued handles for direct private R2 uploads. The object
+ * key is deliberately kept server-side; the browser only receives `id` and a
+ * presigned URL. A handle can be consumed once when the report is committed.
+ */
+export const evidenceUploadIntents = pgTable(
+  "evidence_upload_intents",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    objectKey: varchar("object_key", { length: 512 }).notNull().unique(),
+    originalFilename: varchar("original_filename", { length: 255 }).notNull(),
+    mimeType: varchar("mime_type", { length: 100 }).notNull(),
+    sizeBytes: integer("size_bytes").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    reportId: uuid("report_id").references(() => aspirationReports.id, {
+      onDelete: "restrict",
+    }),
+    consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    check(
+      "evidence_upload_intents_size_valid",
+      sql`${table.sizeBytes} > 0 AND ${table.sizeBytes} <= 5242880`,
+    ),
+    index("evidence_upload_intents_expires_at_idx").on(table.expiresAt),
+    index("evidence_upload_intents_report_id_idx").on(table.reportId),
   ],
 );
 

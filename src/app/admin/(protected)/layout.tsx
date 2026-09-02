@@ -32,6 +32,15 @@ export default async function AdminProtectedLayout({
   return (
     <AdminShell
       user={{
+        canDraftAdvocacy: hasPermission(
+          session.user.role,
+          "DRAFT_ADVOCACY_UPDATE",
+        ),
+        canDraftStudentInfo: hasPermission(
+          session.user.role,
+          "DRAFT_STUDENT_INFO",
+        ),
+        canManageUsers: hasPermission(session.user.role, "MANAGE_USERS"),
         canViewReports: hasPermission(session.user.role, "VIEW_REPORTS"),
         email: session.user.email,
         name: session.user.name,

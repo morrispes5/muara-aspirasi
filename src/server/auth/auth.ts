@@ -2,12 +2,14 @@ import { APIError, betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { eq } from "drizzle-orm";
 import { nextCookies } from "better-auth/next-js";
+import { twoFactor } from "better-auth/plugins";
 
 import {
   authAccounts,
   authSessions,
   authVerifications,
   bemUsers,
+  twoFactor as twoFactorSchema,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
@@ -35,6 +37,12 @@ function getConfiguredOrigins(): string[] {
   const configured = [
     process.env.BETTER_AUTH_URL,
     process.env.NEXT_PUBLIC_APP_URL,
+    // Netlify's per-deploy URL. Deploy Preview hostnames are generated per pull
+    // request, so a static BETTER_AUTH_URL can only ever be right for one of
+    // them; deriving the origin means the preview context needs no hardcoded
+    // auth origin at all, which also removes it from the secret scanner's
+    // value-matching surface.
+    process.env.DEPLOY_PRIME_URL,
     ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "").split(","),
   ];
 
@@ -63,7 +71,10 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
     },
     appName: "Muara Aspirasi BEM",
     basePath: "/api/auth",
-    baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL,
+    baseURL:
+      process.env.BETTER_AUTH_URL ??
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.DEPLOY_PRIME_URL,
     database: drizzleAdapter(database, {
       provider: "pg",
       schema: {
@@ -71,6 +82,7 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
         auth_sessions: authSessions,
         auth_verifications: authVerifications,
         bem_users: bemUsers,
+        twoFactor: twoFactorSchema,
       },
       transaction: true,
     }),
@@ -123,7 +135,14 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
       maxPasswordLength: 128,
       minPasswordLength: 12,
     },
-    plugins: [nextCookies()],
+    plugins: [
+      nextCookies(),
+      twoFactor({
+        issuer: "Muara Aspirasi BEM",
+        twoFactorTable: "twoFactor",
+        trustDeviceMaxAge: 0,
+      }),
+    ],
     secret,
     trustedOrigins: getConfiguredOrigins(),
     user: {
