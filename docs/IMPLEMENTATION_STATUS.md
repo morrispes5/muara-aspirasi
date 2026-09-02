@@ -354,7 +354,7 @@ Wave dokumentasi. Tidak ada perubahan source, test, migration, secret, deploy, a
 Tiga temuan dari wave ini yang mengubah gambaran kesiapan:
 
 1. **M8 Wave 1–3 sudah dipush dan melewati CI.** Commit source `1d078ee` dan dokumentasi `cd18b8d` berada pada branch `milestone-8-readiness`; PR #2 memakai base `main` dan CI run `33381947557` (job `99456076155`) SUCCESS dengan clean checkout.
-2. **Catatan contributor Netlify pada `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah tidak berlaku.** Status check Deploy Preview PR #1 dan PR #2 adalah SUCCESS. PR #2 tersedia pada `https://deploy-preview-2--muaraaspirasi.netlify.app`; draft lokal Windows sebelumnya gagal saat bundling proxy Edge sebelum publish.
+2. **Catatan contributor Netlify pada `DEPLOYMENT_RUNBOOK.md` bagian 6 sudah tidak berlaku.** Status check Deploy Preview PR #1 dan PR #2 adalah SUCCESS. URL Deploy Preview PR #2 tersedia pada status check provider; draft lokal Windows sebelumnya gagal saat bundling proxy Edge sebelum publish.
 3. **Percobaan trigger preview salah target.** `netlify deploy --trigger --context branch:milestone-8-readiness` memilih production `main` dan menghasilkan deploy ready `6a9557235e010a438975637f` untuk commit `012222aa`, sama dengan artifact production sebelumnya; tidak ada kode M8 yang terpublikasi. Tidak ada trigger production lanjutan.
 4. **Deploy Preview PR #2 mengembalikan `HTTP 401`.** Baik untuk privasi karena preview tidak publik dan membawa `X-Robots-Tag: noindex`, tetapi memblokir QA browser dan verifikasi header ter-deploy sampai owner menyediakan kredensial akses preview. Host preview juga sudah mengembalikan `Strict-Transport-Security` dari sisi Netlify, sehingga keputusan HSTS menyempit menjadi konfigurasi domain production, bukan perubahan kode.
 
