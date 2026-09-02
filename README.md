@@ -119,6 +119,6 @@ Dokumen utama proyek berada di [`docs/PRD.md`](docs/PRD.md), [`docs/MILESTONE_RO
 - Route `/aspirasi/kirim` dan `/aspirasi/lacak` memakai endpoint privat yang sudah dilindungi validasi, Turnstile, rate limit, idempotency, dan projection reporter-safe.
 - Arsip Update Advokasi dan Info Mahasiswa berisi contoh tampilan berlabel jelas, bukan data BEM atau kampus yang nyata.
 - Lima gambar di `docs/assets` telah disalin ke `public/images` atas persetujuan pengguna untuk UI lokal; sumbernya tidak dipindahkan atau diubah dan izin publikasi produksi tetap perlu dikonfirmasi.
-- Migration auth M4 dan migration additive M5 sudah diterapkan serta diverifikasi pada Neon development/preview. Migration additive M8 berada di `drizzle/20260902113654_minor_emma_frost/` dan belum diterapkan ke Neon. Tidak ada deployment aplikasi atau perubahan resource production dari milestone ini.
+- PR #2 untuk M8 sudah merged ke `main` sebagai commit `9b93057` dengan seluruh check lulus. Migration additive M8 berada di `drizzle/20260902113654_minor_emma_frost/` dan belum diterapkan ke Neon. Netlify production masih menunjuk deploy lama pada saat verifikasi pasca-merge; limited launch belum terjadi dan tidak ada perubahan resource production yang diklaim.
 
 Langkah berikutnya adalah **Deploy Preview terkontrol** setelah owner mengisi environment preview dengan database/R2/Turnstile organisasi dan memberi akses QA. Scheduler, notifikasi eksternal, retention job, serta production migration tetap di luar implementasi ini.

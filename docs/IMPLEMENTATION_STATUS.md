@@ -1,7 +1,7 @@
 # Implementation Status — Muara Aspirasi
 
 > Terakhir diperbarui: 2 September 2026
-> Milestone aktif: **Milestone 7 selesai pada source; Milestone 8 Wave 1–6 selesai, dan Wave 10 launch-readiness (private R2 evidence boundary, admin user management, Better Auth TOTP/backup code, production bootstrap guard, Playwright smoke, CI browser/secret-scan workflow, serta additive migration) selesai pada source. R2 provider, scheduler, notifikasi eksternal, HSTS, CSP enforcing, full manual QA, migration Neon, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh**
+> Milestone aktif: **Milestone 8 code-complete dan PR #2 sudah merged ke `main`; Milestone 9 limited launch belum dimulai.** R2 provider, scheduler, notifikasi eksternal, HSTS, CSP enforcing, full manual QA, migration Neon, dan production tetap menjadi gate terpisah. Neon main/production tidak disentuh.
 
 ## Ringkasan status
 
@@ -9,7 +9,7 @@ Milestone 0, Documentation Gate, Milestone 1 (UI foundation), Milestone 2 (halam
 
 M3 menyediakan fondasi data terisolasi dan M4 menambahkan authentication BEM-only, role enforcement, protected admin shell, access management, serta audit. M5 menambahkan form aspirasi bertahap, API POST, validasi ketat, honeypot, Turnstile server verification, idempotency, rate limit database, receipt credential, dan tracking timeline reporter-safe. M6 menambahkan dashboard kasus BEM dengan filter, detail privacy-aware, status workflow, assignment, internal note, reporter-visible message, archive/reopen, concurrency guard, dan audit. M7 menambahkan publication service untuk Update Advokasi dan Info Mahasiswa, workflow approval, archive/detail/filter/pagination publik berbasis projection database, serta feedback UI. Wave 10 menambahkan evidence upload intent ke private R2, validasi ulang binary, authorized signed read, admin user management, MFA enforcement guard, production bootstrap terpisah, dan browser/CI gates. Database production, provider activation, scheduler, dan notifikasi eksternal tetap belum diaktifkan.
 
-Repository GitHub privat tetap berada di `main` sesuai keputusan owner. Project Neon `morrizstore` tidak disentuh.
+Repository GitHub privat tetap berada di `main` sesuai keputusan owner. PR #2 (`feat: harden milestone 8 release readiness`) merged pada 2 September 2026 sebagai commit `9b93057`. Netlify masih menunjuk deploy production lama pada saat verifikasi pasca-merge, sehingga merge ini tidak diklaim sebagai production deploy. Project Neon `morrizstore` tidak disentuh.
 
 ## Milestone selesai
 
@@ -611,11 +611,27 @@ Head branch `milestone-8-readiness` adalah `9471949`. PR #2 memiliki empat check
 
 Preview tetap terlindungi `HTTP 401`, jadi audit isi dan QA browser oleh owner masih memerlukan akses preview. Production migration, bootstrap, Neon mutation, dan production deploy tetap tidak dijalankan.
 
+## Verifikasi pasca-merge — 2 September 2026
+
+- GitHub mengonfirmasi PR #2 **Merged** dan closed ke `main` sebagai commit `9b93057`; empat check (quality, browser smoke, secret scan, dan Netlify Deploy Preview) lulus.
+- Netlify project reader masih mengembalikan deploy production `6a9557235e010a438975637f`, branch `main`, commit `012222aa58be193e76017786e8f9f8eb49ea1bf8`, status `ready`. Tidak ada bukti bahwa production ikut ter-deploy dari merge PR #2 pada saat pengecekan.
+- Deploy Preview provider sebelumnya berstatus `ready`, tetapi akses kontennya tetap `HTTP 401`; QA browser, header aplikasi, dan validasi flow ter-deploy masih memerlukan akses owner.
+
+### Matriks status setelah PR #2
+
+| Kelompok                      | Status               | Catatan                                                                                                                |
+| ----------------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| M1–M8 source dan quality gate | Selesai pada source  | PR #2 merged; test lokal dan check remote lulus.                                                                       |
+| PRD core MVP                  | Tersedia pada source | Submission, tracking privat, case management, publication, audit, admin access, dan evidence boundary tersedia.        |
+| Fitur yang sengaja ditunda    | Belum dikerjakan     | Scheduler, email/WhatsApp/push, public media, malware scanner, serta retention job menunggu scope/provider/policy.     |
+| Validasi owner/provider       | Terbuka              | Neon migration non-production, R2 CORS/lifecycle, preview QA 401, accessibility manual, backup/restore/incident drill. |
+| Production limited launch     | Belum siap           | Menunggu domain/secret/owner/UAT/MFA/recovery/rollback dan sign-off.                                                   |
+
 ## Pekerjaan milestone berikutnya
 
-- Milestone 8 Wave 4 dan seterusnya: accessibility manual, retention/deletion job, backup/restore dan incident drill, serta integration test Neon terkontrol.
+- Milestone 9 limited launch: Deploy Preview terkontrol, integration test Neon non-production dengan data sintetis, UAT BEM, migration production yang disetujui, bootstrap/MFA/recovery, serta rollback/restore drill.
 - Keputusan owner untuk M8: izin aset editorial, scheduler/notifikasi eksternal, environment production, dan prosedur release/retention.
-- Milestone storage berikutnya: R2 private, upload evidence, scan file, signed URL, dan authorized binary read; jangan mengaktifkan dari M7 tanpa scope terpisah.
+- Pekerjaan source lanjutan hanya dimulai bila owner memilih scope yang ditunda: malware scanning, retention/deletion policy, public media R2, atau scheduler/notifikasi.
 - Database/credential/deployment production, Netlify integration, domain resmi, MFA production, retention/deletion SOP, dan escalation SOP tetap menjadi launch gate.
 
 ## Risiko, blocker, dan pertanyaan terbuka
