@@ -11,11 +11,9 @@ import {
   resolveDeployEnvironment,
 } from "./deploy-environment.mjs";
 
-const realSecret = [
-  "0123456789abcdef",
-  "0123456789abcdef",
-  "0123456789",
-].join("");
+const realSecret = ["0123456789abcdef", "0123456789abcdef", "0123456789"].join(
+  "",
+);
 
 /** A configuration that should pass cleanly, used as the base for each case. */
 function productionEnv(overrides = {}) {
