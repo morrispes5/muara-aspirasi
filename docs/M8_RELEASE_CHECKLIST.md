@@ -15,7 +15,7 @@ Kosakata status: **Lulus** · **Code-complete** · **Belum dijalankan** · **Kep
 
 ## Evidence run — 2 September 2026 (M8 launch-readiness implementation)
 
-Dijalankan lokal pada branch `milestone-8-readiness`, Windows, Node 22.16.0. Perubahan source dan migration hanya berada di working tree; tidak ada migration Neon, deploy Netlify, atau perubahan production.
+Dijalankan lokal pada branch `milestone-8-readiness`, Windows, Node 22.16.0. Pada run lokal ini tidak ada migration Neon atau perubahan production; Deploy Preview provider diverifikasi terpisah setelahnya.
 
 | Area                   | Status          | Bukti                                                                                                                                                                                                      |
 | ---------------------- | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -25,10 +25,20 @@ Dijalankan lokal pada branch `milestone-8-readiness`, Windows, Node 22.16.0. Per
 | Additive migration     | Code-complete   | `drizzle/20260902113654_minor_emma_frost/migration.sql`; `npm run db:check` lulus. Belum diterapkan ke Neon.                                                                                               |
 | Unit/regression suite  | Lulus           | `npm test`: **242 passed, 3 skipped** (26 test file passed, 1 integration file skipped).                                                                                                                   |
 | Browser smoke lokal    | Lulus           | `npm run test:e2e -- tests/e2e/public-journey.spec.ts --workers=1`: **2 passed**, tanpa page error/console error pada home dan privacy.                                                                    |
-| CI browser/secret scan | Code-complete   | `.github/workflows/ci.yml` menambahkan Playwright Chromium smoke dan gitleaks; remote run setelah perubahan ini belum ada.                                                                                 |
+| CI browser/secret scan | Lulus           | `.github/workflows/ci.yml` menambahkan Playwright Chromium smoke dan gitleaks; CI run `33646961625` lulus pada PR #2.                                                                                      |
 | Production launch      | Keputusan owner | Memerlukan org-owned Netlify/Neon/R2/Turnstile/domain, secret context, migration approval, UAT, dan rollback/restore drill.                                                                                |
 
 Keterbatasan yang disengaja: tanpa malware scanner, evidence disimpan sebagai `QUARANTINED` dan tetap private; scheduler, email/WhatsApp/push, retention job, serta public media tidak diaktifkan.
+
+## Update pasca-merge PR #2 — 2 September 2026
+
+| Area              | Status              | Bukti                                                                                                                                                                                           |
+| ----------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Merge ke `main`   | Lulus               | GitHub mengonfirmasi PR #2 merged dan closed sebagai commit `9b93057`; empat check lulus.                                                                                                       |
+| Deploy Preview    | Ready, QA terblokir | Check Netlify berhasil; akses konten preview mengembalikan `HTTP 401`, sehingga browser QA dan verifikasi header aplikasi memerlukan akses owner.                                               |
+| Production deploy | Belum berubah       | Netlify project reader masih menunjuk deploy production `6a9557235e010a438975637f` pada commit `012222aa58be193e76017786e8f9f8eb49ea1bf8`; merge PR #2 tidak diklaim sebagai deploy production. |
+
+Status ini memisahkan source yang sudah siap dari limited launch yang masih menunggu konfigurasi dan keputusan owner/provider.
 
 ---
 
