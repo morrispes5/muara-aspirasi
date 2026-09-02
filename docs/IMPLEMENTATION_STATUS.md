@@ -554,7 +554,7 @@ Semantik lama dipertahankan: seed, bootstrap, smoke M5, dan penerimaan dummy hos
 
 **2. Origin auth preview diturunkan secara dinamis.** `src/server/auth/auth.ts` kini menyertakan `DEPLOY_PRIME_URL` pada trusted origin dan pada fallback `baseURL`. Hostname Deploy Preview dibuat per pull request, sehingga `BETTER_AUTH_URL` statis hanya pernah benar untuk satu PR. Dengan penurunan dinamis ini, context preview **tidak lagi memerlukan** `BETTER_AUTH_URL`/`BETTER_AUTH_TRUSTED_ORIGINS` khusus preview — sekaligus menghapus nilai tersebut dari permukaan yang dipindai scanner. Literal host deploy-preview pada file test juga diganti host contoh netral.
 
-**Secret scanning tetap aktif penuh.** Tidak ada `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, penonaktifan scanner, maupun redaksi dokumentasi untuk menyembunyikan temuan.
+**Secret scanning tetap aktif penuh.** Tidak ada `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, maupun penonaktifan scanner. Origin preview yang dikelola provider tidak disalin ulang sebagai literal ke evidence tracked karena scanner mencocokkan nilai environment terhadap repository; bukti final memakai deploy ID dan status check.
 
 ### Yang harus dilakukan pemilik pada Netlify
 
@@ -605,9 +605,15 @@ Production tetap terblokir oleh gate owner/provider. Wave ini tidak menyatakan p
 
 Provider R2/CORS/lifecycle, migration Neon, Netlify Deploy Preview baru, production bootstrap, MFA recovery drill, dan production release tidak dijalankan karena membutuhkan owner/provider authority. Scheduler, email/WhatsApp/push, retention job, serta public media tetap deferred.
 
+## Verifikasi remote final PR #2 — 2 September 2026
+
+Head branch `milestone-8-readiness` adalah `9471949`. PR #2 memiliki empat check hijau pada CI run `33646178868`: quality job `100301383422`, Browser smoke job `100302101700`, Secret scan job `100301382966`, serta Netlify Deploy Preview. Deploy Netlify `6a983af83163080008e6bf8a` berstatus `ready`, context `deploy-preview`, commit `9471949`, dan `secret_scan_result` berisi **0 match**. Build gate `release:preflight` dan build webpack berhasil dijalankan pada provider.
+
+Preview tetap terlindungi `HTTP 401`, jadi audit isi dan QA browser oleh owner masih memerlukan akses preview. Production migration, bootstrap, Neon mutation, dan production deploy tetap tidak dijalankan.
+
 ## Pekerjaan milestone berikutnya
 
-- Milestone 8 Wave 4 dan seterusnya: browser journey, retention/deletion job, backup/restore dan incident drill, serta dependency/secret scan.
+- Milestone 8 Wave 4 dan seterusnya: accessibility manual, retention/deletion job, backup/restore dan incident drill, serta integration test Neon terkontrol.
 - Keputusan owner untuk M8: izin aset editorial, scheduler/notifikasi eksternal, environment production, dan prosedur release/retention.
 - Milestone storage berikutnya: R2 private, upload evidence, scan file, signed URL, dan authorized binary read; jangan mengaktifkan dari M7 tanpa scope terpisah.
 - Database/credential/deployment production, Netlify integration, domain resmi, MFA production, retention/deletion SOP, dan escalation SOP tetap menjadi launch gate.
@@ -639,7 +645,7 @@ Yang masih terbuka:
 - **Batas jujur dari coverage Wave 2.** Test membuktikan SQL yang dibangun aplikasi dan keputusan yang diambil route handler. Test tidak membuktikan bahwa Postgres mengeksekusi SQL itu sesuai harapan, tidak menjalankan Better Auth yang sebenarnya (`requireBemPermission` distub pada test route), dan tidak merender halaman publik di browser.
 - **Prasyarat integration test pada Neon.** Untuk membuktikan loop publish-ke-publik secara end-to-end diperlukan: branch Neon `development` atau `preview` (jangan `main`), `DATABASE_URL` untuk branch tersebut pada `.env.local`, `DATABASE_ENVIRONMENT` bernilai `development` atau `preview`, akun BEM sintetis per role melalui `npm run auth:bootstrap`, serta izin eksplisit owner untuk membuat dan membersihkan baris sintetis. Ikuti pola opt-in yang sudah ada pada `src/server/auth/user-management.integration.test.ts` (`process.env.AUTH_INTEGRATION === "1" ? describe : describe.skip`). Test semacam ini sengaja belum dibuat pada wave ini karena akan berupa test yang selalu skip tanpa credential, sehingga memberi kesan coverage yang tidak benar-benar ada.
 - **Happy path report linkage** (`syncAdvocacyReports`: existence check, delete-then-insert) belum tertutup; yang tertutup baru penolakan validasi dan boundary permission. Jalur ini membutuhkan integration test dengan prasyarat di atas.
-- Accessibility audit manual, remote secret-scan result, integration test Neon, provider R2 CORS/lifecycle, retention job, serta backup/restore drill belum dijalankan.
+- Accessibility audit manual, integration test Neon, provider R2 CORS/lifecycle, retention job, serta backup/restore drill belum dijalankan. CI secret scan dan Netlify secret scan sudah diverifikasi pada PR #2.
 
 ### Keputusan owner yang diperlukan untuk handoff berikutnya
 

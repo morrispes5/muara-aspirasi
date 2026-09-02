@@ -254,7 +254,7 @@ Secret scanner Netlify tidak hanya mencari pola credential; ia juga mencocokkan 
 Aturan yang berlaku:
 
 - Nilai environment variable pada context Netlify **harus cukup khas** sehingga tidak muncul pada file tracked. Untuk `DATABASE_ENVIRONMENT` non-production, gunakan marker yang disepakati; resolver aplikasi memetakannya ke `preview`. Marker itu sengaja **tidak dituliskan pada dokumen mana pun** agar tidak menjadi temuan scanner — ambil nilainya dari catatan handoff.
-- Jangan menyelesaikan temuan seperti ini dengan `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, atau menonaktifkan scanner, dan jangan meredaksi dokumentasi untuk menyembunyikan kecocokan.
+- Jangan menyelesaikan temuan credential dengan `SECRETS_SCAN_OMIT_PATHS`, `SECRETS_SCAN_OMIT_KEYS`, atau menonaktifkan scanner. Untuk origin preview provider, jangan menyalin literal nilai environment ke evidence tracked; gunakan deploy ID/status check sebagai bukti tanpa mengurangi cakupan scanner.
 - Origin auth preview tidak perlu di-hardcode. `BETTER_AUTH_URL` dan `BETTER_AUTH_TRUSTED_ORIGINS` khusus preview dapat dihapus karena origin diturunkan dari `DEPLOY_PRIME_URL`; hostname Deploy Preview dibuat per pull request sehingga nilai statis hanya benar untuk satu PR.
 
 Perilaku fail-closed dijaga: nilai `DATABASE_ENVIRONMENT` yang tidak dikenal tidak pernah menjadi `production` maupun memperoleh keringanan non-production, dan preflight menolak build ketika `CONTEXT` Netlify dan environment hasil resolve tidak sejalan.

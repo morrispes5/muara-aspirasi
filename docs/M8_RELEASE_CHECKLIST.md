@@ -79,9 +79,16 @@ Deploy `6a96d0f38086ad0008e5660f` gagal meskipun literal Turnstile sudah dihapus
 
 **Remediasi.** Resolver `DATABASE_ENVIRONMENT` tunggal per runtime menerima satu marker khusus Netlify yang dipetakan ke `preview` dan dirakit dari fragmen, sehingga tidak pernah muncul sebagai literal pada file tracked maupun output build — keduanya diverifikasi. Semantik seed/bootstrap/Turnstile tidak berubah. Nilai tak dikenal me-resolve ke `null` sehingga tidak pernah menjadi production maupun memperoleh keringanan non-production, dan preflight memeriksa silang `CONTEXT` Netlify agar marker tidak dapat memberi semantik preview pada deploy production. Origin auth preview kini diturunkan dari `DEPLOY_PRIME_URL`, sehingga `BETTER_AUTH_URL`/`BETTER_AUTH_TRUSTED_ORIGINS` khusus preview dapat dihapus dan hilang dari permukaan pemindaian.
 
-**Scanner tetap aktif penuh**: tidak ada `SECRETS_SCAN_OMIT_*`, tidak ada penonaktifan, tidak ada redaksi dokumentasi.
+**Scanner tetap aktif penuh**: tidak ada `SECRETS_SCAN_OMIT_*` maupun penonaktifan scanner. Origin preview yang dikelola provider tidak disalin ulang sebagai literal ke evidence tracked karena scanner mencocokkan nilai environment terhadap repository; deploy ID dan status check tetap dicatat sebagai bukti.
 
-**Provider fix diterapkan.** Pada 2 September 2026, owner mengganti nilai context Netlify ke marker non-dictionary yang dipetakan source ke environment preview; nilainya sengaja tidak ditulis di dokumen mana pun. Deploy Preview perlu dipicu ulang untuk membuktikan scanner sudah melewati tahap ini.
+**Provider fix diterapkan dan terbukti.** Pada 2 September 2026, owner mengganti nilai context Netlify ke marker non-dictionary yang dipetakan source ke environment preview. Deploy `6a983af83163080008e6bf8a` untuk commit `9471949` berstatus `ready` dengan `secret_scan_result` **0 match**.
+
+### Verifikasi remote final — 2 September 2026
+
+- PR #2 pada head `9471949` memiliki empat check hijau: `quality` job `100301383422`, `Browser smoke` job `100302101700`, `Secret scan` job `100301382966` dalam CI run `33646178868`, dan Netlify Deploy Preview.
+- Netlify Deploy Preview `6a983af83163080008e6bf8a` berstatus `ready`, context `deploy-preview`, branch `milestone-8-readiness`, commit `9471949`; build gate preflight dan build webpack berhasil dilewati provider.
+- Tidak ada konflik dengan `main`. URL preview dibuka dari status check PR saat diperlukan; hostname provider tidak diulang dalam dokumen tracked.
+- Isi preview tetap belum diaudit dari browser karena aksesnya `HTTP 401`; QA owner memerlukan akses preview yang sesuai.
 
 ### Deploy Preview `bbb7d11` gagal — secret scanner, bukan build gate
 
@@ -216,13 +223,13 @@ Catatan jujur: test aksesibilitas yang ada adalah **source-level guard**, bukan 
 
 ## 6. Dependency dan secret scan
 
-| Gate                                 | Status        | Bukti                                                                                                                                                    |
-| ------------------------------------ | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Dependency vulnerability scan        | Lulus         | `npm audit` — 0 vulnerabilities, 31 Agustus 2026.                                                                                                        |
-| Lockfile ter-commit                  | Lulus         | `package-lock.json` tracked.                                                                                                                             |
-| Tidak ada `.env`/dump/log ter-commit | Lulus         | `git ls-files` hanya memuat `.env.example`; `.gitignore` mencakup `.env`, `.env.*`, `/.next/`, `/.netlify/`, `*.log`.                                    |
-| Tidak ada secret hardcoded di source | Lulus         | Pemindaian pola pada `src/` dan `scripts/` hanya menemukan `postgresql://runtime-placeholder` di `src/server/db/client.test.ts`, yaitu placeholder test. |
-| Secret scanning otomatis di CI       | Code-complete | Workflow `CI` menambahkan job `secret-scan` dengan `gitleaks/gitleaks-action@v2`; run remote setelah perubahan ini belum ada.                            |
+| Gate                                 | Status | Bukti                                                                                                                                                    |
+| ------------------------------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dependency vulnerability scan        | Lulus  | `npm audit` — 0 vulnerabilities, 31 Agustus 2026.                                                                                                        |
+| Lockfile ter-commit                  | Lulus  | `package-lock.json` tracked.                                                                                                                             |
+| Tidak ada `.env`/dump/log ter-commit | Lulus  | `git ls-files` hanya memuat `.env.example`; `.gitignore` mencakup `.env`, `.env.*`, `/.next/`, `/.netlify/`, `*.log`.                                    |
+| Tidak ada secret hardcoded di source | Lulus  | Pemindaian pola pada `src/` dan `scripts/` hanya menemukan `postgresql://runtime-placeholder` di `src/server/db/client.test.ts`, yaitu placeholder test. |
+| Secret scanning otomatis di CI       | Lulus  | Workflow `CI` menjalankan `gitleaks/gitleaks-action@v2`; job `100301382966` pada run `33646178868` SUCCESS.                                              |
 
 ## 7. Environment separation
 
@@ -236,7 +243,7 @@ Catatan jujur: test aksesibilitas yang ada adalah **source-level guard**, bukan 
 | Secret placeholder ditolak fail-closed                                    | Lulus                  | `src/server/config/secret-policy.ts`; `secret-policy.test.ts` dan `abuse-signal-secret.test.ts` menegaskan placeholder `.env.example` ditolak sebelum rate limiter menyentuh database. `BETTER_AUTH_SECRET` sudah menerapkan aturan yang sama sejak M4 di `src/server/auth/auth.ts`. |
 | Gate konfigurasi pre-deploy                                               | Lulus (skrip tersedia) | `npm run release:preflight` (`scripts/release-preflight.mjs`) memvalidasi environment, URL, Turnstile site key, R2, MFA, dan bootstrap cleanup tanpa credential/network; bukan bukti deploy.                                                                                         |
 | Konfigurasi production dijalankan melalui preflight                       | **Keputusan owner**    | Skripnya siap, tetapi hanya owner yang memegang environment production untuk menjalankannya.                                                                                                                                                                                         |
-| Build gagal saat required secret hilang (`SECURITY_PRIVACY.md` bagian 12) | Code-complete          | Gate terpasang pada `netlify.toml`: `npm run release:preflight && npm run build -- --webpack`; local webpack build lulus dan preflight menguji R2/MFA/site key. **Belum diverifikasi pada Netlify** karena belum ada deploy setelah wave ini.                                        |
+| Build gagal saat required secret hilang (`SECURITY_PRIVACY.md` bagian 12) | Lulus pada preview     | Gate `netlify.toml` `npm run release:preflight && npm run build -- --webpack` berhasil dijalankan pada Deploy Preview `6a983af83163080008e6bf8a`; deploy berstatus `ready`.                                                                                                          |
 
 ## 8. CI dan Netlify preview
 
