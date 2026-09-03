@@ -1023,6 +1023,9 @@ export async function changeReportStatus(
           : report.status === "RESOLVED"
             ? { resolvedAt: null }
             : {}),
+        ...(toStatus === "RESOLVED" || toStatus === "CANNOT_PROCESS"
+          ? { closedAt: new Date() }
+          : {}),
       },
       report.updatedAt,
     );

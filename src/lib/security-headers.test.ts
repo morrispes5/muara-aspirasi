@@ -58,19 +58,30 @@ describe("content security policy", () => {
 });
 
 describe("security headers", () => {
-  it("ships the CSP report-only while enforcement is a pending owner decision", () => {
+  it("ships CSP report-only by default and can enforce it after QA", () => {
     const keys = securityHeaders().map((header) => header.key);
 
     expect(keys).toContain("Content-Security-Policy-Report-Only");
     expect(keys).not.toContain("Content-Security-Policy");
+    expect(
+      securityHeaders(false, { cspMode: "enforce" }).map(
+        (header) => header.key,
+      ),
+    ).toContain("Content-Security-Policy");
   });
 
-  it("does not set HSTS from the application", () => {
-    // A wrong max-age is cached by browsers and cannot be undone from here.
-    // Recorded as an owner/deploy decision in docs/SECURITY_PRIVACY.md.
+  it("sets the decided 30-day HSTS only on production", () => {
     expect(securityHeaders().map((header) => header.key)).not.toContain(
       "Strict-Transport-Security",
     );
+    const headers = Object.fromEntries(
+      securityHeaders(false, { production: true }).map((header) => [
+        header.key,
+        header.value,
+      ]),
+    );
+    expect(headers["Strict-Transport-Security"]).toBe("max-age=2592000");
+    expect(headers["Strict-Transport-Security"]).not.toContain("preload");
   });
 
   it("sets the framing, sniffing, and referrer defences", () => {

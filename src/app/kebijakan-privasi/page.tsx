@@ -7,7 +7,7 @@ import { PublicPageIntro } from "@/components/public/public-page-intro";
 
 export const metadata: Metadata = {
   title: "Kebijakan Privasi",
-  description: "Draf penjelasan pemrosesan data aspirasi Muara Aspirasi.",
+  description: "Penjelasan pemrosesan data aspirasi Muara Aspirasi.",
 };
 
 const privacySections = [
@@ -27,12 +27,17 @@ const privacySections = [
     "Batas publikasi",
     "Update publik ditulis sebagai ringkasan independen. Nama, NIM, kontak, bukti, token, dan catatan internal tidak menjadi konten publik.",
   ],
+  [
+    "Retensi dan penghapusan",
+    "Laporan yang sudah ditutup disimpan selama 12 bulan. Laporan yang masih aktif atau memiliki hold tidak dihapus. Penghapusan dilakukan melalui review ADMIN dengan MFA dan dicatat tanpa menyimpan ulang data yang dihapus.",
+  ],
 ] as const;
 
 export default function KebijakanPrivasiPage() {
+  const privacyMailbox = process.env.NEXT_PUBLIC_BEM_PRIVACY_EMAIL?.trim();
   return (
     <PublicPageIntro
-      description="Draf ini menjelaskan arah perlindungan data sebelum layanan pengiriman aktif. Versi operasional, periode retensi, dan kanal permintaan data masih menunggu persetujuan owner."
+      description="Penjelasan bagaimana Muara Aspirasi membatasi akses, retensi, dan penghapusan data laporan."
       eyebrow="Kebijakan privasi"
       title="Privasi bukan catatan kaki"
     >
@@ -46,14 +51,25 @@ export default function KebijakanPrivasiPage() {
           ))}
         </Container>
         <Container className="mt-8">
-          <Card className="border-warning/25 bg-warning-soft text-warning">
-            <Badge tone="warning">Draf Milestone 2</Badge>
+          <Card className="border-brand/25 bg-brand-soft text-brand">
+            <Badge tone="brand">Kanal privasi BEM</Badge>
             <p className="mt-3 text-sm leading-6">
-              Ini bukan kebijakan privasi final dan belum menjadi dasar layanan
-              pengiriman. Sebelum public launch, BEM/owner harus menyetujui
-              retensi data, kanal penghapusan/koreksi, kontak resmi, serta SOP
-              eskalasi.
+              Untuk permintaan penghapusan atau koreksi, hubungi mailbox resmi
+              BEM. Sertakan kode pelacakan bila tersedia; jangan mengirim token
+              pelacakan, kata sandi, OTP, atau evidence melalui email.
             </p>
+            {privacyMailbox ? (
+              <a
+                className="mt-3 inline-flex text-sm font-bold underline underline-offset-4"
+                href={`mailto:${privacyMailbox}`}
+              >
+                {privacyMailbox}
+              </a>
+            ) : (
+              <p className="mt-3 text-sm font-bold">
+                Mailbox privasi BEM sedang dikonfigurasi.
+              </p>
+            )}
           </Card>
         </Container>
       </section>

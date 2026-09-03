@@ -484,16 +484,16 @@ Audit log tidak boleh menjadi salinan report atau log request mentah.
 
 ## 10. Open Question dan Proposed Default
 
-| Open Question                         | Proposed Default                                                                                                                                         |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Format ID?                            | UUID/ULID opaque yang dihasilkan server; jangan gunakan sequential ID pada URL publik.                                                                   |
-| Hash tracking token?                  | Token acak 256-bit; simpan `scrypt` dengan salt acak dan verifikasi constant-time. Plaintext hanya berada pada response receipt satu kali.               |
-| Retention?                            | Report/contact/evidence 180 hari setelah closure dan audit metadata 365 hari, subject to owner/legal review.                                             |
-| Encryption field-level PII?           | Pisahkan tabel dan batasi permission lebih dulu; evaluasi app-layer encryption sebelum production berdasarkan threat model dan key-management readiness. |
-| Full content revision history?        | Simpan audit event dan snapshot publication saat publish; detail diff menjadi keputusan editorial/security.                                              |
-| Urgency enum dan escalation workflow? | `LOW/NORMAL/HIGH/ESCALATE`, tetapi serious-risk handling harus mengikuti SOP kampus yang belum diberikan.                                                |
-| File allowlist dan size?              | Mulai sempit: image dan PDF terkontrol, total maksimum tiga file; angka byte final menunggu keputusan operasional.                                       |
-| Category dikelola admin?              | Seed dan read-only pada MVP awal; pengubahan category memerlukan milestone policy setelah kebutuhan nyata terlihat.                                      |
+| Open Question                         | Proposed Default                                                                                                                                                                         |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Format ID?                            | UUID/ULID opaque yang dihasilkan server; jangan gunakan sequential ID pada URL publik.                                                                                                   |
+| Hash tracking token?                  | Token acak 256-bit; simpan `scrypt` dengan salt acak dan verifikasi constant-time. Plaintext hanya berada pada response receipt satu kali.                                               |
+| Retention?                            | Report terminal 12 bulan sejak `closedAt`; active/hold tidak dihapus. Mailbox request yang diverifikasi dan disetujui ADMIN MFA memicu purge PII/evidence dengan audit metadata minimum. |
+| Encryption field-level PII?           | Pisahkan tabel dan batasi permission lebih dulu; evaluasi app-layer encryption sebelum production berdasarkan threat model dan key-management readiness.                                 |
+| Full content revision history?        | Simpan audit event dan snapshot publication saat publish; detail diff menjadi keputusan editorial/security.                                                                              |
+| Urgency enum dan escalation workflow? | `LOW/NORMAL/HIGH/ESCALATE`, tetapi serious-risk handling harus mengikuti SOP kampus yang belum diberikan.                                                                                |
+| File allowlist dan size?              | Mulai sempit: image dan PDF terkontrol, total maksimum tiga file; angka byte final menunggu keputusan operasional.                                                                       |
+| Category dikelola admin?              | Seed dan read-only pada MVP awal; pengubahan category memerlukan milestone policy setelah kebutuhan nyata terlihat.                                                                      |
 
 ## 10.1 Keputusan foundation Milestone 3
 
@@ -504,7 +504,7 @@ Keputusan berikut berlaku untuk database development dan preview Muara Aspirasi.
 | Identity mode | `CONFIDENTIAL_BEM_ONLY` menjadi default. `CONSENTED_LIMITED_SHARE` hanya dengan consent eksplisit untuk unit tujuan tertentu; identity tidak pernah masuk projection publik.                                                                       |
 | Status        | Status awal `RECEIVED`; lifecycle resmi PRD dipakai apa adanya. Loop `NEEDS_CLARIFICATION` dan `UPDATE_AVAILABLE` pada state diagram diterima sebagai default operasional; reopen/archive/CANNOT_PROCESS wajib beralasan.                          |
 | Urgency       | Enum `LOW \| NORMAL \| HIGH \| ESCALATE`, default `NORMAL`. `ESCALATE` hanya flag internal sampai SOP serious-risk disetujui.                                                                                                                      |
-| Retention     | Report, contact, dan evidence dihapus/diarsipkan sesuai prosedur 180 hari setelah closure; audit metadata 365 hari; abuse signal maksimal 30 hari dan diminimalkan.                                                                                |
+| Retention     | Report terminal disimpan 12 bulan sejak `closedAt`; active/hold tidak dihapus. PII/evidence dipurge hanya melalui workflow mailbox + ADMIN MFA yang diaudit; abuse signal maksimal 30 hari dan diminimalkan.                                       |
 | Evidence      | Maksimal 3 file; JPEG, PNG, dan PDF; maksimal 5 MiB per file dan 10 MiB total. Validasi extension, MIME, magic bytes, checksum, dan random object key; object tetap private/quarantine di R2.                                                      |
 | Permission    | Public hanya submit/track dengan code + token dan membaca projection publik. `EDITOR` hanya sanitized summary/konten. `ADVOCATE` menangani report/identity/evidence sesuai need-to-know. `ADMIN` memiliki approval, policy, role, dan audit penuh. |
 
