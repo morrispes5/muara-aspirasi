@@ -79,7 +79,7 @@ Daftar berikut hanya nama dan fungsi. Placeholder database dan auth tersedia di 
 | `R2_SECRET_ACCESS_KEY`                 | Server              | R2 S3 API credential secret.                                                                               |                                 Ya |
 | `R2_EVIDENCE_BUCKET`                   | Server              | Private evidence bucket name.                                                                              |                  Restricted config |
 | `MFA_REQUIRED`                         | Server              | `true` pada production agar ADMIN tanpa enrollment tidak masuk workspace.                                  |                              Tidak |
-| `NEXT_PUBLIC_BEM_PRIVACY_EMAIL`        | Client + server     | Mailbox resmi untuk contact dan deletion request; wajib pada preview/production.                           |                              Tidak |
+| `NEXT_PUBLIC_BEM_PRIVACY_EMAIL`        | Client + server     | Mailbox resmi untuk contact dan deletion request; wajib production dan wajib sebelum preview dipakai UAT.  |                              Tidak |
 | `CSP_MODE`                             | Server/build        | `report-only` selama UAT; `enforce` wajib production setelah QA bersih.                                    |                              Tidak |
 | `RETENTION_REVIEW_JOB_SECRET`          | Internal ops        | Bearer secret untuk runner kandidat retensi; tidak pernah ke browser/log.                                  |                                 Ya |
 | `R2_EDITORIAL_BUCKET`                  | Server              | Approved editorial media bucket name.                                                                      |                  Restricted config |

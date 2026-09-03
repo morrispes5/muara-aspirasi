@@ -43,10 +43,7 @@ const r2Variables = [
   "R2_EVIDENCE_BUCKET",
 ];
 
-const requiredPublicVariables = [
-  "NEXT_PUBLIC_BEM_PRIVACY_EMAIL",
-  "NEXT_PUBLIC_TURNSTILE_SITE_KEY",
-];
+const requiredPublicVariables = ["NEXT_PUBLIC_TURNSTILE_SITE_KEY"];
 
 /**
  * Cloudflare's published always-passes test secret. Never valid in production.
@@ -216,6 +213,21 @@ export function runReleasePreflight(env) {
         );
       }
     }
+  }
+
+  if (isProduction && isPlaceholderSecret(env.NEXT_PUBLIC_BEM_PRIVACY_EMAIL)) {
+    error(
+      "NEXT_PUBLIC_BEM_PRIVACY_EMAIL",
+      "Production wajib menampilkan mailbox privasi BEM resmi.",
+    );
+  } else if (
+    isDeployed &&
+    isPlaceholderSecret(env.NEXT_PUBLIC_BEM_PRIVACY_EMAIL)
+  ) {
+    warn(
+      "NEXT_PUBLIC_BEM_PRIVACY_EMAIL",
+      "Mailbox privasi belum diisi; Deploy Preview tidak boleh dipakai untuk UAT.",
+    );
   }
 
   const cspMode = env.CSP_MODE?.trim().toLowerCase();

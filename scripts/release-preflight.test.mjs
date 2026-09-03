@@ -223,6 +223,24 @@ describe("release preflight", () => {
     expect(errorsFor(result, "NEXT_PUBLIC_BEM_PRIVACY_EMAIL")).toHaveLength(1);
   });
 
+  it("allows code preview before the official mailbox is configured", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        NEXT_PUBLIC_BEM_PRIVACY_EMAIL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(
+      result.findings.some(
+        (finding) =>
+          finding.variable === "NEXT_PUBLIC_BEM_PRIVACY_EMAIL" &&
+          finding.severity === "warning",
+      ),
+    ).toBe(true);
+  });
+
   it("rejects a localhost app URL on a deployed environment", () => {
     for (const environment of ["preview", "production"]) {
       const result = runReleasePreflight(
