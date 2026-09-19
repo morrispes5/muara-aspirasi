@@ -20,6 +20,7 @@
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/db-migrate.mjs",
+    "db:reference-data": "node --env-file-if-exists=.env.local scripts/db-reference-data.mjs",
     "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
     "auth:bootstrap": "node --env-file-if-exists=.env.local scripts/auth-bootstrap.mjs",
     "auth:bootstrap:production": "node --env-file-if-exists=.env.local scripts/auth-production-bootstrap.mjs",
