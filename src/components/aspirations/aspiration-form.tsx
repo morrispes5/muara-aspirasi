@@ -145,7 +145,12 @@ export function AspirationForm({
 
     widgetId.current = window.turnstile.render(turnstileContainer.current, {
       callback: (token) => {
-        setErrorMessage(null);
+        setErrorMessage((current) =>
+          current === "Verifikasi anti-spam perlu dimuat ulang." ||
+          current === "Selesaikan verifikasi anti-spam sebelum mengirim."
+            ? null
+            : current,
+        );
         setTurnstileToken(token);
       },
       "error-callback": () => {
