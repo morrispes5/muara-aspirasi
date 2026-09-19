@@ -178,7 +178,6 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
     session: {
       additionalFields: {
         mfaVerifiedAt: {
-          fieldName: "mfa_verified_at",
           input: false,
           required: false,
           type: "date",

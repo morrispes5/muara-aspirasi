@@ -16,7 +16,6 @@ describe("Better Auth configuration", () => {
     expect(auth.options.verification?.modelName).toBe("auth_verifications");
     expect(auth.options.session?.additionalFields?.mfaVerifiedAt).toEqual(
       expect.objectContaining({
-        fieldName: "mfa_verified_at",
         input: false,
         required: false,
         type: "date",
