@@ -1,6 +1,6 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M8 menambahkan migration additive lokal, evidence private R2, admin user management, MFA guard, production bootstrap terpisah, dan browser/CI gates. Deployment, migration M8, dan seluruh konfigurasi production belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. Migration additive M8 dan M9 diterapkan hanya ke Neon `preview` pada 19 September 2026 setelah branch restore point dibuat. UAT dan seluruh konfigurasi/migration production belum dilakukan.
 
 > Addendum 31 Agustus 2026: M7 source sekarang memiliki admin/public publication routes dan regression tests. Preview deploy boleh dilakukan setelah quality gates lulus; jangan menjalankan migration baru, memasukkan credential production, atau mempublikasikan konten nyata sebelum owner approval.
 
@@ -117,7 +117,7 @@ npm run test:e2e
 npm run build
 ```
 
-`npm run test:e2e` membutuhkan Chromium Playwright dan menjalankan smoke route publik tanpa membuat data. `npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; migration additive M8 baru dibuat lokal dan belum diterapkan. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
+`npm run test:e2e` membutuhkan Chromium Playwright dan menjalankan smoke route publik tanpa membuat data. `npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit, menolak hostname `-pooler`, dan gagal aman bila URL kosong atau invalid. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; migration additive M8 dan M9 diterapkan hanya ke `preview` pada 19 September 2026. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
 
 ### Setelah database milestone (status M3)
 

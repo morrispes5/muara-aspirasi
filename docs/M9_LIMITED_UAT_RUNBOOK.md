@@ -1,6 +1,6 @@
 # M9 — Limited UAT sampai production launch
 
-> Status source: siap untuk Deploy Preview dan UAT setelah migration diterapkan **hanya** ke Neon preview. Production belum disentuh oleh dokumen ini.
+> Status 19 September 2026: Deploy Preview PR #4 dan migration Neon `preview` sudah siap; UAT dua hari belum dimulai. Production belum disentuh oleh dokumen ini.
 
 ## Keputusan yang dikunci
 
@@ -16,6 +16,14 @@
 - `POST /api/internal/retention/candidates` hanya membuat kandidat; endpoint mengharuskan `Authorization: Bearer <RETENTION_REVIEW_JOB_SECRET>` dan tidak menghapus apa pun.
 - `POST /api/admin/privacy/retention` hanya menerima ADMIN yang TOTP-nya sudah aktif. Urutan aman: `record-mailbox-request` → `verify-request` → `approve-request` → `execute-deletion`. `place-hold` dan `release-hold` dapat digunakan kapan saja oleh ADMIN MFA.
 - Penghapusan menghapus row identity dan evidence serta object R2, kemudian men-tombstone content report. Bila evidence ada tetapi R2 tidak aktif, proses berhenti sebelum database berubah.
+
+## Checkpoint 19 September 2026
+
+- PR #4 dari `codex/m9-limited-uat` pada commit `3e768e5` memiliki check hijau untuk quality, secret scan, browser smoke, dan Netlify Deploy Preview.
+- Deploy Preview aktif tetapi dilindungi Netlify Team Protection; QA browser ter-deploy belum dijalankan karena memerlukan akun Netlify yang diundang.
+- Sebelum migration, dibuat branch restore point `backup-preview-pre-m9-20260919` dari Neon `preview`. Branch tersebut tidak memiliki compute dan tidak menyentuh `main`.
+- Migration M8 dan M9 berhasil diterapkan hanya ke Neon `preview`. Jumlah record migration naik dari 3 menjadi 5 dan schema M8/M9 terverifikasi tersedia.
+- UAT belum dimulai. Mailbox privasi resmi, secret runner retensi, akses preview, akun sintetis dengan MFA, dan bukti dua hari UAT tetap terbuka.
 
 ## Preview dan UAT (owner-run)
 
