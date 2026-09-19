@@ -43,6 +43,21 @@ function isIdempotencyKey(value: string | null): value is string {
   );
 }
 
+function logUnhandledSubmissionError(error: unknown) {
+  const errorCode =
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    typeof error.code === "string"
+      ? error.code
+      : null;
+
+  console.error("Unhandled public report submission failure.", {
+    errorCode,
+    errorName: error instanceof Error ? error.name : typeof error,
+  });
+}
+
 export async function POST(request: Request) {
   if (!isSameOriginRequest(request)) {
     return publicError(
@@ -168,6 +183,8 @@ export async function POST(request: Request) {
         "evidence",
       );
     }
+
+    logUnhandledSubmissionError(error);
 
     return publicError(
       500,
