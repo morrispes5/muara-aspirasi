@@ -1,8 +1,5 @@
-import { neonConfig, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-serverless";
-import ws from "ws";
-
-neonConfig.webSocketConstructor = ws;
+import { Pool } from "@neondatabase/serverless";
 
 export class DatabaseConfigurationError extends Error {
   constructor(message: string) {
