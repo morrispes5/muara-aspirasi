@@ -27,6 +27,13 @@ export class R2StorageError extends Error {
   }
 }
 
+export class R2ObjectSizeError extends R2StorageError {
+  constructor() {
+    super("Ukuran evidence melebihi batas yang diizinkan.");
+    this.name = "R2ObjectSizeError";
+  }
+}
+
 type R2Config = {
   accessKeyId: string;
   accountId: string;
@@ -76,8 +83,20 @@ function getClient(config: R2Config) {
 }
 
 function assertEvidenceObjectKey(objectKey: string) {
-  if (!/^evidence\/quarantine\/[0-9a-f-]{36}$/i.test(objectKey)) {
+  if (!/^evidence\/(?:quarantine|final)\/[0-9a-f-]{36}$/i.test(objectKey)) {
     throw new R2StorageError("Evidence object key tidak valid.");
+  }
+}
+
+function assertEvidenceStagingKey(objectKey: string) {
+  if (!/^evidence\/quarantine\/[0-9a-f-]{36}$/i.test(objectKey)) {
+    throw new R2StorageError("Evidence staging key tidak valid.");
+  }
+}
+
+function assertEvidenceFinalKey(objectKey: string) {
+  if (!/^evidence\/final\/[0-9a-f-]{36}$/i.test(objectKey)) {
+    throw new R2StorageError("Evidence final key tidak valid.");
   }
 }
 
@@ -90,11 +109,20 @@ export function createEvidenceObjectKey() {
   return `evidence/quarantine/${id}`;
 }
 
+export function createFinalEvidenceObjectKey() {
+  const id = randomUUID();
+  return `evidence/final/${id}`;
+}
+
 export async function createEvidenceUploadUrl(input: {
   mimeType: string;
   objectKey: string;
+  sizeBytes: number;
 }) {
-  assertEvidenceObjectKey(input.objectKey);
+  assertEvidenceStagingKey(input.objectKey);
+  if (!Number.isSafeInteger(input.sizeBytes) || input.sizeBytes <= 0) {
+    throw new R2StorageError("Ukuran evidence tidak valid.");
+  }
   const config = getConfig();
   const client = getClient(config);
 
@@ -102,11 +130,37 @@ export async function createEvidenceUploadUrl(input: {
     client,
     new PutObjectCommand({
       Bucket: config.bucket,
+      ContentLength: input.sizeBytes,
       ContentType: input.mimeType,
       Key: input.objectKey,
     }),
     { expiresIn: R2_UPLOAD_EXPIRY_SECONDS },
   );
+}
+
+export async function collectEvidenceBodyWithinLimit(
+  body: AsyncIterable<Uint8Array | string>,
+  maxBytes: number,
+) {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
+    throw new R2ObjectSizeError();
+  }
+
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+
+  for await (const chunk of body) {
+    const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    totalBytes += bytes.byteLength;
+    if (totalBytes > maxBytes) {
+      const destroy = (body as { destroy?: () => void }).destroy;
+      destroy?.call(body);
+      throw new R2ObjectSizeError();
+    }
+    chunks.push(bytes);
+  }
+
+  return Buffer.concat(chunks, totalBytes);
 }
 
 export async function inspectEvidenceObject(objectKey: string) {
@@ -128,7 +182,7 @@ export async function inspectEvidenceObject(objectKey: string) {
   }
 }
 
-export async function readEvidenceObject(objectKey: string) {
+export async function readEvidenceObject(objectKey: string, maxBytes: number) {
   assertEvidenceObjectKey(objectKey);
   const config = getConfig();
   const client = getClient(config);
@@ -142,7 +196,16 @@ export async function readEvidenceObject(objectKey: string) {
       throw new R2StorageError("Evidence tidak memiliki isi.");
     }
 
-    const bytes = Buffer.from(await result.Body.transformToByteArray());
+    if (result.ContentLength !== undefined && result.ContentLength > maxBytes) {
+      const destroy = (result.Body as { destroy?: () => void }).destroy;
+      destroy?.call(result.Body);
+      throw new R2ObjectSizeError();
+    }
+
+    const bytes = await collectEvidenceBodyWithinLimit(
+      result.Body as AsyncIterable<Uint8Array>,
+      maxBytes,
+    );
 
     return {
       bytes,
@@ -158,8 +221,60 @@ export async function readEvidenceObject(objectKey: string) {
   }
 }
 
+export async function finalizeEvidenceObject(input: {
+  bytes: Uint8Array;
+  mimeType: string;
+  stagingObjectKey: string;
+}) {
+  assertEvidenceStagingKey(input.stagingObjectKey);
+  const finalObjectKey = await writeFinalEvidenceObject(input);
+
+  try {
+    await deleteEvidenceObject(input.stagingObjectKey);
+    return finalObjectKey;
+  } catch {
+    try {
+      await deleteEvidenceObject(finalObjectKey);
+    } catch {
+      // A staging/final lifecycle rule is still required as provider-side defense.
+    }
+    throw new R2StorageError("Evidence belum dapat difinalisasi.");
+  }
+}
+
+export async function writeFinalEvidenceObject(input: {
+  bytes: Uint8Array;
+  mimeType: string;
+}) {
+  const config = getConfig();
+  const client = getClient(config);
+  const finalObjectKey = createFinalEvidenceObjectKey();
+
+  try {
+    await client.send(
+      new PutObjectCommand({
+        Body: input.bytes,
+        Bucket: config.bucket,
+        ContentLength: input.bytes.byteLength,
+        ContentType: input.mimeType,
+        Key: finalObjectKey,
+      }),
+    );
+    return finalObjectKey;
+  } catch {
+    try {
+      await client.send(
+        new DeleteObjectCommand({ Bucket: config.bucket, Key: finalObjectKey }),
+      );
+    } catch {
+      // A final-object lifecycle rule is still required as provider-side defense.
+    }
+    throw new R2StorageError("Evidence belum dapat difinalisasi.");
+  }
+}
+
 export async function createEvidenceDownloadUrl(objectKey: string) {
-  assertEvidenceObjectKey(objectKey);
+  assertEvidenceFinalKey(objectKey);
   const config = getConfig();
   const client = getClient(config);
 

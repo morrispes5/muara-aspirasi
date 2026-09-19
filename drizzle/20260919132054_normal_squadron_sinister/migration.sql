@@ -1,0 +1,1 @@
+ALTER TABLE "evidence_upload_intents" ADD COLUMN "staging_deleted_at" timestamp with time zone;

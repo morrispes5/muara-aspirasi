@@ -10,7 +10,11 @@ function hasSessionCookie(request: NextRequest): boolean {
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
-  if (pathname === "/admin/login" || hasSessionCookie(request)) {
+  if (
+    pathname === "/admin/login" ||
+    pathname === "/admin/2fa" ||
+    hasSessionCookie(request)
+  ) {
     return NextResponse.next();
   }
 

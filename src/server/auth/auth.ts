@@ -56,6 +56,11 @@ function getConfiguredOrigins(): string[] {
 
 export function createAuth(database: Database, secret = getAuthSecret()) {
   const secureCookies = process.env.NODE_ENV === "production";
+  const mfaVerificationPaths = new Set([
+    "/two-factor/verify-backup-code",
+    "/two-factor/verify-otp",
+    "/two-factor/verify-totp",
+  ]);
 
   return betterAuth({
     advanced: {
@@ -125,6 +130,16 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
                 message: "Akun BEM tidak aktif.",
               });
             }
+
+            return {
+              data: {
+                ...session,
+                mfaVerifiedAt:
+                  context && mfaVerificationPaths.has(context.path)
+                    ? new Date()
+                    : null,
+              },
+            };
           },
         },
       },
@@ -161,6 +176,14 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
       modelName: "bem_users",
     },
     session: {
+      additionalFields: {
+        mfaVerifiedAt: {
+          fieldName: "mfa_verified_at",
+          input: false,
+          required: false,
+          type: "date",
+        },
+      },
       modelName: "auth_sessions",
     },
     account: {

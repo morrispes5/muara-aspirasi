@@ -311,6 +311,7 @@ export const evidenceUploadIntents = pgTable(
       onDelete: "restrict",
     }),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    stagingDeletedAt: timestamp("staging_deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
