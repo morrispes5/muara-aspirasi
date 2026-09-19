@@ -36,6 +36,32 @@ describe("sensitive request origin guard", () => {
     expect(isSameOriginRequest(requestWith(null))).toBe(true);
   });
 
+  it("accepts the public host and protocol supplied by a trusted reverse proxy", () => {
+    const request = new Request("http://internal-function/api/aspirasi", {
+      headers: {
+        host: "deploy-preview-4--muaraaspirasi.netlify.app",
+        origin: "https://deploy-preview-4--muaraaspirasi.netlify.app",
+        "x-forwarded-proto": "https",
+      },
+      method: "POST",
+    });
+
+    expect(isSameOriginRequest(request)).toBe(true);
+  });
+
+  it("still rejects a hostile origin behind a reverse proxy", () => {
+    const request = new Request("http://internal-function/api/aspirasi", {
+      headers: {
+        host: "deploy-preview-4--muaraaspirasi.netlify.app",
+        origin: "https://attacker.example",
+        "x-forwarded-proto": "https",
+      },
+      method: "POST",
+    });
+
+    expect(isSameOriginRequest(request)).toBe(false);
+  });
+
   it("compares the port as part of the origin", () => {
     const request = new Request("https://muara.example.ac.id:8443/api/x", {
       headers: { origin: "https://muara.example.ac.id" },

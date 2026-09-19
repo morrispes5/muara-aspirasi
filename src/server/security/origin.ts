@@ -13,5 +13,27 @@
  */
 export function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return !origin || origin === new URL(request.url).origin;
+  if (!origin || origin === new URL(request.url).origin) {
+    return true;
+  }
+
+  const host = request.headers.get("host")?.trim();
+  if (!host || host.includes(",") || /[/?#\\]/.test(host)) {
+    return false;
+  }
+
+  const forwardedProtocol = request.headers
+    .get("x-forwarded-proto")
+    ?.split(",", 1)[0]
+    ?.trim();
+  const protocol =
+    forwardedProtocol === "http" || forwardedProtocol === "https"
+      ? forwardedProtocol
+      : new URL(request.url).protocol.slice(0, -1);
+
+  try {
+    return origin === new URL(`${protocol}://${host}`).origin;
+  } catch {
+    return false;
+  }
 }
