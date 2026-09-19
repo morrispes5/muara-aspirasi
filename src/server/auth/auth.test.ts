@@ -14,6 +14,10 @@ describe("Better Auth configuration", () => {
     expect(auth.options.session?.modelName).toBe("auth_sessions");
     expect(auth.options.account?.modelName).toBe("auth_accounts");
     expect(auth.options.verification?.modelName).toBe("auth_verifications");
+    expect(auth.options.plugins?.map((plugin) => plugin.id)).toEqual([
+      "two-factor",
+      "next-cookies",
+    ]);
     expect(auth.options.session?.additionalFields?.mfaVerifiedAt).toEqual(
       expect.objectContaining({
         input: false,

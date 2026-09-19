@@ -151,12 +151,12 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
       minPasswordLength: 12,
     },
     plugins: [
-      nextCookies(),
       twoFactor({
         issuer: "Muara Aspirasi BEM",
         twoFactorTable: "twoFactor",
         trustDeviceMaxAge: 0,
       }),
+      nextCookies(),
     ],
     secret,
     trustedOrigins: getConfiguredOrigins(),
