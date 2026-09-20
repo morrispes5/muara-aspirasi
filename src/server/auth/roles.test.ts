@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import {
   hasPermission,
   isBemRole,
@@ -7,6 +6,14 @@ import {
 } from "@/server/auth/roles";
 
 describe("BEM permission matrix", () => {
+  it.each(["EXPORT_REPORTS", "CREATE_REPORT", "EDIT_REPORT_CONTENT"] as const)(
+    "keeps %s admin-only",
+    (permission) => {
+      expect(hasPermission("ADMIN", permission)).toBe(true);
+      expect(hasPermission("ADVOCATE", permission)).toBe(false);
+      expect(hasPermission("EDITOR", permission)).toBe(false);
+    },
+  );
   it("keeps public values and unknown roles outside the matrix", () => {
     expect(isBemRole("ADMIN")).toBe(true);
     expect(isBemRole("admin")).toBe(false);
@@ -31,7 +38,7 @@ describe("BEM permission matrix", () => {
   });
 
   it("gives admin the complete matrix", () => {
-    expect(permissionsForRole("ADMIN")).toHaveLength(12);
+    expect(permissionsForRole("ADMIN")).toHaveLength(15);
     expect(hasPermission("ADMIN", "APPROVE_PUBLICATION")).toBe(true);
     expect(hasPermission("ADMIN", "ARCHIVE_REPORT")).toBe(true);
     expect(hasPermission("ADMIN", "MANAGE_USERS")).toBe(true);

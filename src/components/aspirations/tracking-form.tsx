@@ -1,7 +1,10 @@
 "use client";
 
 import { FormEvent, useState } from "react";
-
+import {
+  readTrackingBackups,
+  removeTrackingBackup,
+} from "@/lib/tracking-backup";
 import { parseTrackingReceipt } from "@/lib/tracking-receipt";
 import { readJsonResponse } from "@/lib/json-response";
 
@@ -50,6 +53,34 @@ export function TrackingForm() {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [backups, setBackups] = useState<
+    ReturnType<typeof readTrackingBackups>
+  >([]);
+  const [backupMessage, setBackupMessage] = useState("");
+
+  async function restoreFile(file: File | undefined) {
+    if (!file) return;
+    setTimeline(null);
+    setErrorMessage(null);
+    try {
+      if (file.size > 1024)
+        throw new Error(
+          "Pilih file bukti .txt yang diunduh dari Muara Aspirasi (maksimal 1 KB).",
+        );
+      const value = (await file.text()).trim();
+      if (!parseTrackingReceipt(value))
+        throw new Error("File bukan bukti pelacakan yang valid.");
+      setReceipt(value);
+      setManualEntry(false);
+      setBackupMessage(
+        "Bukti dari file siap. Tekan Lacak aspirasi. File dibaca di perangkat, bukan diunggah.",
+      );
+    } catch (error) {
+      setErrorMessage(
+        error instanceof Error ? error.message : "File tidak dapat dibaca.",
+      );
+    }
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -97,6 +128,96 @@ export function TrackingForm() {
 
   return (
     <div className="grid gap-6">
+      <section
+        aria-label="Cadangan pelacakan"
+        className="border-line rounded-control grid gap-3 border p-4"
+      >
+        <h2 className="text-ink font-bold">Lupa menyalin bukti?</h2>
+        <p className="text-muted text-sm leading-6">
+          Gunakan file yang pernah diunduh atau cadangan browser yang sebelumnya
+          kamu simpan. NIM dan email saja tidak cukup untuk membuka laporan.
+        </p>
+        <label className="grid gap-2 text-sm font-bold">
+          Buka file bukti (.txt)
+          <input
+            type="file"
+            accept=".txt,text/plain"
+            className="max-w-full text-sm"
+            onChange={(event) => {
+              void restoreFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+        </label>
+        <button
+          type="button"
+          className="text-brand min-h-11 text-left text-sm font-bold underline"
+          onClick={() => {
+            try {
+              const items = readTrackingBackups(localStorage);
+              setBackups(items);
+              setBackupMessage(
+                items.length
+                  ? "Pilih bukti, lalu tekan Lacak aspirasi."
+                  : "Tidak ada cadangan di browser ini. Periksa file Unduhan atau catatan pribadi. Tidak ada pemulihan email otomatis.",
+              );
+            } catch {
+              setBackupMessage(
+                "Cadangan browser tidak tersedia. Gunakan file bukti.",
+              );
+            }
+          }}
+        >
+          Bukti di perangkat ini
+        </button>
+        {backups.map((entry) => (
+          <div
+            key={entry.value}
+            className="flex flex-wrap items-center justify-between gap-2 text-sm"
+          >
+            <button
+              type="button"
+              className="text-brand min-h-11 font-bold underline"
+              onClick={() => {
+                setReceipt(entry.value);
+                setManualEntry(false);
+                setTimeline(null);
+                setErrorMessage(null);
+              }}
+            >
+              {parseTrackingReceipt(entry.value)?.trackingCode}
+            </button>
+            <button
+              type="button"
+              className="text-muted min-h-11 underline"
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    "Hapus cadangan dari browser ini? Pastikan file atau catatan bukti sudah disimpan. Laporan di BEM tidak dihapus.",
+                  )
+                )
+                  return;
+                try {
+                  removeTrackingBackup(localStorage, entry.value);
+                  setBackups(readTrackingBackups(localStorage));
+                  setBackupMessage(
+                    "Cadangan browser dihapus; laporan tetap tersimpan di BEM.",
+                  );
+                } catch {
+                  setBackupMessage("Cadangan belum dapat dihapus.");
+                }
+              }}
+            >
+              Hapus cadangan
+            </button>
+          </div>
+        ))}
+        {backupMessage && (
+          <p role="status" className="text-muted text-sm">
+            {backupMessage}
+          </p>
+        )}
+      </section>
       <form className="grid gap-5" onSubmit={submit}>
         <p className="text-muted text-sm leading-6">
           Tempel bukti yang kamu simpan setelah mengirim. Tidak perlu membuat

@@ -94,3 +94,70 @@ test("anonymous visitors get login, never the admin workspace or reports", async
   await expect(page.getByLabel("Email admin")).toHaveValue("");
   expect((await request.get("/api/admin/reports")).status()).toBe(401);
 });
+
+test("student form blocks short NIM and missing contact before moving on", async ({
+  page,
+}) => {
+  test.skip(
+    !process.env.E2E_CHECK_FORM,
+    "Requires an authorized database/Turnstile environment; enabled for live smoke.",
+  );
+  await page.goto("/aspirasi/kirim");
+  await page.getByLabel("Nama lengkap", { exact: true }).fill("Mahasiswa QA");
+  await page.getByLabel("NIM", { exact: true }).fill("123456");
+  await page.getByRole("button", { name: /Lanjut/ }).click();
+  await expect(page.getByText(/NIM harus 7–20 angka/)).toBeVisible();
+  await page.getByLabel("NIM", { exact: true }).fill("0012345678");
+  await page.getByRole("button", { name: /Lanjut/ }).click();
+  await expect(page.getByText(/Email: Kolom ini wajib diisi/)).toBeVisible();
+});
+
+test("student restores receipt from a local file and submits only via POST", async ({
+  page,
+}) => {
+  const value = credential.trackingCode + "." + credential.trackingSecret;
+  await page.route("**/api/aspirasi/lacak", (route) =>
+    route.fulfill({ json: { timeline } }),
+  );
+  await page.goto("/aspirasi/lacak");
+  await page.getByLabel("Buka file bukti (.txt)").setInputFiles({
+    name: "bukti.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from(value),
+  });
+  await expect(page.getByLabel("Bukti pelacakan pribadi")).toHaveValue(value);
+  await page
+    .getByRole("button", { name: "Lacak aspirasi", exact: true })
+    .click();
+  await expect(page.getByText("BEM sedang memeriksa aspirasi.")).toBeVisible();
+  expect(page.url()).not.toContain(credential.trackingSecret);
+});
+
+test("previously opted-in backup can be selected; malformed files are rejected", async ({
+  page,
+}) => {
+  await page.goto("/aspirasi/lacak");
+  await page.evaluate(
+    (value) =>
+      localStorage.setItem(
+        "muara.private-receipts.v1",
+        JSON.stringify([{ value, savedAt: Date.now() }]),
+      ),
+    credential.trackingCode + "." + credential.trackingSecret,
+  );
+  await page.getByRole("button", { name: "Bukti di perangkat ini" }).click();
+  await page
+    .getByRole("button", { name: credential.trackingCode, exact: true })
+    .click();
+  await expect(page.getByLabel("Bukti pelacakan pribadi")).toHaveValue(
+    credential.trackingCode + "." + credential.trackingSecret,
+  );
+  await page.getByLabel("Buka file bukti (.txt)").setInputFiles({
+    name: "wrong.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("not a receipt"),
+  });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "File bukan bukti" }),
+  ).toBeVisible();
+});

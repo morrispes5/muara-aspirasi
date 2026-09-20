@@ -1,550 +1,474 @@
 "use client";
 
+import type {
+  BemAssignee,
+  ReportQueueItem,
+  ReportQueueResult,
+} from "@/server/aspirations/case-management";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-import type {
-  BemAssignee,
-  ReportQueueResult,
-  ReportStatus,
-  ReportUrgency,
-} from "@/server/aspirations/case-management";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { StateCard } from "@/components/ui/state-card";
-
-type CategoryOption = {
-  id: string;
-  name: string;
-};
-
-type ReportQueueProps = {
+type Props = {
   assignees: BemAssignee[];
-  categories: CategoryOption[];
+  categories: Array<{ id: string; name: string }>;
   initial: ReportQueueResult;
 };
+const statuses: Record<string, string> = {
+  RECEIVED: "Baru masuk",
+  UNDER_REVIEW: "Ditinjau",
+  NEEDS_CLARIFICATION: "Perlu klarifikasi",
+  IN_COORDINATION: "Dikoordinasikan",
+  UPDATE_AVAILABLE: "Ada pembaruan",
+  ACTION_TAKEN: "Sudah ditindak",
+  RESOLVED: "Selesai",
+  CANNOT_PROCESS: "Tidak diproses",
+};
+const field =
+  "rounded-control border-line bg-surface text-ink w-full min-h-11 border px-3 py-2 text-sm";
+const button =
+  "rounded-control border-line min-h-11 border px-4 py-2 text-sm font-bold disabled:opacity-50";
+const initialFilters = {
+  search: "",
+  status: "",
+  categoryId: "",
+  archived: "ACTIVE",
+  fromDate: "",
+  toDate: "",
+};
 
-const statusOptions: Array<{ label: string; value: ReportStatus }> = [
-  { label: "Laporan diterima", value: "RECEIVED" },
-  { label: "Sedang ditinjau", value: "UNDER_REVIEW" },
-  { label: "Perlu klarifikasi", value: "NEEDS_CLARIFICATION" },
-  { label: "Dalam koordinasi", value: "IN_COORDINATION" },
-  { label: "Pembaruan tersedia", value: "UPDATE_AVAILABLE" },
-  { label: "Tindakan dilakukan", value: "ACTION_TAKEN" },
-  { label: "Selesai", value: "RESOLVED" },
-  { label: "Tidak dapat diproses", value: "CANNOT_PROCESS" },
-];
-
-const urgencyOptions: Array<{ label: string; value: ReportUrgency }> = [
-  { label: "Rendah", value: "LOW" },
-  { label: "Normal", value: "NORMAL" },
-  { label: "Tinggi", value: "HIGH" },
-  { label: "Perlu eskalasi", value: "ESCALATE" },
-];
-
-const statusLabels = Object.fromEntries(
-  statusOptions.map(({ label, value }) => [value, label]),
-) as Record<ReportStatus, string>;
-
-const urgencyLabels = Object.fromEntries(
-  urgencyOptions.map(({ label, value }) => [value, label]),
-) as Record<ReportUrgency, string>;
-
-const fieldClassName =
-  "rounded-control border-line bg-surface text-ink focus:border-brand w-full border px-3 py-3 text-sm outline-none";
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(value));
-}
-
-function statusClass(status: ReportStatus) {
-  if (status === "CANNOT_PROCESS") {
-    return "bg-danger-soft text-danger";
-  }
-
-  if (status === "RESOLVED" || status === "ACTION_TAKEN") {
-    return "bg-success-soft text-success";
-  }
-
-  if (status === "RECEIVED") {
-    return "bg-warning-soft text-warning";
-  }
-
-  return "bg-brand-soft text-brand";
-}
-
-export function ReportQueue({
-  assignees,
-  categories,
-  initial,
-}: ReportQueueProps) {
-  const [result, setResult] = useState(initial);
-  const [status, setStatus] = useState("");
-  const [urgency, setUrgency] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [assigneeUserId, setAssigneeUserId] = useState("");
-  const [assignment, setAssignment] = useState("ALL");
-  const [archived, setArchived] = useState("ACTIVE");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+export function ReportQueue({ categories, initial }: Props) {
+  const [draft, setDraft] = useState(initialFilters);
+  const [filters, setFilters] = useState(initialFilters);
   const [page, setPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const isFirstLoad = useRef(true);
+  const [revision, setRevision] = useState(0);
+  const [result, setResult] = useState(initial);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const first = useRef(true);
+  const query = new URLSearchParams({
+    ...filters,
+    page: String(page),
+    pageSize: "25",
+  }).toString();
 
   useEffect(() => {
-    let cancelled = false;
-    const query = new URLSearchParams({
-      archived,
-      assignment,
-      page: String(page),
-      pageSize: String(initial.pageSize),
-    });
-
-    if (status) query.set("status", status);
-    if (urgency) query.set("urgency", urgency);
-    if (categoryId) query.set("categoryId", categoryId);
-    if (assigneeUserId) query.set("assigneeUserId", assigneeUserId);
-    if (fromDate) query.set("fromDate", fromDate);
-    if (search) query.set("search", search);
-    if (toDate) query.set("toDate", toDate);
-
-    if (isFirstLoad.current) {
-      isFirstLoad.current = false;
+    if (first.current) {
+      first.current = false;
       return;
     }
-
-    async function loadQueue() {
-      setIsLoading(true);
-      setErrorMessage(null);
-
+    const controller = new AbortController();
+    async function load() {
+      setLoading(true);
+      setError("");
       try {
-        const response = await fetch(`/api/admin/reports?${query.toString()}`, {
+        const response = await fetch("/api/admin/reports?" + query, {
           cache: "no-store",
+          signal: controller.signal,
         });
-        const body = (await response.json()) as {
-          error?: { message?: string };
-          reports?: ReportQueueResult;
-        };
-
-        if (!response.ok || !body.reports) {
-          throw new Error(
-            body.error?.message ?? "Antrean laporan belum dapat dimuat.",
+        const body = await response.json();
+        if (!response.ok || !body.reports)
+          throw new Error(body.error?.message ?? "Tabel belum dapat dimuat.");
+        if (!controller.signal.aborted) setResult(body.reports);
+      } catch (error) {
+        if (!controller.signal.aborted)
+          setError(
+            error instanceof Error ? error.message : "Tabel gagal dimuat.",
           );
-        }
-
-        if (!cancelled) {
-          setResult(body.reports);
-        }
-      } catch (error: unknown) {
-        if (!cancelled) {
-          setErrorMessage(
-            error instanceof Error
-              ? error.message
-              : "Antrean laporan belum dapat dimuat.",
-          );
-        }
       } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
+    void load();
+    return () => controller.abort();
+  }, [query, revision]);
 
-    void loadQueue();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    archived,
-    assigneeUserId,
-    assignment,
-    fromDate,
-    categoryId,
-    initial.pageSize,
-    page,
-    search,
-    status,
-    toDate,
-    urgency,
-  ]);
-
-  function submitFilters(event: FormEvent<HTMLFormElement>) {
+  function apply(event: FormEvent) {
     event.preventDefault();
     setPage(1);
-    setSearch(searchInput.trim());
+    setFilters({ ...draft });
+    setRevision((v) => v + 1);
   }
-
-  function resetFilters() {
-    setStatus("");
-    setUrgency("");
-    setCategoryId("");
-    setAssigneeUserId("");
-    setAssignment("ALL");
-    setArchived("ACTIVE");
-    setFromDate("");
-    setToDate("");
-    setSearchInput("");
-    setSearch("");
-    setPage(1);
+  async function exportExcel() {
+    if (
+      !window.confirm(
+        "Unduh nama, NIM dan email sesuai filter tabel? File berisi data privat. Simpan di perangkat pribadi dan jangan unggah ke tempat publik.",
+      )
+    )
+      return;
+    setExporting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/reports/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filters: query }),
+      });
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error?.message ?? "Ekspor gagal.");
+      }
+      const url = URL.createObjectURL(await response.blob());
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "muara-aspirasi.xlsx";
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setNotice(
+        "Excel diunduh sesuai filter, termasuk halaman lain. Simpan sebagai data privat.",
+      );
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Ekspor gagal.");
+    } finally {
+      setExporting(false);
+    }
   }
-
-  const empty = !isLoading && !errorMessage && result.items.length === 0;
+  async function archive(item: ReportQueueItem) {
+    if (
+      !window.confirm(
+        (item.archivedAt ? "Pulihkan" : "Arsipkan") +
+          " laporan ini? Tidak ada penghapusan permanen. Tindakan dicatat sebagai koreksi operasional.",
+      )
+    )
+      return;
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/reports/" + item.id, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: item.archivedAt ? "reopen" : "archive",
+          expectedUpdatedAt: item.updatedAt,
+          reasonCode: "OPERATIONAL_CORRECTION",
+        }),
+      });
+      if (!response.ok) {
+        const body = await response.json();
+        throw new Error(body.error?.message ?? "Tindakan gagal.");
+      }
+      setNotice(
+        item.archivedAt
+          ? "Laporan dipulihkan untuk ditinjau."
+          : "Laporan dipindahkan ke arsip. Bisa dipulihkan.",
+      );
+      setRevision((v) => v + 1);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Tindakan gagal.");
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="grid gap-6">
-      <header className="max-w-3xl">
-        <Badge>Case management</Badge>
-        <h1 className="font-display text-ink mt-4 text-4xl leading-tight tracking-[-0.04em] sm:text-5xl">
-          Antrean laporan yang perlu dikawal.
-        </h1>
-        <p className="text-muted mt-4 text-base leading-7">
-          Tinjau konteks, tetapkan PIC, ubah status sesuai alur, dan pisahkan
-          pesan untuk pelapor dari catatan internal.
-        </p>
+    <div className="grid gap-5">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-brand text-xs font-bold tracking-widest uppercase">
+            Ruang kerja BEM · Privat
+          </p>
+          <h1 className="text-ink mt-2 text-3xl font-bold">
+            Aspirasi mahasiswa
+          </h1>
+          <p className="text-muted mt-2 text-sm">
+            Cari mahasiswa, buka laporan, lalu kirim pembaruan.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            className={button + " bg-brand text-white"}
+            href="/admin/laporan/baru"
+          >
+            + Tambah laporan
+          </Link>
+          <button
+            className={button}
+            type="button"
+            disabled={loading || exporting || !!error}
+            onClick={exportExcel}
+          >
+            {exporting ? "Menyiapkan…" : "Ekspor Excel (.xlsx)"}
+          </button>
+        </div>
       </header>
-
-      <Card>
-        <form
-          aria-label="Filter antrean laporan"
-          className="grid gap-4 md:grid-cols-2 lg:grid-cols-3"
-          onSubmit={submitFilters}
-        >
-          <label className="text-ink grid gap-2 text-sm font-bold md:col-span-2 lg:col-span-3">
-            Cari judul, lokasi, atau kode pelacakan
+      <p className="text-muted text-xs leading-5">
+        Nama, NIM dan email hanya untuk pengelolaan BEM. Data lama yang kosong
+        ditampilkan sebagai —. Ekspor tidak menyertakan token atau catatan
+        internal.
+      </p>
+      <form
+        className="border-line bg-surface rounded-card grid gap-3 border p-4"
+        onSubmit={apply}
+      >
+        <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_auto]">
+          <label className="grid gap-1 text-sm font-bold">
+            Cari aspirasi
             <input
-              className={fieldClassName}
+              className={field}
+              placeholder="Nama, NIM, email, judul, atau kode"
               maxLength={80}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Contoh: laboratorium atau MA-…"
-              value={searchInput}
+              value={draft.search}
+              onChange={(e) => setDraft({ ...draft, search: e.target.value })}
             />
           </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
+          <label className="grid gap-1 text-sm font-bold">
             Status
             <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setStatus(event.target.value);
-                setPage(1);
-              }}
-              value={status}
+              className={field}
+              value={draft.status}
+              onChange={(e) => setDraft({ ...draft, status: e.target.value })}
             >
               <option value="">Semua status</option>
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
+              {Object.entries(statuses).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
             </select>
           </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Urgensi
-            <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setUrgency(event.target.value);
-                setPage(1);
-              }}
-              value={urgency}
-            >
-              <option value="">Semua urgensi</option>
-              {urgencyOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Kategori
-            <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setCategoryId(event.target.value);
-                setPage(1);
-              }}
-              value={categoryId}
-            >
-              <option value="">Semua kategori</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Assignment
-            <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setAssignment(event.target.value);
-                setPage(1);
-              }}
-              value={assignment}
-            >
-              <option value="ALL">Semua assignment</option>
-              <option value="ASSIGNED">Sudah ada PIC</option>
-              <option value="UNASSIGNED">Belum ada PIC</option>
-            </select>
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Arsip
-            <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setArchived(event.target.value);
-                setPage(1);
-              }}
-              value={archived}
-            >
-              <option value="ACTIVE">Aktif saja</option>
-              <option value="ARCHIVED">Arsip saja</option>
-              <option value="ALL">Semua laporan</option>
-            </select>
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            PIC spesifik
-            <select
-              className={fieldClassName}
-              onChange={(event) => {
-                setAssigneeUserId(event.target.value);
-                setPage(1);
-              }}
-              value={assigneeUserId}
-            >
-              <option value="">Semua PIC</option>
-              {assignees.map((assignee) => (
-                <option key={assignee.id} value={assignee.id}>
-                  {assignee.name} · {assignee.role}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Diterima dari
-            <input
-              className={fieldClassName}
-              max={toDate || undefined}
-              onChange={(event) => setFromDate(event.target.value)}
-              type="date"
-              value={fromDate}
-            />
-          </label>
-          <label className="text-ink grid gap-2 text-sm font-bold">
-            Diterima sampai
-            <input
-              className={fieldClassName}
-              min={fromDate || undefined}
-              onChange={(event) => setToDate(event.target.value)}
-              type="date"
-              value={toDate}
-            />
-          </label>
-          <div className="flex items-end gap-3">
-            <button
-              className="bg-brand hover:bg-brand-dark min-h-11 flex-1 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60"
-              disabled={isLoading}
-              type="submit"
-            >
-              {isLoading ? "Memuat…" : "Terapkan filter"}
-            </button>
-            <button
-              className="border-line text-ink hover:border-brand min-h-11 rounded-full border px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={isLoading}
-              onClick={resetFilters}
-              type="button"
-            >
-              Reset
-            </button>
-          </div>
-        </form>
-      </Card>
-
-      <div
-        aria-live="polite"
-        className="text-muted flex flex-wrap items-center justify-between gap-3 text-sm"
-      >
-        <p>
-          {isLoading
-            ? "Memuat antrean…"
-            : `${result.totalItems} laporan ditemukan`}
-        </p>
-        <p>
-          Halaman {result.page} dari {result.totalPages}
-        </p>
-      </div>
-
-      {errorMessage ? (
-        <StateCard
-          description={errorMessage}
-          title="Antrean belum tersedia"
-          tone="error"
-        />
-      ) : null}
-
-      {empty ? (
-        <StateCard
-          description="Coba ubah filter atau tunggu laporan baru masuk. Data kosong bukan berarti sistem gagal."
-          title="Belum ada laporan pada filter ini"
-        />
-      ) : null}
-
-      {!errorMessage && !empty ? (
-        <>
-          <div className="hidden overflow-x-auto md:block">
-            <table className="text-ink w-full min-w-[760px] border-separate border-spacing-0 text-left text-sm">
-              <caption className="sr-only">Daftar laporan aspirasi</caption>
-              <thead>
-                <tr className="text-muted text-xs tracking-[0.12em] uppercase">
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    Laporan
-                  </th>
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    Status
-                  </th>
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    Urgensi
-                  </th>
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    PIC / rute
-                  </th>
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    Diterima
-                  </th>
-                  <th className="border-line border-b px-4 py-3 font-bold">
-                    <span className="sr-only">Buka</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.items.map((item) => (
-                  <tr key={item.id}>
-                    <td className="border-line border-b px-4 py-4 align-top">
-                      <p className="font-bold">{item.title}</p>
-                      <p className="text-muted mt-1 text-xs">
-                        {item.category.name} · {item.location}
-                      </p>
-                    </td>
-                    <td className="border-line border-b px-4 py-4 align-top">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(item.status)}`}
-                      >
-                        {statusLabels[item.status]}
-                      </span>
-                    </td>
-                    <td className="border-line border-b px-4 py-4 align-top text-xs font-bold">
-                      {urgencyLabels[item.urgency]}
-                    </td>
-                    <td className="border-line border-b px-4 py-4 align-top text-xs">
-                      {item.assignment ? (
-                        <>
-                          <p className="font-bold">
-                            {item.assignment.assigneeName ??
-                              "PIC tidak diketahui"}
-                          </p>
-                          <p className="text-muted mt-1">
-                            {item.assignment.routeLabel}
-                          </p>
-                        </>
-                      ) : (
-                        <span className="text-muted">Belum ditetapkan</span>
-                      )}
-                    </td>
-                    <td className="border-line border-b px-4 py-4 align-top text-xs">
-                      {formatDate(item.submittedAt)}
-                    </td>
-                    <td className="border-line border-b px-4 py-4 text-right align-top">
-                      <Link
-                        className="text-brand hover:text-brand-dark font-bold underline underline-offset-4"
-                        href={`/admin/laporan/${item.id}`}
-                      >
-                        Buka
-                      </Link>
-                    </td>
-                  </tr>
+          <button
+            className={button + " bg-brand self-end text-white"}
+            disabled={loading}
+            type="submit"
+          >
+            Cari / terapkan
+          </button>
+        </div>
+        <details>
+          <summary className="text-brand cursor-pointer py-2 text-sm font-bold">
+            Filter tanggal, kategori & arsip
+          </summary>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1 text-sm">
+              Kategori
+              <select
+                className={field}
+                value={draft.categoryId}
+                onChange={(e) =>
+                  setDraft({ ...draft, categoryId: e.target.value })
+                }
+              >
+                <option value="">Semua kategori</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">
+              Tampilkan
+              <select
+                className={field}
+                value={draft.archived}
+                onChange={(e) =>
+                  setDraft({ ...draft, archived: e.target.value })
+                }
+              >
+                <option value="ACTIVE">Laporan aktif</option>
+                <option value="ARCHIVED">Arsip / terhapus</option>
+                <option value="ALL">Semua laporan</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm">
+              Dari tanggal
+              <input
+                className={field}
+                type="date"
+                value={draft.fromDate}
+                max={draft.toDate || undefined}
+                onChange={(e) =>
+                  setDraft({ ...draft, fromDate: e.target.value })
+                }
+              />
+            </label>
+            <label className="grid gap-1 text-sm">
+              Sampai tanggal
+              <input
+                className={field}
+                type="date"
+                value={draft.toDate}
+                min={draft.fromDate || undefined}
+                onChange={(e) => setDraft({ ...draft, toDate: e.target.value })}
+              />
+            </label>
           </div>
-
-          <div className="grid gap-3 md:hidden">
-            {result.items.map((item) => (
-              <Card key={item.id}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-ink font-bold">{item.title}</p>
-                    <p className="text-muted mt-1 text-xs">
-                      {item.category.name} · {item.location}
-                    </p>
-                  </div>
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusClass(item.status)}`}
+        </details>
+        <div>
+          <button
+            className="text-muted text-sm underline"
+            type="button"
+            disabled={loading}
+            onClick={() => {
+              setDraft(initialFilters);
+              setFilters(initialFilters);
+              setPage(1);
+              setRevision((v) => v + 1);
+            }}
+          >
+            Reset filter
+          </button>
+        </div>
+      </form>
+      {notice && (
+        <p
+          role="status"
+          className="bg-success-soft text-success rounded-control p-3 text-sm"
+        >
+          {notice}
+        </p>
+      )}
+      {error && (
+        <p
+          role="alert"
+          className="bg-danger-soft text-danger rounded-control p-3 text-sm"
+        >
+          {error}{" "}
+          <button
+            className="underline"
+            onClick={() => setRevision((v) => v + 1)}
+          >
+            Muat ulang
+          </button>
+        </p>
+      )}
+      <p role="status" className="text-muted text-sm">
+        {loading
+          ? "Memuat laporan…"
+          : result.totalItems + " laporan sesuai filter"}
+      </p>
+      {!error && (
+        <div
+          className="border-line rounded-control max-w-full overflow-x-auto border"
+          tabIndex={0}
+          role="region"
+          aria-label="Tabel aspirasi, geser untuk melihat semua kolom"
+        >
+          <table className="text-ink w-full min-w-[1000px] border-collapse text-left text-sm">
+            <caption className="sr-only">
+              Aspirasi mahasiswa, data privat BEM
+            </caption>
+            <thead className="bg-brand-soft text-ink">
+              <tr>
+                {[
+                  "Mahasiswa",
+                  "NIM",
+                  "Email",
+                  "Aspirasi",
+                  "Status",
+                  "Diterima",
+                  "Tindakan",
+                ].map((label) => (
+                  <th
+                    scope="col"
+                    key={label}
+                    className="border-line border-b px-3 py-3"
                   >
-                    {statusLabels[item.status]}
-                  </span>
-                </div>
-                <dl className="text-muted mt-5 grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <dt className="font-bold uppercase">Urgensi</dt>
-                    <dd className="text-ink mt-1">
-                      {urgencyLabels[item.urgency]}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-bold uppercase">PIC</dt>
-                    <dd className="text-ink mt-1">
-                      {item.assignment?.assigneeName ?? "Belum ditetapkan"}
-                    </dd>
-                  </div>
-                  <div className="col-span-2">
-                    <dt className="font-bold uppercase">Diterima</dt>
-                    <dd className="text-ink mt-1">
-                      {formatDate(item.submittedAt)}
-                    </dd>
-                  </div>
-                </dl>
-                <Link
-                  className="border-line text-brand hover:border-brand mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-full border px-4 py-2 text-sm font-bold"
-                  href={`/admin/laporan/${item.id}`}
-                >
-                  Buka detail laporan
-                </Link>
-              </Card>
-            ))}
-          </div>
-        </>
-      ) : null}
-
+                    {label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {result.items.map((item) => (
+                <tr key={item.id} className="even:bg-canvas">
+                  <td className="border-line border-b px-3 py-4">
+                    {item.identity?.name ?? "—"}
+                  </td>
+                  <td className="border-line border-b px-3 py-4 font-mono">
+                    {item.identity?.nim ?? "—"}
+                  </td>
+                  <td className="border-line border-b px-3 py-4 break-all">
+                    {item.identity?.email ?? "—"}
+                  </td>
+                  <td className="border-line max-w-64 border-b px-3 py-4">
+                    <Link
+                      className="text-brand font-bold underline"
+                      href={"/admin/laporan/" + item.id}
+                    >
+                      {item.title}
+                    </Link>
+                    <p className="text-muted mt-1 text-xs">
+                      {item.trackingCode} · {item.category.name}
+                    </p>
+                  </td>
+                  <td className="border-line border-b px-3 py-4">
+                    <span className="bg-brand-soft rounded px-2 py-1 text-xs font-bold">
+                      {statuses[item.status]}
+                    </span>
+                    {item.archivedAt && (
+                      <p className="mt-1 text-xs">Diarsipkan</p>
+                    )}
+                  </td>
+                  <td className="border-line border-b px-3 py-4 text-xs">
+                    {new Date(item.submittedAt).toLocaleDateString("id-ID", {
+                      timeZone: "Asia/Jakarta",
+                    })}
+                  </td>
+                  <td className="border-line border-b px-3 py-4">
+                    <div className="flex flex-col gap-2">
+                      <Link
+                        className="text-brand font-bold underline"
+                        href={"/admin/laporan/" + item.id}
+                      >
+                        Lihat / edit
+                      </Link>
+                      <button
+                        disabled={loading}
+                        className="text-muted text-left text-xs underline"
+                        type="button"
+                        onClick={() => archive(item)}
+                      >
+                        {item.archivedAt ? "Pulihkan" : "Hapus ke arsip"}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {!result.items.length && (
+                <tr>
+                  <td colSpan={7} className="text-muted p-8 text-center">
+                    Belum ada laporan. Ubah filter atau tunggu aspirasi masuk.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
       <nav
-        aria-label="Pagination antrean laporan"
-        className="flex justify-between gap-3"
+        aria-label="Halaman tabel"
+        className="flex items-center justify-between gap-3"
       >
         <button
-          className="border-line text-ink hover:border-brand min-h-11 rounded-full border px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={page <= 1 || isLoading}
-          onClick={() => setPage((current) => Math.max(1, current - 1))}
-          type="button"
+          className={button}
+          disabled={loading || page <= 1}
+          onClick={() => setPage((v) => v - 1)}
         >
           Sebelumnya
         </button>
+        <span className="text-muted text-sm">
+          Hal. {result.page} / {result.totalPages}
+        </span>
         <button
-          className="border-line text-ink hover:border-brand min-h-11 rounded-full border px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={page >= result.totalPages || isLoading}
-          onClick={() => setPage((current) => current + 1)}
-          type="button"
+          className={button}
+          disabled={loading || page >= result.totalPages}
+          onClick={() => setPage((v) => v + 1)}
         >
           Berikutnya
         </button>
       </nav>
+      <details className="text-muted text-sm leading-6">
+        <summary className="cursor-pointer font-bold">
+          Alur kerja singkat
+        </summary>
+        <p className="mt-2">
+          1. Cari dan buka laporan → 2. Tinjau isi → 3. Ubah status dan tulis
+          pesan untuk pelapor → 4. Simpan. Mahasiswa membaca pesan melalui bukti
+          pelacakan, bukan catatan internal. Gunakan arsip untuk menyembunyikan
+          laporan dari antrean, dan Excel untuk rekap privat.
+        </p>
+      </details>
     </div>
   );
 }

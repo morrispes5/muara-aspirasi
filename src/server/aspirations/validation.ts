@@ -2,6 +2,11 @@ import {
   isTrackingCode,
   normalizeTrackingCode,
 } from "@/server/aspirations/tracking";
+import {
+  reportFieldDefinitions,
+  reportFieldError,
+  type ReportFields,
+} from "@/lib/report-fields";
 
 export const identityModes = [
   "CONFIDENTIAL_BEM_ONLY",
@@ -90,12 +95,16 @@ function compactText(value: unknown, field: string, maxLength: number) {
   return normalized;
 }
 
-function optionalText(value: unknown, field: string, maxLength: number) {
-  if (value === null || value === undefined || value === "") {
-    return null;
+export function parseReportFields(value: unknown): ReportFields {
+  const source = object(value);
+  const fields = {} as ReportFields;
+  for (const field of reportFieldDefinitions) {
+    const text = compactText(source[field.key], field.key, field.max);
+    const error = reportFieldError(field.key, text);
+    if (error) throw new PublicInputError(field.key, error);
+    fields[field.key] = field.key === "email" ? text.toLowerCase() : text;
   }
-
-  return compactText(value, field, maxLength);
+  return fields;
 }
 
 function booleanValue(value: unknown, field: string) {
@@ -156,26 +165,8 @@ export function parseSubmissionInput(value: unknown): SubmissionInput {
     }
   }
 
-  const name = compactText(source.name, "name", 160);
-  const nim = compactText(source.nim, "nim", 32).toUpperCase();
-
-  if (!/^[A-Z0-9-]+$/.test(nim)) {
-    throw new PublicInputError(
-      "nim",
-      "NIM hanya boleh berisi huruf, angka, atau tanda hubung.",
-    );
-  }
-
-  const rawEmail = optionalText(source.email, "email", 320);
-  const email = rawEmail ? rawEmail.toLowerCase() : null;
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    throw new PublicInputError("email", "Masukkan email yang valid.");
-  }
-
-  const whatsapp = optionalText(source.whatsapp, "whatsapp", 32);
-  if (whatsapp && !/^[+0-9()\- ]+$/.test(whatsapp)) {
-    throw new PublicInputError("whatsapp", "Nomor WhatsApp tidak valid.");
-  }
+  const fields = parseReportFields(source);
+  const { name, nim, email, whatsapp } = fields;
 
   const identityMode = source.identityMode as IdentityMode;
   if (!identityModes.includes(identityMode)) {
@@ -234,11 +225,7 @@ export function parseSubmissionInput(value: unknown): SubmissionInput {
     location: compactText(source.location, "location", 200),
     name,
     nim,
-    suggestedSolution: optionalText(
-      source.suggestedSolution,
-      "suggestedSolution",
-      3000,
-    ),
+    suggestedSolution: fields.suggestedSolution,
     title: compactText(source.title, "title", 200),
     turnstileToken,
     whatsapp,

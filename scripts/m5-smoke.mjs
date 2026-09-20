@@ -42,7 +42,7 @@ const payload = {
   categoryId: category.id,
   chronology: `Smoke-test chronology ${marker}`,
   contactAllowed: false,
-  email: null,
+  email: "student@example.test",
   ethicsAccepted: true,
   honeypot: "",
   identityMode: "CONFIDENTIAL_BEM_ONLY",
@@ -50,11 +50,11 @@ const payload = {
   limitedShareConsent: false,
   location: "M5 test location",
   name: "M5 Synthetic Reporter",
-  nim: "M5-00000001",
-  suggestedSolution: null,
+  nim: "9900000001",
+  suggestedSolution: "Verifikasi laporan sintetis.",
   title: `M5 smoke ${marker}`,
   turnstileToken: "XXXX.DUMMY.TOKEN.XXXX",
-  whatsapp: null,
+  whatsapp: "080000000000",
 };
 
 let reportId = null;

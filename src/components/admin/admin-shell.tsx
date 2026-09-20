@@ -1,9 +1,8 @@
-import Link from "next/link";
-import type { ReactNode } from "react";
-
 import { type BemRole, roleLabels } from "@/server/auth/roles";
 import { AdminSessionControls } from "@/components/admin/admin-session-controls";
 import { Container } from "@/components/layout/container";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
 type AdminShellProps = {
   children: ReactNode;
@@ -46,14 +45,14 @@ export function AdminShell({ children, user }: AdminShellProps) {
               className="bg-brand-soft text-brand rounded-control px-3 py-2.5 text-sm font-bold"
               href="/admin"
             >
-              Ringkasan akses
+              Beranda admin
             </Link>
             {user.canViewReports ? (
               <Link
                 className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
                 href="/admin/laporan"
               >
-                Antrean laporan
+                Tabel aspirasi
               </Link>
             ) : null}
             {user.canDraftAdvocacy ? (

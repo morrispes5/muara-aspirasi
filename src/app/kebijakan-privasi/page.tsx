@@ -12,8 +12,8 @@ export const metadata: Metadata = {
 
 const privacySections = [
   [
-    "Data yang direncanakan",
-    "Nama dan NIM untuk verifikasi BEM; kontak opsional; detail aspirasi; pilihan consent; dan bukti opsional saat perlindungan upload sudah siap.",
+    "Data yang dikumpulkan",
+    "Nama, NIM (7–20 angka), email, WhatsApp, detail aspirasi dan usulan solusi wajib untuk laporan baru. Izin dihubungi dan berbagi identitas tetap pilihan; bukti lampiran opsional bila tersedia. Data lama tidak dilengkapi secara otomatis.",
   ],
   [
     "Tujuan penggunaan",
@@ -30,6 +30,14 @@ const privacySections = [
   [
     "Retensi dan penghapusan",
     "Laporan yang sudah ditutup disimpan selama 12 bulan. Laporan yang masih aktif atau memiliki hold tidak dihapus. Penghapusan dilakukan melalui review ADMIN dengan MFA dan dicatat tanpa menyimpan ulang data yang dihapus.",
+  ],
+  [
+    "Cadangan pelacakan di perangkat",
+    "Hanya bila kamu memilih Simpan di perangkat pribadi, browser menyimpan bukti rahasia (maksimal 20, kedaluwarsa 90 hari saat dibuka kembali). Siapa pun yang menggunakan browser ini dapat membaca progres. Cadangan tidak tersinkron dan bisa hilang jika data browser dihapus. File bukti dibaca lokal. Tidak ada pemulihan otomatis lewat email atau NIM.",
+  ],
+  [
+    "Rekap Excel privat",
+    "Admin dapat mengunduh rekap nama, NIM, email dan ringkasan daftar laporan untuk pengelolaan BEM. Ekspor dicatat dan tidak boleh dibagikan ke publik. Token, catatan internal dan lampiran tidak termasuk rekap.",
   ],
 ] as const;
 

@@ -11,7 +11,7 @@ const SCRYPT_COST = 16_384;
 const SCRYPT_KEY_LENGTH = 32;
 const TRACKING_CODE_PATTERN = /^MA-[A-Z0-9]{16}$/;
 
-export const privacyNoticeVersion = "2026-08-30-m5";
+export const privacyNoticeVersion = "2026-09-20-admin-ux";
 
 export function normalizeTrackingCode(value: string) {
   return value.trim().toUpperCase();

@@ -14,7 +14,6 @@ import {
   or,
   sql,
 } from "drizzle-orm";
-
 import {
   aspirationReports,
   auditEvents,
@@ -27,6 +26,7 @@ import {
   reportStatusEvents,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
+import { parseReportFields } from "@/server/aspirations/validation";
 
 export const reportStatuses = [
   "RECEIVED",
@@ -93,6 +93,8 @@ export type ReportQueueItem = {
   category: { id: string; name: string };
   id: string;
   location: string;
+  trackingCode: string;
+  identity: { name: string; nim: string; email: string | null } | null;
   status: ReportStatus;
   submittedAt: string;
   title: string;
@@ -374,7 +376,7 @@ function ensureReason(reasonCode: string | null | undefined) {
   return reasonCode;
 }
 
-function reportFilters(query: ReportQueueQuery) {
+function reportFilters(query: ReportQueueQuery, includeRestricted = false) {
   const filters = [];
 
   if (query.archived === "ACTIVE") {
@@ -424,6 +426,13 @@ function reportFilters(query: ReportQueueQuery) {
         ilike(aspirationReports.title, searchTerm),
         ilike(aspirationReports.location, searchTerm),
         ilike(aspirationReports.trackingCode, searchTerm),
+        ...(includeRestricted
+          ? [
+              ilike(reporterIdentities.name, searchTerm),
+              ilike(reporterIdentities.nim, searchTerm),
+              ilike(reporterIdentities.email, searchTerm),
+            ]
+          : []),
       ),
     );
   }
@@ -533,12 +542,17 @@ export function parseReportQueueQuery(
 export async function listReportQueue(
   query: ReportQueueQuery,
   database: Database = getDatabase(),
+  options: { includeRestricted?: boolean } = {},
 ): Promise<ReportQueueResult> {
-  const where = reportFilters(query);
+  const where = reportFilters(query, options.includeRestricted);
   const [totalResult, rows] = await Promise.all([
     database
       .select({ value: count() })
       .from(aspirationReports)
+      .leftJoin(
+        reporterIdentities,
+        eq(reporterIdentities.reportId, aspirationReports.id),
+      )
       .leftJoin(
         reportAssignments,
         and(
@@ -558,6 +572,16 @@ export async function listReportQueue(
         categoryName: categories.name,
         id: aspirationReports.id,
         location: aspirationReports.location,
+        trackingCode: aspirationReports.trackingCode,
+        reporterName: options.includeRestricted
+          ? reporterIdentities.name
+          : sql<string | null>`NULL`,
+        reporterNim: options.includeRestricted
+          ? reporterIdentities.nim
+          : sql<string | null>`NULL`,
+        reporterEmail: options.includeRestricted
+          ? reporterIdentities.email
+          : sql<string | null>`NULL`,
         status: aspirationReports.status,
         submittedAt: aspirationReports.submittedAt,
         title: aspirationReports.title,
@@ -566,6 +590,10 @@ export async function listReportQueue(
       })
       .from(aspirationReports)
       .innerJoin(categories, eq(categories.id, aspirationReports.categoryId))
+      .leftJoin(
+        reporterIdentities,
+        eq(reporterIdentities.reportId, aspirationReports.id),
+      )
       .leftJoin(
         reportAssignments,
         and(
@@ -600,6 +628,15 @@ export async function listReportQueue(
       category: { id: row.categoryId, name: row.categoryName },
       id: row.id,
       location: row.location,
+      trackingCode: row.trackingCode,
+      identity:
+        options.includeRestricted && row.reporterName && row.reporterNim
+          ? {
+              name: row.reporterName,
+              nim: row.reporterNim,
+              email: row.reporterEmail,
+            }
+          : null,
       status: row.status,
       submittedAt: row.submittedAt.toISOString(),
       title: row.title,
@@ -921,6 +958,11 @@ async function updateReportVersion(
   reportId: string,
   expected: Date,
   values: Partial<{
+    title: string;
+    location: string;
+    chronology: string;
+    impact: string;
+    suggestedSolution: string;
     archivedAt: Date | null;
     categoryId: string;
     internalSummary: string | null;
@@ -955,6 +997,69 @@ export type ChangeReportStatusInput = {
   reporterMessage?: string | null;
   toStatus: string;
 };
+
+export async function editReportContent(
+  input: {
+    actorUserId: string;
+    reportId: string;
+    expectedUpdatedAt: string;
+    fields: unknown;
+    reason: string;
+  },
+  database: Database = getDatabase(),
+) {
+  const fields = parseReportFields(input.fields);
+  const reason = requireText(input.reason, "Alasan koreksi", 500);
+  return database.transaction(async (transaction) => {
+    const { expected, report } = await getReportForMutation(
+      transaction,
+      input.reportId,
+      input.expectedUpdatedAt,
+    );
+    if (report.archivedAt)
+      throw new CaseManagementError(
+        "REPORT_ARCHIVED",
+        "Pulihkan laporan dari arsip sebelum mengedit.",
+      );
+    const { name, nim, email, whatsapp, ...content } = fields;
+    const updatedAt = await updateReportVersion(
+      transaction,
+      input.reportId,
+      expected,
+      content,
+      report.updatedAt,
+    );
+    const [identity] = await transaction
+      .update(reporterIdentities)
+      .set({ name, nim, email, whatsapp })
+      .where(eq(reporterIdentities.reportId, input.reportId))
+      .returning({ id: reporterIdentities.id });
+    if (!identity)
+      throw new CaseManagementError(
+        "VALIDATION_ERROR",
+        "Identitas telah dihapus; laporan ini tidak dapat dikoreksi.",
+      );
+    await transaction.insert(auditEvents).values({
+      action: "REPORT_CONTENT_CORRECTED",
+      actorType: "BEM_USER",
+      actorUserId: input.actorUserId,
+      targetType: "ASPIRATION_REPORT",
+      targetId: input.reportId,
+      result: "SUCCESS",
+      reasonCode: "OPERATIONAL_CORRECTION",
+      metadata: {
+        fieldCount: Object.keys(fields).length,
+        reasonLength: reason.length,
+      },
+    });
+    await transaction.insert(internalNotes).values({
+      authorUserId: input.actorUserId,
+      reportId: input.reportId,
+      body: `Alasan koreksi laporan: ${reason}`,
+    });
+    return { updatedAt };
+  });
+}
 
 export async function changeReportStatus(
   input: ChangeReportStatusInput,

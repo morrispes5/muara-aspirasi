@@ -1,9 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
-import Script from "next/script";
-
+import { reportFieldDefinitions, reportFieldError } from "@/lib/report-fields";
 import { readJsonResponse } from "@/lib/json-response";
+import Script from "next/script";
 import { TrackingReceipt } from "@/components/aspirations/tracking-receipt";
 
 type CategoryOption = {
@@ -172,9 +172,18 @@ export function AspirationForm({
 
   function nextStep() {
     setErrorMessage(null);
-    if (activeStep === 0 && (!values.name.trim() || !values.nim.trim())) {
-      setErrorMessage("Lengkapi nama lengkap dan NIM sebelum melanjutkan.");
-      return;
+    if (activeStep === 0 || activeStep === 1) {
+      const fields =
+        activeStep === 0
+          ? reportFieldDefinitions.slice(0, 4)
+          : reportFieldDefinitions.slice(4);
+      for (const field of fields) {
+        const error = reportFieldError(field.key, values[field.key]);
+        if (error) {
+          setErrorMessage(`${field.label}: ${error}`);
+          return;
+        }
+      }
     }
     if (
       activeStep === 1 &&
@@ -405,7 +414,11 @@ export function AspirationForm({
             NIM
             <input
               className={inputClassName()}
-              maxLength={32}
+              maxLength={20}
+              minLength={7}
+              inputMode="numeric"
+              pattern="[0-9]{7,20}"
+              placeholder="Contoh: 2411500001 (7–20 angka)"
               onChange={(event) => setValue("nim", event.target.value)}
               required
               value={values.nim}
@@ -413,10 +426,12 @@ export function AspirationForm({
           </label>
           <div className="grid gap-5 sm:grid-cols-2">
             <label className="text-ink grid gap-2 text-sm font-bold">
-              Email <span className="text-muted font-normal">(opsional)</span>
+              Email
               <input
                 className={inputClassName()}
                 inputMode="email"
+                required
+                placeholder="nama@student.budiluhur.ac.id"
                 maxLength={320}
                 onChange={(event) => setValue("email", event.target.value)}
                 type="email"
@@ -424,11 +439,12 @@ export function AspirationForm({
               />
             </label>
             <label className="text-ink grid gap-2 text-sm font-bold">
-              WhatsApp{" "}
-              <span className="text-muted font-normal">(opsional)</span>
+              WhatsApp
               <input
                 className={inputClassName()}
                 inputMode="tel"
+                required
+                placeholder="08… atau +62…"
                 maxLength={32}
                 onChange={(event) => setValue("whatsapp", event.target.value)}
                 type="tel"
@@ -456,6 +472,11 @@ export function AspirationForm({
           <legend className="text-ink text-xl font-bold">
             Detail aspirasi
           </legend>
+          <p className="text-muted text-sm leading-6">
+            Semua isian wajib. Ceritakan kapan dan apa yang terjadi, dampaknya,
+            lalu bantuan yang diharapkan. Jangan menyalin password, OTP, atau
+            identitas orang lain.
+          </p>
           <label className="text-ink grid gap-2 text-sm font-bold">
             Kategori
             <select
@@ -478,6 +499,7 @@ export function AspirationForm({
               className={inputClassName()}
               maxLength={200}
               onChange={(event) => setValue("title", event.target.value)}
+              placeholder="Contoh: AC ruang kelas tidak berfungsi"
               required
               value={values.title}
             />
@@ -488,6 +510,7 @@ export function AspirationForm({
               className={inputClassName()}
               maxLength={200}
               onChange={(event) => setValue("location", event.target.value)}
+              placeholder="Gedung, lantai, ruang; atau layanan terkait"
               required
               value={values.location}
             />
@@ -497,6 +520,7 @@ export function AspirationForm({
             <textarea
               className={`${inputClassName()} min-h-32 resize-y`}
               maxLength={5000}
+              placeholder="Kapan terjadi? Apa yang terjadi? Seberapa sering?"
               onChange={(event) => setValue("chronology", event.target.value)}
               required
               value={values.chronology}
@@ -508,19 +532,21 @@ export function AspirationForm({
               className={`${inputClassName()} min-h-28 resize-y`}
               maxLength={3000}
               onChange={(event) => setValue("impact", event.target.value)}
+              placeholder="Apa dampaknya pada kegiatan kuliah?"
               required
               value={values.impact}
             />
           </label>
           <label className="text-ink grid gap-2 text-sm font-bold">
-            Usulan solusi{" "}
-            <span className="text-muted font-normal">(opsional)</span>
+            Usulan solusi
             <textarea
               className={`${inputClassName()} min-h-28 resize-y`}
               maxLength={3000}
               onChange={(event) =>
                 setValue("suggestedSolution", event.target.value)
               }
+              required
+              placeholder="Apa yang diharapkan? Jika belum tahu, tulis perlu bantuan BEM menentukan solusi."
               value={values.suggestedSolution}
             />
           </label>

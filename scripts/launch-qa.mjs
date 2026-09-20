@@ -532,7 +532,7 @@ async function run() {
       chronology: `Kronologi sintetis QA ${marker}. Tidak ada kejadian nyata.`,
       contactAllowed: false,
       evidence: [],
-      email: null,
+      email: "student@example.test",
       ethicsAccepted: true,
       honeypot: "",
       identityMode: "CONFIDENTIAL_BEM_ONLY",
@@ -540,12 +540,12 @@ async function run() {
       limitedShareConsent: false,
       location: "Deploy Preview QA",
       name: privateName,
-      nim: "QA-9999999999",
+      nim: "9999999999",
       suggestedSolution: "Verifikasi fungsi portal untuk persiapan peluncuran.",
       title,
       turnstileToken:
         process.env.LAUNCH_QA_TURNSTILE_TOKEN ?? "XXXX.DUMMY.TOKEN.XXXX",
-      whatsapp: null,
+      whatsapp: "080000000000",
     };
     const idempotencyKey = randomUUID();
     const headers = { "idempotency-key": idempotencyKey };

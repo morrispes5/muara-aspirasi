@@ -1,5 +1,4 @@
 import { and, eq, isNull } from "drizzle-orm";
-
 import {
   aspirationReports,
   auditEvents,
@@ -63,6 +62,7 @@ async function insertReport(
   input: SubmissionInput,
   keyHash: string,
   preparedEvidence: PreparedEvidence[],
+  actorUserId?: string,
 ) {
   const [category] = await database
     .select({ id: categories.id })
@@ -188,8 +188,9 @@ async function insertReport(
   });
 
   await database.insert(auditEvents).values({
-    action: "PUBLIC_REPORT_SUBMITTED",
-    actorType: "PUBLIC",
+    action: actorUserId ? "ADMIN_REPORT_CREATED" : "PUBLIC_REPORT_SUBMITTED",
+    actorType: actorUserId ? "BEM_USER" : "PUBLIC",
+    actorUserId,
     metadata:
       preparedEvidence.length > 0
         ? {
@@ -205,7 +206,29 @@ async function insertReport(
     targetType: "ASPIRATION_REPORT",
   });
 
-  return { trackingCode: report.trackingCode, trackingSecret };
+  return {
+    trackingCode: report.trackingCode,
+    trackingSecret,
+    ...(actorUserId ? { reportId: report.id } : {}),
+  };
+}
+
+/** Called only after CREATE_REPORT permission, MFA and origin checks. */
+export async function submitAdminReport(
+  input: SubmissionInput,
+  key: string,
+  actorUserId: string,
+  database: Database = getDatabase(),
+) {
+  return database.transaction((transaction) =>
+    insertReport(
+      transaction,
+      input,
+      idempotencyKeyHash(`admin:${actorUserId}:${key}`),
+      [],
+      actorUserId,
+    ),
+  );
 }
 
 export async function submitPublicReport(

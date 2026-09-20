@@ -15,6 +15,9 @@ export const bemPermissions = [
   "MANAGE_USERS",
   "VIEW_AUDIT",
   "MANAGE_PRIVACY_RETENTION",
+  "EXPORT_REPORTS",
+  "CREATE_REPORT",
+  "EDIT_REPORT_CONTENT",
 ] as const;
 
 export type BemPermission = (typeof bemPermissions)[number];

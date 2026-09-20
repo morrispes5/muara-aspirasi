@@ -1,5 +1,15 @@
 # Security and Privacy — Muara Aspirasi
 
+## Current admin UX revision — 20 September 2026
+
+This addendum supersedes older optional-field and browser-storage statements below. New reports require name, NIM (7–20 numeric digits), email, WhatsApp, and all narrative fields. Permission to contact and identity sharing remain voluntary. Existing data is not backfilled. Server validation enforces the same rules as the form.
+
+The queue includes name/NIM/email only for callers allowed `VIEW_CONFIDENTIAL_REPORT`; export/create/content-edit permissions are ADMIN-only with the existing owner-email/session/MFA gate. XLSX exports are no-store, same-origin POST, capped at 2,000 rows and 5 per 15 minutes per account, and audited without PII. Workbook cells are plain text, not formulas or hyperlinks. No tracking secret, internal note, evidence or report narrative is exported.
+
+Content corrections use optimistic concurrency and a transaction; privacy consent and tracking credentials are not editable. The reason is retained as an internal note, with only reason length/field count in audit metadata. Archive is reversible; permanent purge still uses the separate retention workflow. Admin-created reports require affirmative confirmation that the student authorized recording and accepted the notices; public submission still verifies Turnstile and rate limits.
+
+Device backups store raw bearer receipts only after an explicit user click and warning: anyone using that browser can read progress. Never automatic, never synced, maximum 20 entries, 90-day expiration checked on access; without revisiting the app old browser data may remain until the user clears it. File restore is parsed locally, bounded to 1 KB. Loss of all copies is not recoverable by NIM/email alone. Browser origin compromise or device access could expose opted-in receipts; users should prefer a private downloaded copy on shared devices.
+
 > Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sedangkan migration additive M8/M9 diterapkan hanya ke Neon preview pada 19 September 2026. Evidence R2, user management, guard MFA, dan workflow retensi kini tersedia pada source; kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 

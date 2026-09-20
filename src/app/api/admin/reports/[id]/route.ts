@@ -6,6 +6,7 @@ import {
   CaseManagementError,
   changeReportStatus,
   deleteInternalNote,
+  editReportContent,
   getReportDetail,
   listBemAssignees,
   reopenReport,
@@ -17,9 +18,10 @@ import {
   requireBemPermission,
 } from "@/server/auth/session";
 import { type BemPermission, hasPermission } from "@/server/auth/roles";
-import { recordAuthAuditEvent } from "@/server/auth/audit";
-
 import { isSameOriginRequest } from "@/server/security/origin";
+import { PublicInputError } from "@/server/aspirations/validation";
+import { readBoundedJson } from "@/server/security/request-body";
+import { recordAuthAuditEvent } from "@/server/auth/audit";
 
 export const runtime = "nodejs";
 
@@ -46,6 +48,8 @@ function optionalString(body: JsonRecord, key: string) {
 }
 
 function errorResponse(error: unknown) {
+  if (error instanceof PublicInputError)
+    return adminError(400, "VALIDATION_ERROR", error.message);
   if (error instanceof AuthorizationError) {
     return adminError(
       error.statusCode,
@@ -78,6 +82,7 @@ function errorResponse(error: unknown) {
 }
 
 function permissionForAction(action: string): BemPermission {
+  if (action === "edit-content") return "EDIT_REPORT_CONTENT";
   if (action === "archive") {
     return "ARCHIVE_REPORT";
   }
@@ -152,7 +157,7 @@ export async function POST(request: Request, context: RouteContext) {
     let body: unknown;
 
     try {
-      body = await request.json();
+      body = await readBoundedJson(request);
     } catch {
       return adminError(
         400,
@@ -179,7 +184,15 @@ export async function POST(request: Request, context: RouteContext) {
     const expectedUpdatedAt = requiredString(body, "expectedUpdatedAt");
     let result: unknown;
 
-    if (action === "status") {
+    if (action === "edit-content") {
+      result = await editReportContent({
+        actorUserId: session.user.id,
+        reportId: id,
+        expectedUpdatedAt,
+        fields: body.fields,
+        reason: requiredString(body, "reason"),
+      });
+    } else if (action === "status") {
       result = await changeReportStatus({
         actorUserId: session.user.id,
         expectedUpdatedAt,

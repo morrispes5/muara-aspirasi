@@ -31,7 +31,7 @@ const body = {
   chronology: "Kondisi ruang perlu diperiksa.",
   contactAllowed: false,
   evidence: [],
-  email: "",
+  email: "student@example.test",
   ethicsAccepted: true,
   honeypot: "",
   identityMode: "CONFIDENTIAL_BEM_ONLY",
@@ -39,11 +39,11 @@ const body = {
   limitedShareConsent: false,
   location: "Ruang contoh",
   name: "Mahasiswa QA",
-  nim: "TEST123",
-  suggestedSolution: "",
+  nim: "2411500001",
+  suggestedSolution: "Periksa fasilitas.",
   title: "Fasilitas ruang belajar",
   turnstileToken: "test-token",
-  whatsapp: "",
+  whatsapp: "081200000000",
 };
 const request = (overrides = {}) =>
   new Request("https://example.test/api/aspirasi", {
