@@ -21,57 +21,67 @@ export function AdminLoginForm({
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage(null);
     setIsSubmitting(true);
 
-    const result = await authClient.signIn.email({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    try {
+      const result = await authClient.signIn.email({
+        email: email.trim().toLowerCase(),
+        password,
+      });
 
-    if (result.error) {
-      setErrorMessage(
-        "Masuk belum berhasil. Periksa email dan kata sandi, atau hubungi admin jika akun belum aktif.",
-      );
-      setIsSubmitting(false);
-      return;
-    }
+      if (result.error) {
+        setErrorMessage(
+          result.error.status === 429
+            ? "Terlalu banyak percobaan. Tunggu beberapa menit sebelum mencoba lagi."
+            : "Email atau kata sandi tidak cocok. Gunakan akun pemilik yang terdaftar.",
+        );
+        setIsSubmitting(false);
+        return;
+      }
 
-    const authResultData = result.data as
-      { twoFactorRedirect?: unknown; user?: unknown } | undefined;
-    if (authResultData?.twoFactorRedirect === true) {
-      router.replace(`/admin/2fa?next=${encodeURIComponent(redirectPath)}`);
-      return;
-    }
+      const authResultData = result.data as
+        { twoFactorRedirect?: unknown; user?: unknown } | undefined;
+      if (authResultData?.twoFactorRedirect === true) {
+        router.replace(`/admin/2fa?next=${encodeURIComponent(redirectPath)}`);
+        return;
+      }
 
-    const signedInUser = result.data?.user as
-      { role?: unknown; twoFactorEnabled?: unknown } | undefined;
-    if (
-      mfaRequired &&
-      signedInUser?.role === "ADMIN" &&
-      signedInUser.twoFactorEnabled !== true
-    ) {
-      router.replace(
-        `/admin/security?next=${encodeURIComponent(redirectPath)}`,
-      );
+      const signedInUser = result.data?.user as
+        { role?: unknown; twoFactorEnabled?: unknown } | undefined;
+      if (
+        mfaRequired &&
+        signedInUser?.role === "ADMIN" &&
+        signedInUser.twoFactorEnabled !== true
+      ) {
+        router.replace(
+          `/admin/security?next=${encodeURIComponent(redirectPath)}`,
+        );
+        router.refresh();
+        return;
+      }
+
+      router.replace(redirectPath);
       router.refresh();
-      return;
+    } catch {
+      setErrorMessage("Koneksi terputus. Coba masuk kembali.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    router.replace(redirectPath);
-    router.refresh();
   }
 
   return (
     <form className="grid gap-5" onSubmit={handleSubmit}>
       <div className="grid gap-2">
         <label className="text-ink text-sm font-bold" htmlFor="admin-email">
-          Email BEM
+          Email admin
         </label>
         <input
           autoComplete="username"
@@ -96,12 +106,20 @@ export function AdminLoginForm({
           name="password"
           onChange={(event) => setPassword(event.target.value)}
           required
-          type="password"
+          type={showPassword ? "text" : "password"}
           value={password}
         />
+        <button
+          className="text-brand text-left text-xs font-bold underline underline-offset-4"
+          type="button"
+          aria-pressed={showPassword}
+          onClick={() => setShowPassword(!showPassword)}
+        >
+          {showPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+        </button>
         <p className="text-muted text-xs leading-5">
-          Gunakan akun BEM yang dibuat oleh admin. Pendaftaran publik tidak
-          tersedia.
+          Hanya akun pemilik yang terdaftar. Setelah ini, masukkan kode enam
+          digit dari aplikasi authenticator.
         </p>
       </div>
       {errorMessage ? (

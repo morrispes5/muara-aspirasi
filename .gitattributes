@@ -1,0 +1,9 @@
+# Only affects git archive/download archives, never git clone.
+/docs export-ignore
+/public/images export-ignore
+/test-results export-ignore
+/playwright-report export-ignore
+/coverage export-ignore
+/dist export-ignore
+.env* export-ignore
+.env.example -export-ignore

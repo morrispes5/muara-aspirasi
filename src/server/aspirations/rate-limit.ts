@@ -33,6 +33,18 @@ export const submissionRateLimit: RateLimitRule = {
   windowSeconds: 60 * 60,
 };
 
+export const adminLoginRateLimit: RateLimitRule = {
+  limit: 10,
+  scope: "admin-login-ip",
+  windowSeconds: 15 * 60,
+};
+
+export const adminMfaRateLimit: RateLimitRule = {
+  limit: 10,
+  scope: "admin-mfa-ip",
+  windowSeconds: 5 * 60,
+};
+
 export const evidenceIntentRateLimit: RateLimitRule = {
   limit: 10,
   scope: "evidence-intent-ip",
@@ -72,6 +84,13 @@ function getSignalSecret() {
 }
 
 export function getRequestNetworkSignal(request: Request) {
+  // Netlify supplies this header. Never fall back to client-supplied forwarding
+  // headers on the deployed service, where an attacker could rotate them.
+  if (process.env.NETLIFY === "true") {
+    return (
+      request.headers.get("x-nf-client-connection-ip")?.trim() || "unknown"
+    );
+  }
   return (
     request.headers.get("x-nf-client-connection-ip")?.trim() ||
     request.headers.get("x-real-ip")?.trim() ||

@@ -10,6 +10,7 @@ import {
 } from "@/server/auth/roles";
 import { DatabaseConfigurationError, getDatabase } from "@/server/db/client";
 import { bemUsers } from "@/server/db/schema";
+import { isOwnerEmailAllowed } from "@/server/auth/owner-access";
 import { resolveDeployEnvironment } from "@/server/config/deploy-environment";
 
 type AuthSessionResponse = Awaited<
@@ -74,7 +75,12 @@ export async function getBemSession(
       .where(eq(bemUsers.id, session.user.id))
       .limit(1);
 
-    if (!user || user.status !== "ACTIVE" || !isBemRole(user.role)) {
+    if (
+      !user ||
+      user.status !== "ACTIVE" ||
+      !isBemRole(user.role) ||
+      !isOwnerEmailAllowed(user.email)
+    ) {
       return null;
     }
 

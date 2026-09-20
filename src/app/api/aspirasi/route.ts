@@ -32,6 +32,11 @@ import { NextResponse } from "next/server";
 
 import { isSameOriginRequest } from "@/server/security/origin";
 
+import {
+  readBoundedJson,
+  RequestBodyTooLargeError,
+} from "@/server/security/request-body";
+
 export const runtime = "nodejs";
 
 function isIdempotencyKey(value: string | null): value is string {
@@ -78,10 +83,10 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = await readBoundedJson(request);
+  } catch (error) {
     return publicError(
-      400,
+      error instanceof RequestBodyTooLargeError ? 413 : 400,
       "REQUEST_REJECTED",
       "Permintaan belum dapat diproses.",
     );
@@ -133,7 +138,9 @@ export async function POST(request: Request) {
       return publicError(
         429,
         "REQUEST_REJECTED",
-        "Terlalu banyak percobaan. Coba lagi beberapa saat.",
+        `Batas pengiriman tercapai. Coba lagi dalam ${Math.ceil(error.retryAfterSeconds / 60)} menit.`,
+        null,
+        error.retryAfterSeconds,
       );
     }
 

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
+import { parseTrackingReceipt } from "@/lib/tracking-receipt";
 import { readJsonResponse } from "@/lib/json-response";
 
 type Timeline = {
@@ -42,6 +43,8 @@ function formatDate(value: string) {
 }
 
 export function TrackingForm() {
+  const [receipt, setReceipt] = useState("");
+  const [manualEntry, setManualEntry] = useState(false);
   const [trackingCode, setTrackingCode] = useState("");
   const [trackingSecret, setTrackingSecret] = useState("");
   const [timeline, setTimeline] = useState<Timeline | null>(null);
@@ -50,13 +53,21 @@ export function TrackingForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isLoading) return;
     setTimeline(null);
     setErrorMessage(null);
     setIsLoading(true);
 
     try {
+      const credential = manualEntry
+        ? { trackingCode, trackingSecret }
+        : parseTrackingReceipt(receipt);
+      if (!credential)
+        throw new Error(
+          "Bukti belum lengkap. Tempel seluruh bukti yang kamu simpan, atau gunakan kode dan token lama.",
+        );
       const response = await fetch("/api/aspirasi/lacak", {
-        body: JSON.stringify({ trackingCode, trackingSecret }),
+        body: JSON.stringify(credential),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -87,35 +98,72 @@ export function TrackingForm() {
   return (
     <div className="grid gap-6">
       <form className="grid gap-5" onSubmit={submit}>
-        <label className="text-ink grid gap-2 text-sm font-bold">
-          Kode pelacakan
-          <input
-            autoCapitalize="characters"
-            autoComplete="off"
-            className="border-line bg-surface text-ink focus:border-brand rounded-control w-full border px-3 py-3 font-mono text-sm outline-none"
-            maxLength={32}
-            onChange={(event) => setTrackingCode(event.target.value)}
-            placeholder="MA-XXXXXXXXXXXXXXXX"
-            required
-            value={trackingCode}
-          />
-        </label>
-        <label className="text-ink grid gap-2 text-sm font-bold">
-          Token rahasia
-          <input
-            autoComplete="off"
-            className="border-line bg-surface text-ink focus:border-brand rounded-control w-full border px-3 py-3 font-mono text-sm outline-none"
-            maxLength={128}
-            onChange={(event) => setTrackingSecret(event.target.value)}
-            required
-            type="password"
-            value={trackingSecret}
-          />
-          <span className="text-muted text-xs leading-5 font-normal">
-            Kode saja tidak cukup. Token tidak pernah masuk ke tautan atau
-            ditampilkan ulang oleh BEM.
-          </span>
-        </label>
+        <p className="text-muted text-sm leading-6">
+          Tempel bukti yang kamu simpan setelah mengirim. Tidak perlu membuat
+          akun.
+        </p>
+        {!manualEntry ? (
+          <label className="text-ink grid gap-2 text-sm font-bold">
+            Bukti pelacakan pribadi
+            <textarea
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              className="border-line bg-surface text-ink rounded-control w-full border p-3 font-mono text-sm"
+              maxLength={256}
+              rows={3}
+              required
+              value={receipt}
+              onChange={(event) => setReceipt(event.target.value)}
+              placeholder="Tempel bukti lengkap di sini"
+            />
+          </label>
+        ) : (
+          <>
+            <label className="text-ink grid gap-2 text-sm font-bold">
+              Kode pelacakan
+              <input
+                autoCapitalize="characters"
+                autoComplete="off"
+                className="border-line bg-surface text-ink focus:border-brand rounded-control w-full border px-3 py-3 font-mono text-sm outline-none"
+                maxLength={32}
+                onChange={(event) => setTrackingCode(event.target.value)}
+                placeholder="MA-XXXXXXXXXXXXXXXX"
+                required
+                value={trackingCode}
+              />
+            </label>
+            <label className="text-ink grid gap-2 text-sm font-bold">
+              Token rahasia
+              <input
+                autoComplete="off"
+                className="border-line bg-surface text-ink focus:border-brand rounded-control w-full border px-3 py-3 font-mono text-sm outline-none"
+                maxLength={128}
+                onChange={(event) => setTrackingSecret(event.target.value)}
+                required
+                type="password"
+                value={trackingSecret}
+              />
+              <span className="text-muted text-xs leading-5 font-normal">
+                Kode saja tidak cukup. Token tidak pernah masuk ke tautan atau
+                ditampilkan ulang oleh BEM.
+              </span>
+            </label>
+          </>
+        )}
+        <button
+          className="text-brand text-left text-sm font-bold underline underline-offset-4"
+          type="button"
+          onClick={() => {
+            setManualEntry(!manualEntry);
+            setTimeline(null);
+            setErrorMessage(null);
+          }}
+        >
+          {manualEntry
+            ? "Gunakan satu bukti pelacakan"
+            : "Punya kode dan token lama?"}
+        </button>
         <button
           className="bg-brand hover:bg-brand-dark min-h-11 rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-wait disabled:opacity-60"
           disabled={isLoading}

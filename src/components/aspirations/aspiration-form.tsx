@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
 import { readJsonResponse } from "@/lib/json-response";
+import { TrackingReceipt } from "@/components/aspirations/tracking-receipt";
 
 type CategoryOption = {
   id: string;
@@ -59,6 +60,7 @@ type TurnstileApi = {
     options: {
       callback: (token: string) => void;
       "error-callback": () => void;
+      "expired-callback": () => void;
       sitekey: string;
       theme: "light";
     },
@@ -156,6 +158,12 @@ export function AspirationForm({
       "error-callback": () => {
         setTurnstileToken("");
         setErrorMessage("Verifikasi anti-spam perlu dimuat ulang.");
+      },
+      "expired-callback": () => {
+        setTurnstileToken("");
+        setErrorMessage(
+          "Verifikasi kedaluwarsa. Selesaikan verifikasi lagi sebelum mengirim.",
+        );
       },
       sitekey: turnstileSiteKey,
       theme: "light",
@@ -284,6 +292,7 @@ export function AspirationForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage(null);
 
     if (!turnstileToken) {
@@ -331,64 +340,8 @@ export function AspirationForm({
     }
   }
 
-  async function copyReceipt() {
-    if (!receipt) {
-      return;
-    }
-
-    await navigator.clipboard?.writeText(
-      `Kode pelacakan: ${receipt.trackingCode}\nToken rahasia: ${receipt.trackingSecret}`,
-    );
-  }
-
   if (receipt) {
-    return (
-      <section aria-labelledby="receipt-title" className="grid gap-5">
-        <div className="border-success/25 bg-success-soft rounded-card border p-5 sm:p-6">
-          <p className="text-success text-sm font-bold">Laporan diterima</p>
-          <h2 className="text-ink mt-2 text-2xl font-bold" id="receipt-title">
-            Simpan dua kredensial ini sekarang.
-          </h2>
-          <p className="text-muted mt-3 text-sm leading-6">
-            Token rahasia hanya ditampilkan sekali dan tidak dapat dipulihkan
-            oleh BEM. Jangan bagikan token ini kepada siapa pun.
-          </p>
-        </div>
-        <dl className="border-line rounded-card grid gap-4 border bg-white p-5 font-mono text-sm sm:grid-cols-2 sm:p-6">
-          <div className="grid gap-2">
-            <dt className="text-muted font-sans text-xs font-bold tracking-[0.12em] uppercase">
-              Kode pelacakan
-            </dt>
-            <dd className="text-ink text-base font-bold break-all">
-              {receipt.trackingCode}
-            </dd>
-          </div>
-          <div className="grid gap-2">
-            <dt className="text-muted font-sans text-xs font-bold tracking-[0.12em] uppercase">
-              Token rahasia
-            </dt>
-            <dd className="text-ink text-base font-bold break-all">
-              {receipt.trackingSecret}
-            </dd>
-          </div>
-        </dl>
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <button
-            className="bg-brand hover:bg-brand-dark min-h-11 rounded-full px-5 py-3 text-sm font-bold text-white"
-            onClick={copyReceipt}
-            type="button"
-          >
-            Salin kode dan token
-          </button>
-          <a
-            className="border-line text-ink hover:border-brand rounded-full border px-5 py-3 text-center text-sm font-bold"
-            href="/aspirasi/lacak"
-          >
-            Lacak aspirasi nanti
-          </a>
-        </div>
-      </section>
-    );
+    return <TrackingReceipt receipt={receipt} />;
   }
 
   return (
@@ -599,8 +552,8 @@ export function AspirationForm({
             </label>
           ) : (
             <p className="border-warning/25 bg-warning-soft text-warning rounded-control border p-3 text-sm leading-6">
-              Upload bukti belum dibuka. BEM hanya menerima bukti setelah R2
-              privat dan aturan file disetujui.
+              Lampiran belum tersedia. Jelaskan masalah atau idemu melalui kolom
+              di atas.
             </p>
           )}
         </fieldset>

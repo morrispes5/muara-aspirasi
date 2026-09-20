@@ -9,13 +9,13 @@ import { TrackingForm } from "@/components/aspirations/tracking-form";
 export const metadata: Metadata = {
   title: "Lacak Aspirasi",
   description:
-    "Lacak pembaruan aman untuk aspirasi dengan kode pelacakan dan token rahasia.",
+    "Tempel bukti pelacakan pribadi untuk melihat perkembangan aspirasimu.",
 };
 
 export default function LacakAspirasiPage() {
   return (
     <PublicPageIntro
-      description="Pelacakan bersifat privat. Masukkan kode dan token rahasia yang kamu simpan setelah pengiriman; kode saja tidak cukup."
+      description="Tempel bukti yang kamu simpan setelah mengirim aspirasi. Kode dan token lama juga tetap bisa digunakan."
       eyebrow="Lacak aspirasi"
       title="Cek pembaruan tanpa membuka laporanmu ke publik"
     >
@@ -27,7 +27,7 @@ export default function LacakAspirasiPage() {
                 Akses privat
               </Badge>
               <h2 className="font-display mt-5 text-3xl leading-tight tracking-[-0.035em] text-[#f7f1e6]">
-                Kode saja tidak cukup.
+                Satu bukti, kabar untukmu.
               </h2>
               <p className="mt-4 text-sm leading-6 text-slate-300">
                 BEM tidak dapat menampilkan ulang token rahasia. Bila token
