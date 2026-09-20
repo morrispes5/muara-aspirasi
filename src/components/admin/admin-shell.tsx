@@ -11,6 +11,7 @@ type AdminShellProps = {
     canDraftAdvocacy: boolean;
     canDraftStudentInfo: boolean;
     canManageUsers: boolean;
+    canManagePrivacy: boolean;
     canViewReports: boolean;
     email: string;
     name: string;
@@ -77,6 +78,14 @@ export function AdminShell({ children, user }: AdminShellProps) {
                 href="/admin/users"
               >
                 Kelola akun BEM
+              </Link>
+            ) : null}
+            {user.canManagePrivacy ? (
+              <Link
+                className="text-ink hover:bg-brand-soft hover:text-brand rounded-control px-3 py-2.5 text-sm font-bold"
+                href="/admin/privacy"
+              >
+                Retensi & privasi
               </Link>
             ) : null}
             {user.role === "ADMIN" ? (

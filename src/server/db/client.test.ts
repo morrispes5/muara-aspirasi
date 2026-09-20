@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
+import { neonConfig } from "@neondatabase/serverless";
 
 import {
   DatabaseConfigurationError,
@@ -16,6 +17,10 @@ afterEach(() => {
 });
 
 describe("getRuntimeDatabaseUrl", () => {
+  it("memakai WebSocket bawaan runtime tanpa override ws yang rawan gagal dibundel", () => {
+    expect(neonConfig.webSocketConstructor).toBeUndefined();
+  });
+
   it("menolak runtime tanpa DATABASE_URL daripada memakai fallback yang tidak aman", () => {
     delete process.env.DATABASE_URL;
 

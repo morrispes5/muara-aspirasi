@@ -3,7 +3,7 @@
 > Status: M6 case management inti, M7 publication publik, dan M8 launch-readiness surface (R2 evidence, user management, serta MFA guard) sudah tersedia pada source; provider activation dan production masih menjadi gate.
 > Sumber kebenaran produk: `PRD.md`. Bila dokumen ini bertentangan dengan PRD, PRD yang berlaku.
 
-> Addendum 2 September 2026: M8 menambahkan intent upload evidence, adapter private R2, binary validation, authorized signed read, admin user management, Better Auth TOTP/backup code, production bootstrap terpisah, dan browser smoke. Migration additive sudah dibuat lokal tetapi belum diterapkan ke Neon; scheduler, notifikasi eksternal, dan production provider setup tetap menjadi gate.
+> Addendum 19 September 2026: M8 menambahkan intent upload evidence, adapter private R2, binary validation, authorized signed read, admin user management, Better Auth TOTP/backup code, production bootstrap terpisah, dan browser smoke. Migration additive M8/M9 sudah diterapkan hanya ke Neon `preview` setelah branch restore point dibuat; scheduler, notifikasi eksternal, UAT, dan production provider setup tetap menjadi gate.
 
 ## 1. Tujuan sistem
 
@@ -170,7 +170,7 @@ Gunakan Node.js runtime default. Tidak ada kebutuhan Edge runtime yang sudah dis
 - `src/app/api/admin/reports/*` tetap memeriksa session serta permission pada setiap request. `VIEW_REPORTS` membuka baca; `PROCESS_REPORT` membuka triage; `ARCHIVE_REPORT` dan `REOPEN_REPORT` hanya dimiliki `ADMIN` pada matrix saat ini.
 - Semua mutasi memakai satu transaksi dan optimistic concurrency berbasis `updatedAt`. Jika versi stale, request gagal dengan conflict dan tidak menimpa perubahan actor lain.
 - DTO detail memisahkan original report, identity, evidence metadata, internal notes, status events, assignment history, dan audit. `objectKey`, signed URL, tracking secret/hash, serta isi note yang sudah dihapus tidak dikirim ke browser.
-- M6 tidak menambah migration karena tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah disiapkan pada foundation M3. M8 menambah migration additive untuk `evidence_upload_intents`, Better Auth `two_factor`, `bem_users.two_factor_enabled`, dan batas ukuran evidence; migration tersebut baru dibuat/reviewable lokal dan belum diterapkan ke Neon.
+- M6 tidak menambah migration karena tabel `aspiration_reports`, `reporter_identities`, `report_evidence`, `report_status_events`, `internal_notes`, `report_assignments`, dan `audit_events` sudah disiapkan pada foundation M3. M8 menambah migration additive untuk `evidence_upload_intents`, Better Auth `two_factor`, `bem_users.two_factor_enabled`, dan batas ukuran evidence; migration M8/M9 sudah diterapkan hanya ke Neon `preview`, sedangkan production tetap belum disentuh.
 
 ### 8.5 Evidence storage M8
 

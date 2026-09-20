@@ -63,7 +63,12 @@ export const aspirationReports = pgTable(
       .defaultNow()
       .notNull(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+    /** Set when a report reaches a terminal outcome; drives the 12-month clock. */
+    closedAt: timestamp("closed_at", { withTimezone: true }),
     archivedAt: timestamp("archived_at", { withTimezone: true }),
+    /** Tombstone only: protected content and identities are removed separately. */
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+    deletionReasonCode: varchar("deletion_reason_code", { length: 80 }),
   },
   (table) => [
     index("aspiration_reports_status_submitted_at_idx").on(
@@ -76,6 +81,114 @@ export const aspirationReports = pgTable(
     ),
     index("aspiration_reports_duplicate_of_report_id_idx").on(
       table.duplicateOfReportId,
+    ),
+    index("aspiration_reports_retention_candidate_idx").on(
+      table.closedAt,
+      table.deletedAt,
+    ),
+  ],
+);
+
+/**
+ * A legal, safety, or active-case hold always wins over the ordinary retention
+ * clock. The partial unique index allows a history while preventing two active
+ * holds from being mistaken for separate approvals.
+ */
+export const reportRetentionHolds = pgTable(
+  "report_retention_holds",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => aspirationReports.id, { onDelete: "restrict" }),
+    reasonCode: varchar("reason_code", { length: 80 }).notNull(),
+    placedByUserId: uuid("placed_by_user_id")
+      .notNull()
+      .references(() => bemUsers.id, { onDelete: "restrict" }),
+    placedAt: timestamp("placed_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    releasedByUserId: uuid("released_by_user_id").references(
+      () => bemUsers.id,
+      { onDelete: "restrict" },
+    ),
+    releasedAt: timestamp("released_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("report_retention_holds_one_active_per_report")
+      .on(table.reportId)
+      .where(sql`${table.releasedAt} IS NULL`),
+    index("report_retention_holds_report_placed_at_idx").on(
+      table.reportId,
+      table.placedAt,
+    ),
+  ],
+);
+
+/**
+ * Mailbox-originated deletion requests are recorded without storing the email
+ * body or sender address. Verification is performed outside the application by
+ * the BEM privacy owner before an ADMIN can approve deletion.
+ */
+export const privacyDeletionRequests = pgTable(
+  "privacy_deletion_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .references(() => aspirationReports.id, { onDelete: "restrict" }),
+    source: varchar("source", { length: 32 }).default("BEM_MAILBOX").notNull(),
+    requestCategory: varchar("request_category", { length: 80 }).notNull(),
+    status: varchar("status", { length: 32 }).default("RECEIVED").notNull(),
+    recordedByUserId: uuid("recorded_by_user_id")
+      .notNull()
+      .references(() => bemUsers.id, { onDelete: "restrict" }),
+    recordedAt: timestamp("recorded_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    verifiedAt: timestamp("verified_at", { withTimezone: true }),
+    approvedByUserId: uuid("approved_by_user_id").references(
+      () => bemUsers.id,
+      { onDelete: "restrict" },
+    ),
+    approvedAt: timestamp("approved_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    resolutionCode: varchar("resolution_code", { length: 80 }),
+  },
+  (table) => [
+    index("privacy_deletion_requests_status_recorded_at_idx").on(
+      table.status,
+      table.recordedAt,
+    ),
+    index("privacy_deletion_requests_report_id_idx").on(table.reportId),
+  ],
+);
+
+/** The daily review runner only enqueues; an MFA-backed ADMIN decides deletion. */
+export const retentionReviewQueue = pgTable(
+  "retention_review_queue",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reportId: uuid("report_id")
+      .notNull()
+      .unique()
+      .references(() => aspirationReports.id, { onDelete: "restrict" }),
+    eligibleAt: timestamp("eligible_at", { withTimezone: true }).notNull(),
+    status: varchar("status", { length: 32 }).default("PENDING").notNull(),
+    reviewedByUserId: uuid("reviewed_by_user_id").references(
+      () => bemUsers.id,
+      { onDelete: "restrict" },
+    ),
+    reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("retention_review_queue_status_eligible_at_idx").on(
+      table.status,
+      table.eligibleAt,
     ),
   ],
 );
@@ -198,6 +311,7 @@ export const evidenceUploadIntents = pgTable(
       onDelete: "restrict",
     }),
     consumedAt: timestamp("consumed_at", { withTimezone: true }),
+    stagingDeletedAt: timestamp("staging_deleted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),

@@ -2,6 +2,8 @@
 
 import { FormEvent, useState } from "react";
 
+import { readJsonResponse } from "@/lib/json-response";
+
 type Timeline = {
   events: Array<{
     createdAt: string;
@@ -58,10 +60,10 @@ export function TrackingForm() {
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
-      const body = (await response.json()) as {
+      const body = await readJsonResponse<{
         error?: { message?: string };
         timeline?: Timeline;
-      };
+      }>(response);
 
       if (!response.ok || !body.timeline) {
         throw new Error(

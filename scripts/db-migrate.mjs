@@ -1,11 +1,12 @@
 import { spawnSync } from "node:child_process";
 
-const databaseUrl = process.env.DATABASE_URL_UNPOOLED;
+import { validateMigrationDatabaseUrl } from "./db-migrate-url.mjs";
 
-if (!databaseUrl) {
-  console.error(
-    "DATABASE_URL_UNPOOLED belum diatur. Tambahkan hanya ke .env.local atau secret store sebelum menjalankan migrasi.",
-  );
+const databaseUrl = process.env.DATABASE_URL_UNPOOLED;
+const validationError = validateMigrationDatabaseUrl(databaseUrl);
+
+if (validationError) {
+  console.error(validationError);
   process.exitCode = 1;
 } else {
   const result = spawnSync(

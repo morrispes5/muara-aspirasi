@@ -20,6 +20,7 @@
     "db:check": "drizzle-kit check",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "node --env-file-if-exists=.env.local scripts/db-migrate.mjs",
+    "db:reference-data": "node --env-file-if-exists=.env.local scripts/db-reference-data.mjs",
     "db:seed": "node --env-file-if-exists=.env.local scripts/db-seed.mjs",
     "auth:bootstrap": "node --env-file-if-exists=.env.local scripts/auth-bootstrap.mjs",
     "auth:bootstrap:production": "node --env-file-if-exists=.env.local scripts/auth-production-bootstrap.mjs",
@@ -37,8 +38,7 @@
     "drizzle-orm": "1.0.0-rc.4",
     "next": "16.3.3",
     "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "ws": "^8.21.3"
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -46,7 +46,6 @@
     "@types/node": "26.4.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.5",
-    "@types/ws": "^8.18.1",
     "dotenv": "17.4.2",
     "drizzle-kit": "1.0.0-rc.4",
     "eslint": "9.39.5",

@@ -26,6 +26,7 @@ export const authSessions = pgTable(
       .notNull(),
     ipAddress: varchar("ip_address", { length: 128 }),
     userAgent: varchar("user_agent", { length: 1000 }),
+    mfaVerifiedAt: timestamp("mfa_verified_at", { withTimezone: true }),
     userId: uuid("user_id")
       .notNull()
       .references(() => bemUsers.id, { onDelete: "cascade" }),

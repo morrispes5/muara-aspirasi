@@ -3,6 +3,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
+import { readJsonResponse } from "@/lib/json-response";
+
 type CategoryOption = {
   id: string;
   name: string;
@@ -143,7 +145,12 @@ export function AspirationForm({
 
     widgetId.current = window.turnstile.render(turnstileContainer.current, {
       callback: (token) => {
-        setErrorMessage(null);
+        setErrorMessage((current) =>
+          current === "Verifikasi anti-spam perlu dimuat ulang." ||
+          current === "Selesaikan verifikasi anti-spam sebelum mengirim."
+            ? null
+            : current,
+        );
         setTurnstileToken(token);
       },
       "error-callback": () => {
@@ -303,21 +310,21 @@ export function AspirationForm({
         },
         method: "POST",
       });
-      const body = (await response.json()) as {
+      const body = await readJsonResponse<{
         error?: unknown;
         receipt?: Receipt;
-      };
+      }>(response);
 
       if (!response.ok || !body.receipt) {
-        if (widgetId.current) {
-          window.turnstile?.reset(widgetId.current);
-          setTurnstileToken("");
-        }
         throw body.error;
       }
 
       setReceipt(body.receipt);
     } catch (error) {
+      if (widgetId.current) {
+        window.turnstile?.reset(widgetId.current);
+        setTurnstileToken("");
+      }
       setErrorMessage(fieldErrorMessage(error));
     } finally {
       setIsSubmitting(false);

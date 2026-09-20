@@ -215,21 +215,35 @@ export function runReleasePreflight(env) {
     }
   }
 
+  if (isProduction && isPlaceholderSecret(env.NEXT_PUBLIC_BEM_PRIVACY_EMAIL)) {
+    error(
+      "NEXT_PUBLIC_BEM_PRIVACY_EMAIL",
+      "Production wajib menampilkan mailbox privasi BEM resmi.",
+    );
+  } else if (
+    isDeployed &&
+    isPlaceholderSecret(env.NEXT_PUBLIC_BEM_PRIVACY_EMAIL)
+  ) {
+    warn(
+      "NEXT_PUBLIC_BEM_PRIVACY_EMAIL",
+      "Mailbox privasi belum diisi; Deploy Preview tidak boleh dipakai untuk UAT.",
+    );
+  }
+
+  const cspMode = env.CSP_MODE?.trim().toLowerCase();
+  if (cspMode && cspMode !== "report-only" && cspMode !== "enforce") {
+    error("CSP_MODE", "Gunakan report-only atau enforce.");
+  }
+  if (isProduction && cspMode !== "enforce") {
+    error(
+      "CSP_MODE",
+      "Production hanya dapat dibuka setelah QA bersih dengan CSP_MODE=enforce.",
+    );
+  }
+
   const r2Enabled = env.R2_EVIDENCE_ENABLED?.trim().toLowerCase();
   if (r2Enabled && r2Enabled !== "true" && r2Enabled !== "false") {
     error("R2_EVIDENCE_ENABLED", "Gunakan true atau false.");
-  }
-
-  if (isProduction && r2Enabled !== "true") {
-    error(
-      "R2_EVIDENCE_ENABLED",
-      "Production limited launch wajib mengaktifkan evidence privat R2.",
-    );
-  } else if (isDeployed && r2Enabled !== "true") {
-    warn(
-      "R2_EVIDENCE_ENABLED",
-      "Evidence upload belum aktif; Preview belum dapat menguji journey evidence.",
-    );
   }
 
   if (r2Enabled === "true") {

@@ -1,10 +1,10 @@
 # Deployment Runbook — Muara Aspirasi
 
-> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. M8 menambahkan migration additive lokal, evidence private R2, admin user management, MFA guard, production bootstrap terpisah, dan browser/CI gates. Deployment, migration M8, dan seluruh konfigurasi production belum dilakukan.
+> Status: deployment plan untuk MVP. Project Neon development/preview Muara Aspirasi sudah diprovision terpisah; migration M3/M4/M5, seed sintetis, bootstrap auth, dan acceptance M4/M5 telah diverifikasi pada keduanya. Migration additive M8 dan M9 diterapkan hanya ke Neon `preview` pada 19 September 2026 setelah branch restore point dibuat. UAT dan seluruh konfigurasi/migration production belum dilakukan.
 
 > Addendum 31 Agustus 2026: M7 source sekarang memiliki admin/public publication routes dan regression tests. Preview deploy boleh dilakukan setelah quality gates lulus; jangan menjalankan migration baru, memasukkan credential production, atau mempublikasikan konten nyata sebelum owner approval.
 
-> Addendum 2 September 2026: source M8 siap diuji pada Deploy Preview terkontrol. Evidence hanya JPEG/PNG/PDF melalui private R2 intent + presigned URL; admin access diaudit dan status awal `QUARANTINED` karena malware scanner belum ada. Preview/production tetap membutuhkan provider-owned secrets, schema migration terpisah, CORS/lifecycle verification, serta akses QA owner.
+> Addendum M9 (3 September 2026): akun Netlify, Neon, Cloudflare/R2, domain, dan mailbox masih memakai akun pribadi owner yang terhubung melalui MCP. Ini diterima hanya untuk preview/UAT. Sebelum website dibuka ke publik, minimal dua recovery owner BEM dan catatan handoff organisasi harus diverifikasi untuk setiap layanan penting.
 
 ## 1. Tujuan dan ownership
 
@@ -12,8 +12,8 @@ Runbook ini menetapkan cara membawa aplikasi dari development ke preview lalu pr
 
 Prinsip ownership:
 
-- GitHub, Netlify, Neon, Cloudflare, domain, dan mailbox recovery dimiliki organisasi BEM/FTI, bukan satu akun personal;
-- minimal dua owner manusia memiliki recovery access;
+- akun pribadi owner boleh menjalankan preview/UAT saat ini, tanpa mencampur target preview dengan production;
+- sebelum public production, setiap layanan penting memiliki minimal dua recovery owner BEM dan catatan akses/recovery organisasi; tidak ada secret di repo;
 - role vendor menerapkan least privilege;
 - perubahan production dapat ditelusuri ke pull request, actor, dan deployment;
 - production database/storage tidak digunakan untuk development atau preview.
@@ -73,12 +73,15 @@ Daftar berikut hanya nama dan fungsi. Placeholder database dan auth tersedia di 
 | `AUTH_PRODUCTION_BOOTSTRAP_PASSWORD`   | One-time production | Password admin pertama production; hapus segera setelah bootstrap.                                         |                                 Ya |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY`       | Client + server     | Public Turnstile widget site key.                                                                          |                              Tidak |
 | `TURNSTILE_SECRET_KEY`                 | Server              | Server-side Siteverify credential.                                                                         |                                 Ya |
-| `R2_EVIDENCE_ENABLED`                  | Server              | `true` hanya setelah private evidence bucket siap; wajib `true` untuk production.                          |                              Tidak |
+| `R2_EVIDENCE_ENABLED`                  | Server              | `false` untuk limited launch; tetap nonaktif sampai scanner dan SOP evidence siap.                         |                              Tidak |
 | `R2_ACCOUNT_ID`                        | Server              | Cloudflare account identifier.                                                                             |                  Restricted config |
 | `R2_ACCESS_KEY_ID`                     | Server              | R2 S3 API credential ID.                                                                                   |                                 Ya |
 | `R2_SECRET_ACCESS_KEY`                 | Server              | R2 S3 API credential secret.                                                                               |                                 Ya |
 | `R2_EVIDENCE_BUCKET`                   | Server              | Private evidence bucket name.                                                                              |                  Restricted config |
 | `MFA_REQUIRED`                         | Server              | `true` pada production agar ADMIN tanpa enrollment tidak masuk workspace.                                  |                              Tidak |
+| `NEXT_PUBLIC_BEM_PRIVACY_EMAIL`        | Client + server     | Mailbox resmi untuk contact dan deletion request; wajib production dan wajib sebelum preview dipakai UAT.  |                              Tidak |
+| `CSP_MODE`                             | Server/build        | `report-only` selama UAT; `enforce` wajib production setelah QA bersih.                                    |                              Tidak |
+| `RETENTION_REVIEW_JOB_SECRET`          | Internal ops        | Bearer secret untuk runner kandidat retensi; tidak pernah ke browser/log.                                  |                                 Ya |
 | `R2_EDITORIAL_BUCKET`                  | Server              | Approved editorial media bucket name.                                                                      |                  Restricted config |
 | `NEXT_PUBLIC_EDITORIAL_ASSET_BASE_URL` | Client + server     | Public base URL media editorial jika custom domain disetujui.                                              |                              Tidak |
 | `LOG_LEVEL`                            | Server              | Logging verbosity tanpa menyalakan body/PII logging.                                                       |                              Tidak |
@@ -114,7 +117,7 @@ npm run test:e2e
 npm run build
 ```
 
-`npm run test:e2e` membutuhkan Chromium Playwright dan menjalankan smoke route publik tanpa membuat data. `npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit dan gagal aman bila secret tidak tersedia. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; migration additive M8 baru dibuat lokal dan belum diterapkan. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
+`npm run test:e2e` membutuhkan Chromium Playwright dan menjalankan smoke route publik tanpa membuat data. `npm run db:migrate` memerlukan `DATABASE_URL_UNPOOLED` eksplisit, menolak hostname `-pooler`, dan gagal aman bila URL kosong atau invalid. Migration M3, M4, dan M5 sudah diuji di branch Neon `development` dan `preview`; migration additive M8 dan M9 diterapkan hanya ke `preview` pada 19 September 2026. Jangan menjalankan migration atau smoke yang menulis data ke database mana pun tanpa memastikan target non-production dan approval yang sesuai.
 
 ### Setelah database milestone (status M3)
 
@@ -160,7 +163,7 @@ M6 tidak memerlukan migration baru: tabel `aspiration_reports`, `reporter_identi
 
 ### Production first-admin dan MFA
 
-1. Pastikan ownership organisasi, domain resmi, production Neon branch, private R2 bucket, Turnstile widget/hostname, recovery mailbox, dan minimal dua owner sudah disetujui.
+1. Pastikan domain resmi, production Neon branch, Turnstile widget/hostname, mailbox BEM resmi, dan recovery owner BEM kedua untuk Netlify, Neon, Cloudflare/R2, domain registrar, GitHub, serta mailbox sudah diverifikasi. Akun pribadi owner saat ini tidak cukup sebagai satu-satunya recovery.
 2. Terapkan migration additive M8 ke production hanya melalui migration credential/direct connection yang direview, setelah restore point/backup dan rollback plan tersedia. Jangan menjalankan seed development/preview pada production.
 3. Isi `AUTH_PRODUCTION_BOOTSTRAP_CONFIRM=CREATE_FIRST_ADMIN`, `AUTH_PRODUCTION_BOOTSTRAP_NAME`, `AUTH_PRODUCTION_BOOTSTRAP_EMAIL`, dan `AUTH_PRODUCTION_BOOTSTRAP_PASSWORD` hanya pada secure operator context. Jalankan `npm run auth:bootstrap:production` satu kali; script menolak environment selain `production` dan menolak email di luar allowlist.
 4. Hapus keempat `AUTH_PRODUCTION_BOOTSTRAP_*` segera setelah sukses. `npm run release:preflight` production harus gagal bila salah satunya masih tersisa.
@@ -226,16 +229,16 @@ Preflight membaca konfigurasi dari environment context Netlify. **Tidak ada secr
 
 #### Variable yang wajib ada per context
 
-| Variable                                                                                   | Production                                   | Deploy Preview / branch deploy                                    |
-| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ----------------------------------------------------------------- |
-| `DATABASE_ENVIRONMENT`                                                                     | `production`                                 | `preview`                                                         |
-| `NEXT_PUBLIC_APP_URL`                                                                      | **Wajib**, absolut dan `https`, domain resmi | Opsional; bila kosong, `DEPLOY_PRIME_URL` dipakai                 |
-| `DEPLOY_PRIME_URL`                                                                         | Diabaikan sebagai pengganti origin           | Disediakan otomatis oleh Netlify                                  |
-| `BETTER_AUTH_SECRET`, `DATABASE_URL`, `PUBLIC_ABUSE_SIGNAL_SECRET`, `TURNSTILE_SECRET_KEY` | Nilai nyata per context, minimal 32 karakter | Nilai nyata per context, minimal 32 karakter                      |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                                                           | Widget production asli, bukan placeholder    | Site key widget preview; wajib ada                                |
-| `R2_EVIDENCE_ENABLED`                                                                      | `true`                                       | `true` untuk menguji evidence; `false` hanya preview tanpa upload |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_EVIDENCE_BUCKET`          | Nilai bucket private production              | Nilai bucket private preview; tidak boleh silang                  |
-| `MFA_REQUIRED`                                                                             | `true`                                       | Boleh `false` hanya untuk setup/UAT terkontrol                    |
+| Variable                                                                                   | Production                                   | Deploy Preview / branch deploy                    |
+| ------------------------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------- |
+| `DATABASE_ENVIRONMENT`                                                                     | `production`                                 | `preview`                                         |
+| `NEXT_PUBLIC_APP_URL`                                                                      | **Wajib**, absolut dan `https`, domain resmi | Opsional; bila kosong, `DEPLOY_PRIME_URL` dipakai |
+| `DEPLOY_PRIME_URL`                                                                         | Diabaikan sebagai pengganti origin           | Disediakan otomatis oleh Netlify                  |
+| `BETTER_AUTH_SECRET`, `DATABASE_URL`, `PUBLIC_ABUSE_SIGNAL_SECRET`, `TURNSTILE_SECRET_KEY` | Nilai nyata per context, minimal 32 karakter | Nilai nyata per context, minimal 32 karakter      |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `NEXT_PUBLIC_BEM_PRIVACY_EMAIL`                          | Wajib                                        | Wajib                                             |
+| `R2_EVIDENCE_ENABLED`                                                                      | `false` limited launch                       | `false`; evidence tidak termasuk UAT launch       |
+| `MFA_REQUIRED`                                                                             | `true`                                       | `true` untuk UAT ADMIN                            |
+| `CSP_MODE`                                                                                 | `enforce` setelah QA bersih                  | `report-only`                                     |
 
 URL Deploy Preview bersifat dinamis (`deploy-preview-<n>--muaraaspirasi.netlify.app`), sehingga satu nilai statis tidak dapat benar untuk semua preview. Karena itu `DEPLOY_PRIME_URL` — variabel bawaan Netlify — boleh memenuhi syarat URL pada preview dan branch deploy.
 
@@ -273,7 +276,7 @@ Jangan menonaktifkan gate ini secara permanen untuk mengejar build hijau; itu me
 
 ### Release
 
-0. Jalankan `npm run release:preflight` pada environment target. Skrip menolak secret yang masih memakai placeholder `.env.example`, `NEXT_PUBLIC_APP_URL` yang kosong/localhost/non-https, site key Turnstile yang hilang pada deploy, Cloudflare test secret pada production, `DATABASE_ENVIRONMENT` yang tidak dikenal, R2 production yang belum aktif/terisi, MFA production yang belum aktif, serta input bootstrap sekali pakai yang tertinggal. Skrip tidak melakukan panggilan network atau database dan hanya mencetak nama variable beserta alasannya, tidak pernah nilainya. Lulus berarti bentuk konfigurasi wajar — bukan bukti deploy maupun penerimaan provider, dan tidak menggantikan gate manual mana pun di bawah.
+0. Jalankan `npm run release:preflight` pada environment target. Skrip menolak secret placeholder, origin production yang tidak eksplisit/HTTPS, mailbox privasi atau site key yang hilang, test secret Turnstile di production, environment tidak dikenal, `MFA_REQUIRED` yang tidak aktif, `CSP_MODE` selain `enforce` di production, serta input bootstrap tersisa. Evidence tetap `false` pada limited launch. Skrip tidak melakukan panggilan network/database dan tidak menggantikan gate manual.
 1. Buat release note: scope, migration, environment change, risk, rollback owner.
 2. Ambil/verifikasi restore point atau backup sesuai Neon plan.
 3. Terapkan backward-compatible migration ke production melalui credential migration khusus.

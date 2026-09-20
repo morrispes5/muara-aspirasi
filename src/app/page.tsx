@@ -347,16 +347,16 @@ export default function HomePage() {
                   Ruang yang baik dimulai dari niat untuk mendengar.
                 </h2>
                 <p className="max-w-2xl text-base leading-7 text-slate-300">
-                  Pelajari prinsip, privasi, dan etika pelaporan sebelum layanan
-                  pengiriman dibuka pada Milestone 5.
+                  Pelajari prinsip, privasi, dan etika pelaporan, lalu kirim
+                  aspirasi dengan aman melalui layanan yang sudah aktif.
                 </p>
               </div>
               <ButtonLink
                 className="mt-8 shrink-0 rounded-full sm:mt-0"
-                href="/tentang"
+                href="/aspirasi/kirim"
                 variant="light"
               >
-                Tentang Muara Aspirasi
+                Kirim aspirasi
               </ButtonLink>
             </div>
           </Reveal>

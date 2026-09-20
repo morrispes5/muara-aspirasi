@@ -22,14 +22,12 @@ function productionEnv(overrides = {}) {
     DATABASE_ENVIRONMENT: "production",
     DATABASE_URL: `postgresql://user:pw@host/db?sslmode=require&x=${realSecret}`,
     MFA_REQUIRED: "true",
+    CSP_MODE: "enforce",
+    NEXT_PUBLIC_BEM_PRIVACY_EMAIL: "privacy@example.ac.id",
     NEXT_PUBLIC_APP_URL: "https://muara.example.ac.id",
     NEXT_PUBLIC_TURNSTILE_SITE_KEY: "site-key-for-tests",
     PUBLIC_ABUSE_SIGNAL_SECRET: realSecret,
-    R2_ACCOUNT_ID: "account-id",
-    R2_ACCESS_KEY_ID: "access-key-id",
-    R2_EVIDENCE_BUCKET: "muara-evidence",
-    R2_EVIDENCE_ENABLED: "true",
-    R2_SECRET_ACCESS_KEY: realSecret,
+    R2_EVIDENCE_ENABLED: "false",
     TURNSTILE_SECRET_KEY: realSecret,
     ...overrides,
   };
@@ -142,20 +140,20 @@ describe("release preflight", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("requires R2 evidence and MFA before production", () => {
+  it("requires MFA but preserves the evidence-disabled limited launch", () => {
     const result = runReleasePreflight(
       productionEnv({
         MFA_REQUIRED: "false",
-        R2_EVIDENCE_ENABLED: "false",
+        R2_EVIDENCE_ENABLED: "true",
       }),
     );
 
     expect(result.ok).toBe(false);
     expect(errorsFor(result, "MFA_REQUIRED")).toHaveLength(1);
-    expect(errorsFor(result, "R2_EVIDENCE_ENABLED")).toHaveLength(1);
+    expect(errorsFor(result, "R2_EVIDENCE_ENABLED")).toHaveLength(0);
   });
 
-  it("keeps preview usable while making missing launch capabilities visible", () => {
+  it("keeps evidence disabled for the limited-launch preview", () => {
     const result = runReleasePreflight(
       productionEnv({
         DATABASE_ENVIRONMENT: "preview",
@@ -165,13 +163,7 @@ describe("release preflight", () => {
     );
 
     expect(result.ok).toBe(true);
-    expect(
-      result.findings.some(
-        (finding) =>
-          finding.variable === "R2_EVIDENCE_ENABLED" &&
-          finding.severity === "warning",
-      ),
-    ).toBe(true);
+    expect(errorsFor(result, "R2_EVIDENCE_ENABLED")).toHaveLength(0);
   });
 
   it.each([
@@ -216,6 +208,37 @@ describe("release preflight", () => {
         1,
       );
     }
+  });
+
+  it("requires a public privacy mailbox and CSP enforcement in production", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        CSP_MODE: "report-only",
+        NEXT_PUBLIC_BEM_PRIVACY_EMAIL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(errorsFor(result, "CSP_MODE")).toHaveLength(1);
+    expect(errorsFor(result, "NEXT_PUBLIC_BEM_PRIVACY_EMAIL")).toHaveLength(1);
+  });
+
+  it("allows code preview before the official mailbox is configured", () => {
+    const result = runReleasePreflight(
+      productionEnv({
+        DATABASE_ENVIRONMENT: "preview",
+        NEXT_PUBLIC_BEM_PRIVACY_EMAIL: undefined,
+      }),
+    );
+
+    expect(result.ok).toBe(true);
+    expect(
+      result.findings.some(
+        (finding) =>
+          finding.variable === "NEXT_PUBLIC_BEM_PRIVACY_EMAIL" &&
+          finding.severity === "warning",
+      ),
+    ).toBe(true);
   });
 
   it("rejects a localhost app URL on a deployed environment", () => {

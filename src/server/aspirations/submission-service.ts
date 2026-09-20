@@ -17,7 +17,10 @@ import {
   privacyNoticeVersion,
 } from "@/server/aspirations/tracking";
 import { type Database, getDatabase } from "@/server/db/client";
-import { type PreparedEvidence } from "@/server/aspirations/evidence-service";
+import {
+  discardPreparedEvidence,
+  type PreparedEvidence,
+} from "@/server/aspirations/evidence-service";
 import { requireConfiguredSecret } from "@/server/config/secret-policy";
 import { type SubmissionInput } from "@/server/aspirations/validation";
 
@@ -133,7 +136,7 @@ async function insertReport(
         .where(
           and(
             eq(evidenceUploadIntents.id, evidence.intentId),
-            eq(evidenceUploadIntents.objectKey, evidence.objectKey),
+            eq(evidenceUploadIntents.objectKey, evidence.intentObjectKey),
             eq(evidenceUploadIntents.sizeBytes, evidence.sizeBytes),
             isNull(evidenceUploadIntents.consumedAt),
           ),
@@ -213,7 +216,12 @@ export async function submitPublicReport(
 ) {
   const keyHash = idempotencyKeyHash(idempotencyKey);
 
-  return database.transaction((transaction) =>
-    insertReport(transaction, input, keyHash, preparedEvidence),
-  );
+  try {
+    return await database.transaction((transaction) =>
+      insertReport(transaction, input, keyHash, preparedEvidence),
+    );
+  } catch (error) {
+    await discardPreparedEvidence(preparedEvidence);
+    throw error;
+  }
 }

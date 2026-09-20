@@ -2,13 +2,15 @@
 
 This guide keeps implementation sessions focused. Send **one milestone at a time** to Codex. Do not ask it to build the full product in one prompt.
 
-## Current handoff — 2 September 2026
+## Current handoff — 19 September 2026
 
-Source wave M8 launch-readiness sudah diimplementasikan dan PR #2 sudah merged ke `main` sebagai commit `9b93057`: private R2 evidence intent/upload/verification, admin-only evidence read + audit, ADMIN user management, Better Auth TOTP/backup-code guard, separate production bootstrap, Playwright public smoke, CI browser smoke, dan gitleaks job. Migration lokal `drizzle/20260902113654_minor_emma_frost/` sudah dibuat dan dicek, tetapi belum diterapkan ke Neon. Tidak ada migration production, credential provider, atau production data yang disentuh.
+Source wave M8 launch-readiness sudah diimplementasikan dan PR #2 sudah merged ke `main` sebagai commit `9b93057`: private R2 evidence intent/upload/verification, admin-only evidence read + audit, ADMIN user management, Better Auth TOTP/backup-code guard, separate production bootstrap, Playwright public smoke, CI browser smoke, dan gitleaks job. Migration M8 dan M9 sudah diterapkan hanya ke Neon `preview` pada 19 September 2026 setelah branch restore point dibuat. Tidak ada migration production, credential production, atau production data yang disentuh.
 
 Pada 2 September 2026, nilai `DATABASE_ENVIRONMENT` context Deploy Preview di Netlify sudah dikoreksi menjadi marker non-dictionary yang dipetakan source ke environment preview. Perubahan ini diperlukan agar secret scanner Netlify tidak salah membaca kata umum pada dokumentasi; nilainya sengaja tidak ditulis di repository. Deploy Preview berhasil berstatus `ready`, tetapi kontennya masih mengembalikan `HTTP 401` saat QA sehingga memerlukan akses owner.
 
-Next handoff is owner-controlled Milestone 9 limited launch: configure org-owned preview Neon/R2/Turnstile secrets and CORS, apply the additive migration only to the intended non-production branch, run release preflight, verify the deployed browser/privacy/security journeys, then review production bootstrap/MFA/recovery and rollback gates. Netlify production masih menunjuk deploy lama pada saat verifikasi; jangan menganggap merge sebagai production deploy. Do not use `netlify deploy --trigger --context branch:...`; inspect the resulting context/branch/commit and use the connected PR preview flow.
+PR #4 untuk Milestone 9 terbuka dari `codex/m9-limited-uat` pada commit `3e768e5`; quality, secret scan, browser smoke, dan Netlify Deploy Preview lulus. Migration additive M8 dan M9 sudah diterapkan hanya ke Neon `preview` setelah branch restore point `backup-preview-pre-m9-20260919` dibuat. Record migration naik dari 3 menjadi 5 dan schema M8/M9 terverifikasi tersedia; Neon `main`/production tidak disentuh.
+
+Next handoff adalah owner-controlled limited UAT: lengkapi mailbox privasi dan secret runner preview, berikan akses Team Protection untuk QA, bootstrap akun BEM sintetis, aktifkan MFA, lalu jalankan checklist dua hari. Netlify production masih menunjuk deploy lama pada saat verifikasi; jangan menganggap Deploy Preview atau merge sebagai production deploy. Do not use `netlify deploy --trigger --context branch:...`; inspect the resulting context/branch/commit and use the connected PR preview flow.
 
 ## 1. Session rules
 

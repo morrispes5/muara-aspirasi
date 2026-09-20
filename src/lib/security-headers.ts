@@ -2,16 +2,12 @@
  * Response security headers for every route.
  *
  * Scope note (Milestone 8 Wave 1): these are the headers that are safe to apply
- * from the application without a browser compatibility pass. Two controls are
- * deliberately NOT set here and remain owner/deploy decisions recorded in
- * `docs/SECURITY_PRIVACY.md`:
+ * from the application without a browser compatibility pass. CSP stays in
+ * report-only mode until QA is clean; production is fail-closed by the release
+ * preflight if its owner has not explicitly selected enforcing mode.
  *
- * - `Strict-Transport-Security`, because a wrong `max-age` is cached by
- *   browsers and is not reversible from the application side.
- * - An enforcing `Content-Security-Policy`. Per `SECURITY_PRIVACY.md` section 10
- *   ("Terapkan Content Security Policy bertahap dan uji compatibility") the
- *   policy below ships as report-only first, so a mistake cannot break the
- *   public form or the Turnstile challenge before a preview QA pass.
+ * HSTS is deliberately restricted to the production environment at 30 days,
+ * without subdomains or preload, per the M9 launch decision.
  */
 
 /** The only third-party origin the application talks to at runtime. */
@@ -76,12 +72,23 @@ export const permissionsPolicy = [
 
 export type SecurityHeader = { key: string; value: string };
 
-export function securityHeaders(isDevelopment = false): SecurityHeader[] {
+export function securityHeaders(
+  isDevelopment = false,
+  options: { cspMode?: "enforce" | "report-only"; production?: boolean } = {},
+): SecurityHeader[] {
+  const cspMode = options.cspMode ?? "report-only";
+  const cspKey =
+    cspMode === "enforce"
+      ? "Content-Security-Policy"
+      : "Content-Security-Policy-Report-Only";
   return [
     {
-      key: "Content-Security-Policy-Report-Only",
+      key: cspKey,
       value: contentSecurityPolicy(isDevelopment),
     },
+    ...(options.production
+      ? [{ key: "Strict-Transport-Security", value: "max-age=2592000" }]
+      : []),
     { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
     { key: "Permissions-Policy", value: permissionsPolicy },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

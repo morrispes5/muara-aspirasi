@@ -31,6 +31,17 @@ export function isMfaRequired() {
   );
 }
 
+export function isAdminMfaSessionAllowed(input: {
+  allowMfaEnrollment?: boolean;
+  mfaVerifiedAt: Date | null | undefined;
+  role: BemRole;
+  twoFactorEnabled: boolean;
+}) {
+  if (!isMfaRequired() || input.role !== "ADMIN") return true;
+  if (!input.twoFactorEnabled) return input.allowMfaEnrollment === true;
+  return input.mfaVerifiedAt instanceof Date;
+}
+
 function isExpectedConfigurationError(error: unknown): boolean {
   return (
     error instanceof AuthConfigurationError ||
@@ -68,10 +79,12 @@ export async function getBemSession(
     }
 
     if (
-      isMfaRequired() &&
-      user.role === "ADMIN" &&
-      !user.twoFactorEnabled &&
-      !options.allowMfaEnrollment
+      !isAdminMfaSessionAllowed({
+        allowMfaEnrollment: options.allowMfaEnrollment,
+        mfaVerifiedAt: session.session.mfaVerifiedAt,
+        role: user.role,
+        twoFactorEnabled: user.twoFactorEnabled,
+      })
     ) {
       return null;
     }

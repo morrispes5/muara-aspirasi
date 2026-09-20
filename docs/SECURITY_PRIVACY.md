@@ -1,13 +1,13 @@
 # Security and Privacy — Muara Aspirasi
 
-> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sementara smoke end-to-end M5 development lulus dengan data sintetis yang dibersihkan otomatis. Evidence R2, user management, dan guard MFA kini tersedia pada source; kesiapan production belum selesai dan Neon main/production tidak disentuh.
+> Status: kebijakan dan acceptance target untuk MVP. Authentication/role Milestone 4 dan runtime case management Milestone 6 sudah lulus quality gate source/non-production yang tersedia; migration M5 telah diterapkan pada Neon development dan preview, sedangkan migration additive M8/M9 diterapkan hanya ke Neon preview pada 19 September 2026. Evidence R2, user management, guard MFA, dan workflow retensi kini tersedia pada source; kesiapan production belum selesai dan Neon main/production tidak disentuh.
 > Dokumen ini bukan nasihat hukum; privacy notice, retention, dan consent final memerlukan persetujuan owner serta review kebijakan yang berlaku.
 
 > Addendum 31 Agustus 2026: M7 publication guard, audit metadata, plain-text validation, dan public projection isolation sudah tersedia pada source. Editorial R2, scheduler, notifikasi eksternal, dan production review tetap belum selesai.
 
 > Addendum M8 Wave 1 (31 Agustus 2026): security headers baseline dan CSP report-only sudah aktif untuk semua route melalui `next.config.ts` + `src/lib/security-headers.ts`, dan origin guard untuk request sensitif dikonsolidasikan pada `src/server/security/origin.ts` serta ditambahkan ke endpoint tracking. Dua kontrol sengaja belum diaktifkan dan menunggu keputusan owner: HSTS dan promosi CSP dari report-only menjadi enforcing. Lihat bagian 14.
 
-> Addendum M8 launch-readiness (2 September 2026): evidence memakai intent opaque + presigned PUT ke private Cloudflare R2, lalu diverifikasi ulang melalui HEAD/GET, ukuran, MIME, magic bytes, dan SHA-256 sebelum metadata report dibuat. Admin-only signed read diaudit; status evidence tetap `QUARANTINED` karena malware scanner belum dipasang. Better Auth TOTP + backup code, manajemen akun ADMIN-only, production bootstrap terpisah, dan browser/CI guard tersedia pada source. Migration additive belum diterapkan ke Neon dan credential/provider production belum diisi.
+> Addendum M9 (3 September 2026): retention ditetapkan 12 bulan sejak report mencapai outcome terminal. Kandidat dibuat oleh runner terproteksi, tetapi tidak ada penghapusan otomatis: ADMIN dengan MFA mencatat request mailbox, verifikasi, approval, hold/release, lalu purge PII/evidence yang diaudit. Evidence upload tetap nonaktif pada limited launch. CSP report-only dipakai di UAT; production mewajibkan enforcing setelah QA bersih. HSTS production 30 hari tanpa preload.
 
 ## 1. Tujuan
 
@@ -34,8 +34,8 @@ Muara Aspirasi memproses laporan yang dapat memuat identity, contact, pengalaman
 | R2 upload/download validation                              | Code-complete pada source: allowlist JPEG/PNG/PDF, maksimal 3 file, 5 MiB/file, 10 MiB total, intent opaque, presigned private URL, HEAD/GET verification, magic bytes, SHA-256, dan authorized signed read. Provider/CORS/lifecycle belum diverifikasi. |
 | Security headers baseline                                  | M8 Wave 1 selesai pada source: `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`, dan `X-DNS-Prefetch-Control` aktif untuk `/:path*`.                                                            |
 | CSP                                                        | M8 Wave 1 report-only pada source; promosi ke enforcing menunggu QA browser dan keputusan owner.                                                                                                                                                         |
-| HSTS, production monitoring                                | Belum diimplementasikan; keputusan owner/deploy.                                                                                                                                                                                                         |
-| Retention/deletion automation                              | Belum diimplementasikan; orphan cleanup dan retention evidence tetap membutuhkan SOP/job terpisah.                                                                                                                                                       |
+| HSTS, production monitoring                                | HSTS 30 hari tanpa preload tersedia untuk production configuration; monitoring provider masih memerlukan owner.                                                                                                                                          |
+| Retention/deletion workflow                                | Source M9 tersedia: antrean kandidat, hold, mailbox request, verification/approval ADMIN MFA, purge PII/evidence, dan audit. Runner belum dijadwalkan provider.                                                                                          |
 
 Tidak boleh menandai security checklist selesai hanya karena kontrol tertulis di dokumen ini.
 
@@ -287,15 +287,15 @@ Daftar nama variable terencana berada di `DEPLOYMENT_RUNBOOK.md` dan template am
 7. Sediakan deletion/correction request channel sebelum public launch.
 8. Audit deletion/retention tanpa mempertahankan data yang diminta dihapus pada metadata.
 
-Proposed Default retention: report/contact/evidence 180 hari setelah closure dan audit metadata 365 hari. Ini belum kebijakan final.
+Kebijakan M9: report yang terminal disimpan 12 bulan sejak `closedAt`. Report aktif atau memiliki hold aktif tidak menjadi kandidat. Setelah request mailbox telah diverifikasi dan disetujui ADMIN MFA, identity/evidence dipurge dan report ditombstone; audit metadata minimal tidak menyimpan ulang PII yang dihapus. Scheduler provider belum diaktifkan, sehingga runner kandidat hanya boleh dipanggil dari job internal yang diautentikasi saat owner menyetujui provider scope.
 
 ## 14. Security headers dan transport
 
 Sebelum production:
 
 - HTTPS-only dan redirect HTTP ke HTTPS;
-- HSTS setelah domain/HTTPS stabil;
-- `Content-Security-Policy` yang diuji;
+- HSTS production `max-age=2592000` tanpa `includeSubDomains` atau preload setelah domain/HTTPS stabil;
+- `Content-Security-Policy` report-only di UAT lalu enforcing setelah QA bersih;
 - `X-Content-Type-Options: nosniff`;
 - anti-clickjacking melalui `frame-ancestors` CSP;
 - `Referrer-Policy` yang membatasi leakage;
