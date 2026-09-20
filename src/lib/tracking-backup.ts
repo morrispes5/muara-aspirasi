@@ -4,7 +4,7 @@ import {
   type TrackingCredential,
 } from "./tracking-receipt";
 
-export const trackingBackupKey = "muara.private-receipts.v1";
+export const trackingBackupStorageName = "muara.private-receipts.v1";
 const maxAge = 90 * 24 * 60 * 60 * 1000;
 type Store = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type Backup = { value: string; savedAt: number };
@@ -14,7 +14,7 @@ export function readTrackingBackups(
   storage: Store,
   now = Date.now(),
 ): Backup[] {
-  const raw = storage.getItem(trackingBackupKey);
+  const raw = storage.getItem(trackingBackupStorageName);
   if (!raw) return [];
   try {
     if (raw.length > 20000) throw new Error("Invalid backup");
@@ -32,10 +32,10 @@ export function readTrackingBackups(
       )
       .slice(0, 20);
     if (valid.length !== entries.length)
-      storage.setItem(trackingBackupKey, JSON.stringify(valid));
+      storage.setItem(trackingBackupStorageName, JSON.stringify(valid));
     return valid;
   } catch {
-    storage.removeItem(trackingBackupKey);
+    storage.removeItem(trackingBackupStorageName);
     return [];
   }
 }
@@ -52,7 +52,7 @@ export function saveTrackingBackup(
       parseTrackingReceipt(entry.value)?.trackingCode !== receipt.trackingCode,
   );
   storage.setItem(
-    trackingBackupKey,
+    trackingBackupStorageName,
     JSON.stringify([{ value, savedAt: now }, ...entries].slice(0, 20)),
   );
 }
@@ -62,6 +62,6 @@ export function removeTrackingBackup(storage: Store, value: string) {
     (entry) => entry.value !== value,
   );
   if (entries.length)
-    storage.setItem(trackingBackupKey, JSON.stringify(entries));
-  else storage.removeItem(trackingBackupKey);
+    storage.setItem(trackingBackupStorageName, JSON.stringify(entries));
+  else storage.removeItem(trackingBackupStorageName);
 }

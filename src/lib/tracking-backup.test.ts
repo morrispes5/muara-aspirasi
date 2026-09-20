@@ -3,7 +3,7 @@ import {
   readTrackingBackups,
   removeTrackingBackup,
   saveTrackingBackup,
-  trackingBackupKey,
+  trackingBackupStorageName,
 } from "./tracking-backup";
 const receipt = {
   trackingCode: "MA-0123456789ABCDEF",
@@ -25,11 +25,11 @@ describe("opt-in tracking backup", () => {
   it("stores nothing until explicit save and deduplicates receipts", () => {
     const store = storage();
     expect(readTrackingBackups(store)).toEqual([]);
-    expect(store.getItem(trackingBackupKey)).toBeNull();
+    expect(store.getItem(trackingBackupStorageName)).toBeNull();
     saveTrackingBackup(store, receipt);
     saveTrackingBackup(store, receipt);
     expect(readTrackingBackups(store)).toHaveLength(1);
-    const text = store.getItem(trackingBackupKey)!;
+    const text = store.getItem(trackingBackupStorageName)!;
     expect(text).not.toContain("name");
     expect(text).not.toContain("email");
   });
@@ -37,9 +37,9 @@ describe("opt-in tracking backup", () => {
     const store = storage();
     saveTrackingBackup(store, receipt, 1000);
     expect(readTrackingBackups(store, 1000 + 91 * 86400000)).toEqual([]);
-    store.setItem(trackingBackupKey, "not json");
+    store.setItem(trackingBackupStorageName, "not json");
     expect(readTrackingBackups(store)).toEqual([]);
-    expect(store.getItem(trackingBackupKey)).toBeNull();
+    expect(store.getItem(trackingBackupStorageName)).toBeNull();
   });
   it("rejects malformed credentials and allows removing one local copy", () => {
     const store = storage();
