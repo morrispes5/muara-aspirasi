@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import {
   parseSubmissionInput,
   parseTrackingInput,
@@ -19,7 +18,7 @@ const validSubmission = {
   limitedShareConsent: false,
   location: "Gedung A lantai 3",
   name: "  Mahasiswa   Contoh  ",
-  nim: "20-12345",
+  nim: "2411500001",
   suggestedSolution: "Periksa AC dan jadwal perawatannya.",
   title: "AC ruang A-301 mati",
   turnstileToken: "XXXX.DUMMY.TOKEN.XXXX",
@@ -27,12 +26,41 @@ const validSubmission = {
 };
 
 describe("public aspiration validation", () => {
+  it.each(["123456", "abc1234567", "123456-7", "123456789012345678901"])(
+    "rejects invalid NIM %s",
+    (nim) => {
+      expect(() => parseSubmissionInput({ ...validSubmission, nim })).toThrow(
+        PublicInputError,
+      );
+    },
+  );
+  it.each([
+    "name",
+    "nim",
+    "email",
+    "whatsapp",
+    "title",
+    "location",
+    "chronology",
+    "impact",
+    "suggestedSolution",
+  ])("requires %s on the server", (field) => {
+    expect(() =>
+      parseSubmissionInput({ ...validSubmission, [field]: " " }),
+    ).toThrow(PublicInputError);
+  });
+  it.each(["1234567", "0012345678", "12345678901234567890"])(
+    "preserves numeric NIM %s as text",
+    (nim) => {
+      expect(parseSubmissionInput({ ...validSubmission, nim }).nim).toBe(nim);
+    },
+  );
   it("normalizes a valid submission and preserves the confidential default", () => {
     expect(parseSubmissionInput(validSubmission)).toMatchObject({
       email: "mahasiswa@example.test",
       identityMode: "CONFIDENTIAL_BEM_ONLY",
       name: "Mahasiswa Contoh",
-      nim: "20-12345",
+      nim: "2411500001",
     });
   });
 

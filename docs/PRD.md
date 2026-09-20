@@ -51,6 +51,8 @@ There is no student login in the MVP. BEM accounts are created by an admin only;
 
 The active deployment restricts administrative access to a single owner email configured server-side as `BEM_OWNER_EMAIL`. Existing roles remain in the code for later organizational use, but do not override this deployment restriction. Password plus authenticator verification remains required. Students receive one portable receipt containing the existing tracking code and secret, with copy/download controls; tracking accepts one pasted receipt or the original two fields. Secrets are never passed in URLs or automatically persisted in browser storage. Public source sharing uses a separate export without institutional assets or Git history; the operational repository remains private.
 
+The follow-up admin UX revision adds an identity-aware table, search, admin-only XLSX export/create/content correction, recoverable archive controls, and a compact report/read/update layout. New submissions require all report/contact fields with a numeric 7–20 digit NIM. Contact permission and limited identity sharing remain voluntary. Optional device backup is explicitly user-triggered, bounded to 20 receipts and 90 days, with a warning for shared browsers; no automatic email recovery or NIM-only lookup is introduced. Manual acceptance is documented in `ADMIN_MANUAL.md`.
+
 ## 5. Student-facing information architecture
 
 | Route | Purpose | Main content |
@@ -68,7 +70,7 @@ The active deployment restricts administrative access to a single owner email co
 
 ### 6.1 Submit an aspiration
 
-1. Student opens **Kirim Aspirasi** and completes their identity for BEM verification: full name and NIM are required; email and WhatsApp are optional for follow-up.
+1. Student opens **Kirim Aspirasi** and completes full name, numeric 7–20 digit NIM, email and WhatsApp. Contact permission remains voluntary; filling contact fields does not imply permission to contact or share.
 2. Student chooses a category and fills the issue title, location, chronology, impact, and suggested solution.
 3. Student selects the identity-consent mode. The default is **Confidential BEM only**: BEM may see name/NIM, while FTI and the public cannot. The alternative **Consented limited share** lets BEM share the minimum approved identity field with the relevant FTI unit only for private coordination.
 4. Student optionally uploads evidence within upload rules.
@@ -102,7 +104,7 @@ The active deployment restricts administrative access to a single owner email co
 ### FR-02 — Report submission
 
 - Required: full name, NIM, category, title, location/area, chronology, impact, identity-consent mode, and consent to ethics.
-- Optional: suggested solution, email, WhatsApp, and up to three evidence files.
+- Suggested solution, email, and WhatsApp are also required for new submissions. Only evidence is optional (up to three files if uploads are enabled).
 - Default identity-consent mode is `CONFIDENTIAL_BEM_ONLY`: only authorized BEM roles may access name/NIM. `CONSENTED_LIMITED_SHARE` requires affirmative consent before BEM shares the minimum necessary identity field with a stated FTI destination unit for private follow-up.
 - Name, NIM, email, WhatsApp, consent details, and evidence are never public content.
 - Require Cloudflare Turnstile validation on the server.

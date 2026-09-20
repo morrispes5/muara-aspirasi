@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
-
 import {
   formatTrackingReceipt,
   type TrackingCredential,
 } from "@/lib/tracking-receipt";
+import { saveTrackingBackup } from "@/lib/tracking-backup";
+import { useState } from "react";
 
 export function TrackingReceipt({ receipt }: { receipt: TrackingCredential }) {
   const [feedback, setFeedback] = useState("");
@@ -82,6 +82,33 @@ export function TrackingReceipt({ receipt }: { receipt: TrackingCredential }) {
         >
           Buka pelacakan
         </a>
+      </div>
+      <div className="border-line rounded-control border p-4 text-sm leading-6">
+        <p className="font-bold">Cadangan opsional di perangkat pribadi</p>
+        <p className="text-muted mt-1">
+          Siapa pun yang memakai browser ini dapat membuka progres. Jangan
+          gunakan di komputer bersama. Cadangan tidak tersinkron ke perangkat
+          lain, berlaku 90 hari, dan hilang jika data browser dihapus. Tetap
+          unduh file bukti.
+        </p>
+        <button
+          type="button"
+          className="text-brand mt-3 min-h-11 font-bold underline"
+          onClick={() => {
+            try {
+              saveTrackingBackup(localStorage, receipt);
+              setFeedback(
+                "Cadangan tersimpan di browser ini. Buka Lacak Aspirasi → Bukti di perangkat ini.",
+              );
+            } catch {
+              setFeedback(
+                "Browser tidak dapat menyimpan. Gunakan Unduh bukti sebagai cadangan.",
+              );
+            }
+          }}
+        >
+          Simpan di perangkat pribadi ini
+        </button>
       </div>
       <p role="status" className="text-muted text-sm">
         {feedback}

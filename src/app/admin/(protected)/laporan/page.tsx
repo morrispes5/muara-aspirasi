@@ -1,6 +1,3 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-
 import {
   AuthorizationError,
   requireBemPermission,
@@ -12,7 +9,10 @@ import {
   parseReportQueueQuery,
 } from "@/server/aspirations/case-management";
 import { createCategoryRepository } from "@/server/db/repositories";
+import { hasPermission } from "@/server/auth/roles";
+import type { Metadata } from "next";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
+import { redirect } from "next/navigation";
 import { ReportQueue } from "@/components/admin/report-queue";
 import { StateCard } from "@/components/ui/state-card";
 
@@ -45,7 +45,12 @@ export default async function ReportQueuePage() {
     const session = await requireBemPermission("VIEW_REPORTS");
     const query = parseReportQueueQuery(new URLSearchParams());
     const [reports, categories, assignees] = await Promise.all([
-      listReportQueue(query),
+      listReportQueue(query, undefined, {
+        includeRestricted: hasPermission(
+          session.user.role,
+          "VIEW_CONFIDENTIAL_REPORT",
+        ),
+      }),
       createCategoryRepository().listActive(),
       listBemAssignees(),
     ]);

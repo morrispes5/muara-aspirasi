@@ -37,9 +37,15 @@
     "@neondatabase/serverless": "1.1.0",
     "better-auth": "^1.7.2",
     "drizzle-orm": "1.0.0-rc.4",
+    "exceljs": "^4.4.0",
     "next": "16.3.3",
     "react": "19.2.8",
     "react-dom": "19.2.8"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",

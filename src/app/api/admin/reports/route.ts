@@ -8,6 +8,7 @@ import {
   listReportQueue,
   parseReportQueueQuery,
 } from "@/server/aspirations/case-management";
+import { hasPermission } from "@/server/auth/roles";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
 
 export const runtime = "nodejs";
@@ -51,7 +52,12 @@ export async function GET(request: Request) {
       new Headers(request.headers),
     );
     const query = parseReportQueueQuery(new URL(request.url).searchParams);
-    const reports = await listReportQueue(query);
+    const reports = await listReportQueue(query, undefined, {
+      includeRestricted: hasPermission(
+        session.user.role,
+        "VIEW_CONFIDENTIAL_REPORT",
+      ),
+    });
 
     await recordAuthAuditEvent({
       action: "REPORT_QUEUE_VIEWED",

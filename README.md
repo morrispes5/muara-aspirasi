@@ -27,6 +27,18 @@ Kategori aspirasi meliputi fasilitas, laboratorium, ruang belajar, proses akadem
 
 Bukti pelacakan menggabungkan kode laporan dan kunci rahasia dalam satu teks. Kunci tidak dimasukkan ke URL, disimpan otomatis di browser, atau dipublikasikan. Orang yang memegang bukti dapat membaca progresnya, jadi jangan membagikannya.
 
+Cadangan browser hanya dibuat ketika mahasiswa memilih **Simpan di perangkat pribadi ini**. Maksimal 20 bukti, dengan masa simpan 90 hari saat diperiksa aplikasi; cadangan tidak tersinkron, tidak cocok untuk perangkat bersama, dan hilang bila data browser dihapus. File `.txt` dapat dibuka kembali langsung pada halaman pelacakan tanpa diunggah. Jika file, catatan, dan cadangan semuanya hilang, belum tersedia pemulihan otomatis lewat email/NIM.
+
+Form laporan baru mewajibkan nama, NIM **7–20 angka**, email, WhatsApp, kategori, judul, lokasi, kronologi, dampak, dan usulan solusi. Contoh format tersedia di setiap bagian. Izin dihubungi dan berbagi identitas tetap pilihan, bukan syarat wajib; lampiran juga bukan syarat.
+
+## Mengelola aspirasi sebagai admin
+
+Setelah login, `/admin` langsung menuju tabel aspirasi. Cari berdasarkan nama, NIM, email, judul atau kode; filter status/tanggal/kategori/arsip. Buka baris untuk membaca dan memperbarui status/pesan mahasiswa. **Tambah laporan** mencatat aspirasi langsung dengan sepengetahuan pelapor. **Edit** memerlukan alasan koreksi. **Hapus ke arsip** dapat dipulihkan, bukan penghapusan permanen.
+
+**Ekspor Excel (.xlsx)** mengunduh seluruh hasil filter (maksimal 2.000 baris, 5 ekspor per 15 menit), bukan hanya halaman yang terlihat. Nama/NIM/email bersifat privat; NIM tetap teks, dan input tidak diubah menjadi formula. Token, catatan internal, dan bukti lampiran tidak ikut diekspor. Ekspor dicatat dalam audit. Ini fitur ekspor ke Excel, bukan impor Excel ke database.
+
+Panduan pengujian manual ada di [alur admin dan mahasiswa](docs/ADMIN_MANUAL.md).
+
 ## Privasi dan akses admin
 
 Identitas pelapor secara default hanya dapat dilihat pengelola BEM yang berwenang. Pembagian identitas minimum kepada unit terkait membutuhkan persetujuan pelapor. Catatan internal, kontak, dan laporan asli tidak menjadi konten publik.
