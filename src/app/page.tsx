@@ -14,7 +14,7 @@ const steps = [
   [
     "02",
     "Simpan jejak aman",
-    "Saat layanan dibuka, pelapor akan menerima cara khusus untuk melihat perkembangan tanpa membuka identitasnya.",
+    "Setelah mengirim, pelapor menerima kode dan token rahasia untuk melihat perkembangan tanpa membuka identitasnya.",
   ],
   [
     "03",
@@ -161,17 +161,17 @@ export default function HomePage() {
         <Container>
           <Reveal className="grid gap-12 lg:grid-cols-[0.62fr_1.38fr] lg:gap-20">
             <div className="space-y-4">
-              <Badge>Yang sedang dibangun</Badge>
+              <Badge>Ruang yang sudah aktif</Badge>
               <p className="font-display text-ink max-w-sm text-4xl leading-[0.98] tracking-[-0.04em] sm:text-5xl">
                 Bukan sekadar tempat mengisi keluhan.
               </p>
             </div>
             <div className="text-muted max-w-3xl space-y-8 text-lg leading-8 sm:text-xl sm:leading-9">
               <p>
-                Muara Aspirasi dirancang untuk membuat percakapan kampus terasa
-                lebih terarah. Aspirasi dapat berangkat dari persoalan kecil,
-                gagasan yang belum terdengar, atau pengalaman yang perlu dibaca
-                dengan lebih saksama.
+                Muara Aspirasi membuat percakapan kampus terasa lebih terarah.
+                Aspirasi dapat berangkat dari persoalan kecil, gagasan yang
+                belum terdengar, atau pengalaman yang perlu dibaca dengan lebih
+                saksama.
               </p>
               <p className="text-ink border-ink/15 border-t pt-6 text-sm font-semibold">
                 Di sini, setiap suara diperlakukan sebagai konteks yang perlu
@@ -235,8 +235,9 @@ export default function HomePage() {
               </h2>
             </div>
             <p className="text-muted max-w-sm text-sm leading-6">
-              Ini adalah alur layanan yang dijelaskan pada halaman publik. Form
-              pengiriman belum aktif dan tidak mengumpulkan data pada tahap ini.
+              Ini adalah alur layanan yang digunakan pada halaman publik. Form
+              pengiriman sudah aktif dengan verifikasi anti-spam dan bukti
+              penerimaan yang dapat disimpan pelapor.
             </p>
           </Reveal>
           <ol className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -274,7 +275,7 @@ export default function HomePage() {
               {[
                 [
                   "Data seperlunya",
-                  "Rancangan layanan akan meminta informasi seperlunya agar aspirasi dapat dipahami tanpa mengumpulkan identitas secara berlebihan.",
+                  "Layanan meminta informasi seperlunya agar aspirasi dapat dipahami tanpa mengumpulkan identitas secara berlebihan.",
                 ],
                 [
                   "Akses yang proporsional",
@@ -313,8 +314,8 @@ export default function HomePage() {
               Transparansi yang tidak mengorbankan cerita pribadi.
             </h2>
             <p className="text-muted mt-5 max-w-md text-sm leading-6">
-              Format di samping menunjukkan bagaimana pembaruan bisa dibaca
-              kelak. Seluruh angka adalah contoh tampilan, bukan data nyata.
+              Format di samping menunjukkan bagaimana pembaruan dapat dibaca.
+              Seluruh angka adalah contoh tampilan, bukan data nyata.
             </p>
           </Reveal>
           <Reveal delay={120}>
