@@ -1,6 +1,17 @@
 import { toNextJsHandler } from "better-auth/next-js";
 
+import {
+  adminLoginRateLimit,
+  adminMfaRateLimit,
+  consumePublicRateLimit,
+  getRequestNetworkSignal,
+  PublicRateLimitError,
+} from "@/server/aspirations/rate-limit";
 import { getAuth } from "@/server/auth/auth";
+import { isOwnerEmailAllowed } from "@/server/auth/owner-access";
+import { isSameOriginRequest } from "@/server/security/origin";
+import { publicError } from "@/server/aspirations/public-response";
+import { readBoundedJson } from "@/server/security/request-body";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +42,50 @@ async function handleAuthRequest(
   method: AuthMethod,
 ): Promise<Response> {
   const operation = getOperation(request);
+  if (
+    method === "POST" &&
+    (operation === "sign-in" || operation.startsWith("verify-"))
+  ) {
+    if (!isSameOriginRequest(request))
+      return publicError(403, "ACCESS_DENIED", "Akses ditolak.");
+    try {
+      await consumePublicRateLimit(
+        operation === "sign-in" ? adminLoginRateLimit : adminMfaRateLimit,
+        getRequestNetworkSignal(request),
+      );
+      const input = await readBoundedJson(request, 4096);
+      if (
+        operation === "sign-in" &&
+        !isOwnerEmailAllowed((input as { email?: unknown } | null)?.email)
+      ) {
+        return publicError(
+          401,
+          "INVALID_CREDENTIALS",
+          "Email atau kata sandi tidak cocok.",
+        );
+      }
+      request = new Request(request.url, {
+        method,
+        headers: request.headers,
+        body: JSON.stringify(input),
+      });
+    } catch (error) {
+      if (error instanceof PublicRateLimitError) {
+        return publicError(
+          429,
+          "TOO_MANY_ATTEMPTS",
+          "Terlalu banyak percobaan. Tunggu sebelum masuk lagi.",
+          null,
+          error.retryAfterSeconds,
+        );
+      }
+      return publicError(
+        503,
+        "LOGIN_UNAVAILABLE",
+        "Login belum tersedia. Coba lagi beberapa saat.",
+      );
+    }
+  }
   const shouldAudit = auditedOperations.has(operation);
   let actorUserId: string | null = null;
 

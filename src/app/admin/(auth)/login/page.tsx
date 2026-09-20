@@ -38,11 +38,11 @@ export default async function AdminLoginPage({
               Akses internal
             </p>
             <h1 className="font-display text-ink mt-4 text-4xl leading-tight tracking-[-0.04em] sm:text-5xl">
-              Masuk ke ruang kerja BEM.
+              Masuk admin.
             </h1>
             <p className="text-muted mt-4 text-base leading-7">
-              Area ini hanya untuk akun BEM yang dibuat dan dikelola melalui
-              prosedur admin. Tidak ada pendaftaran publik.
+              Khusus pengelola Muara Aspirasi. Mahasiswa dapat mengirim dan
+              melacak aspirasi tanpa login.
             </p>
           </div>
           <Card>

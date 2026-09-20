@@ -203,6 +203,16 @@ export function runReleasePreflight(env) {
   }
 
   if (isDeployed) {
+    if (
+      !/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(
+        env.BEM_OWNER_EMAIL?.trim() ?? "",
+      )
+    ) {
+      error(
+        "BEM_OWNER_EMAIL",
+        "Isi satu email pemilik untuk akses admin; tidak boleh kosong atau berupa daftar.",
+      );
+    }
     for (const variable of requiredPublicVariables) {
       if (isPlaceholderSecret(env[variable])) {
         error(

@@ -14,6 +14,7 @@ import {
 import { findReporterTimeline } from "@/server/aspirations/tracking-service";
 import { isSameOriginRequest } from "@/server/security/origin";
 import { NextResponse } from "next/server";
+import { readBoundedJson } from "@/server/security/request-body";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 
   let body: unknown;
   try {
-    body = await request.json();
+    body = await readBoundedJson(request, 2048);
   } catch {
     return genericTrackingFailure();
   }
@@ -57,7 +58,9 @@ export async function POST(request: Request) {
       return publicError(
         429,
         "TRACKING_NOT_FOUND",
-        "Tunggu beberapa saat sebelum mencoba lagi.",
+        `Batas pelacakan tercapai. Coba lagi dalam ${Math.ceil(error.retryAfterSeconds / 60)} menit.`,
+        null,
+        error.retryAfterSeconds,
       );
     }
 

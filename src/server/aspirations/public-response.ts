@@ -11,6 +11,7 @@ export function publicError(
   code: string,
   message: string,
   field?: string | null,
+  retryAfterSeconds?: number,
 ) {
   return NextResponse.json(
     {
@@ -20,6 +21,14 @@ export function publicError(
         message,
       },
     },
-    { headers: publicSensitiveResponseHeaders, status },
+    {
+      headers: {
+        ...publicSensitiveResponseHeaders,
+        ...(retryAfterSeconds
+          ? { "Retry-After": String(retryAfterSeconds) }
+          : {}),
+      },
+      status,
+    },
   );
 }

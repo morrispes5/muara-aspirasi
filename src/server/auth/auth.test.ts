@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createAuth } from "@/server/auth/auth";
 import type { Database } from "@/server/db/client";
 
 describe("Better Auth configuration", () => {
+  afterEach(() => vi.unstubAllEnvs());
   it("keeps BEM authentication closed to public signup", () => {
     const auth = createAuth({} as Database, "a".repeat(32));
 
@@ -28,6 +29,7 @@ describe("Better Auth configuration", () => {
   });
 
   it("marks only sessions created by a successful MFA verification", async () => {
+    vi.stubEnv("BEM_OWNER_EMAIL", "owner@example.test");
     const auth = createAuth({} as Database, "a".repeat(32));
     const before = auth.options.databaseHooks?.session?.create?.before;
     expect(before).toBeTypeOf("function");
@@ -46,7 +48,11 @@ describe("Better Auth configuration", () => {
       ({
         context: {
           internalAdapter: {
-            findUserById: async () => ({ id: "user-id", status: "ACTIVE" }),
+            findUserById: async () => ({
+              id: "user-id",
+              status: "ACTIVE",
+              email: "owner@example.test",
+            }),
           },
         },
         path,

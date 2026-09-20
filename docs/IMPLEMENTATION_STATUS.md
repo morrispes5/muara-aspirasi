@@ -1,5 +1,9 @@
 # Implementation Status — Muara Aspirasi
 
+## Current revision — 20 September 2026
+
+The website is live on Netlify. Earlier milestone notes below are historical and their pre-production statements are superseded. The current revision prepares a product-focused README, a source-only export without original images/history, single-owner email enforcement for new and existing admin sessions, shared login/MFA throttling, bounded public request bodies, Retry-After responses, and a portable student tracking receipt. Provider promotion and verification results will be recorded in the pull request; source completion alone does not prove deployment.
+
 > Terakhir diperbarui: 19 September 2026
 > Milestone aktif: **M9 source workflow dan migration Neon preview selesai; UAT dua hari dan production belum dijalankan.** Neon main/production tidak disentuh.
 

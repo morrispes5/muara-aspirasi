@@ -18,6 +18,7 @@ const realSecret = ["0123456789abcdef", "0123456789abcdef", "0123456789"].join(
 /** A configuration that should pass cleanly, used as the base for each case. */
 function productionEnv(overrides = {}) {
   return {
+    BEM_OWNER_EMAIL: "owner@example.test",
     BETTER_AUTH_SECRET: realSecret,
     DATABASE_ENVIRONMENT: "production",
     DATABASE_URL: `postgresql://user:pw@host/db?sslmode=require&x=${realSecret}`,

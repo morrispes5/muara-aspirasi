@@ -1,127 +1,89 @@
 # Muara Aspirasi
 
-Muara Aspirasi adalah portal advokasi dan informasi mahasiswa milik BEM FTI Universitas Budi Luhur. Produk ini ditujukan untuk membantu mahasiswa menyampaikan aspirasi secara terstruktur dan aman, sekaligus mengikuti pembaruan advokasi BEM dalam bahasa yang jelas.
+**Suaramu didengar. Perubahannya dikawal.**
 
-Repository ini telah menyelesaikan **Milestone 1 — UI Foundation dan Public Shell**, **Milestone 2 — Halaman Publik Statis**, **Milestone 3 — Database dan ORM Foundation**, **Milestone 4 — BEM Authentication, Roles, dan Admin Foundation**, **Milestone 5 — Kirim dan Lacak Aspirasi**, **Milestone 6 — Moderasi dan Admin Case Management**, serta implementasi source **Milestone 7 — Publication**, **Milestone 8 — launch-readiness**, dan workflow source **Milestone 9 — limited UAT**. M5 menyediakan form bertahap, validasi server, Turnstile, honeypot, rate limit berbasis Neon, idempotency, receipt credential, serta tracking privat. M6 menambahkan antrean privat, filter, detail terpisah, assignment, state transition, catatan internal, pesan reporter-visible, arsip/reopen, optimistic concurrency, dan audit. M8 menambahkan upload evidence privat berbasis R2 dengan intent/presigned URL, validasi magic bytes/checksum, akses admin ter-audit, manajemen user ADMIN-only, guard MFA TOTP/backup code, production bootstrap terpisah, browser smoke, dan CI secret scan. Pada 19 September 2026, migration additive M8 dan M9 diterapkan hanya ke Neon `preview` setelah membuat branch restore point; Neon `main`/production tidak disentuh.
+[Buka website](https://muaraaspirasi.netlify.app) · [Kirim aspirasi](https://muaraaspirasi.netlify.app/aspirasi/kirim) · [Lacak aspirasi](https://muaraaspirasi.netlify.app/aspirasi/lacak)
 
-## Prasyarat
+Muara Aspirasi adalah portal aspirasi dan informasi mahasiswa BEM FTI Universitas Budi Luhur. Mahasiswa dapat menyampaikan masalah, kritik, saran, dan ide tentang pengalaman kuliah; BEM mengelola tindak lanjutnya dan menerbitkan perkembangan advokasi yang aman dibaca publik.
 
-- Node.js 22.16.0 atau lebih baru dalam major version yang kompatibel
-- npm 10 atau lebih baru
+Portal ini membantu agar aspirasi tidak tenggelam dalam percakapan chat dan mahasiswa bisa mengetahui perkembangannya. Laporan asli bukan unggahan publik. Muara Aspirasi bukan pengganti sistem akademik atau layanan darurat, dan tidak menjanjikan semua persoalan pasti selesai.
 
-Versi Node yang dipakai proyek dicatat di `.nvmrc` dan `netlify.toml`.
+## Untuk siapa?
 
-## Menjalankan secara lokal
+| Pengguna                        | Yang dapat dilakukan                                                                               |
+| ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Mahasiswa aktif FTI             | Mengirim aspirasi, menyimpan bukti pelacakan, dan memeriksa progres tanpa membuat akun.            |
+| Pengelola BEM yang diberi akses | Memverifikasi laporan, mencatat tindak lanjut, menjaga identitas pelapor, dan mengelola publikasi. |
+| Pengunjung umum                 | Membaca informasi mahasiswa dan pembaruan advokasi yang sudah disetujui untuk dipublikasikan.      |
 
-1. Instal dependency:
+Kategori aspirasi meliputi fasilitas, laboratorium, ruang belajar, proses akademik, perpustakaan, kesejahteraan mahasiswa non-darurat, dan usulan perbaikan.
 
-   ```bash
-   npm ci
-   ```
+## Cara menggunakan
 
-2. Salin template environment menjadi `.env.local`:
+1. Buka **Kirim Aspirasi**, isi nama/NIM dan detail masalah atau ide.
+2. Tentukan persetujuan penggunaan identitas, baca etika pelaporan, dan selesaikan verifikasi anti-spam.
+3. Setelah berhasil, **salin atau unduh bukti pelacakan pribadi**. Simpan di tempat pribadi; bukti ini tidak dapat diterbitkan ulang oleh BEM.
+4. Buka **Lacak Aspirasi** dan tempel bukti untuk membaca status serta pesan dari BEM. Kode dan token versi sebelumnya tetap didukung.
 
-   ```bash
-   cp .env.example .env.local
-   ```
+Bukti pelacakan menggabungkan kode laporan dan kunci rahasia dalam satu teks. Kunci tidak dimasukkan ke URL, disimpan otomatis di browser, atau dipublikasikan. Orang yang memegang bukti dapat membaca progresnya, jadi jangan membagikannya.
 
-   Pada PowerShell Windows, gunakan:
+## Privasi dan akses admin
 
-   ```powershell
-   Copy-Item .env.example .env.local
-   ```
+Identitas pelapor secara default hanya dapat dilihat pengelola BEM yang berwenang. Pembagian identitas minimum kepada unit terkait membutuhkan persetujuan pelapor. Catatan internal, kontak, dan laporan asli tidak menjadi konten publik.
 
-3. Jalankan development server:
+Halaman `/admin/login` dapat dibuka dari internet, tetapi membuka halaman login tidak memberikan akses dashboard. Login memakai email pemilik yang ditetapkan melalui konfigurasi server, kata sandi, dan kode authenticator. Pendaftaran publik dinonaktifkan. Server memeriksa email, status akun, sesi, MFA, dan izin untuk akses administrasi. Email pemilik, password, dan kode pemulihan tidak disertakan dalam source.
 
-   ```bash
-   npm run dev
-   ```
+Anti-spam memakai validasi server, Cloudflare Turnstile, honeypot, idempotency key untuk mencegah pengiriman ganda, dan rate limit bersama di PostgreSQL. Batas pengiriman adalah 5 percobaan per jaringan per jam; jaringan kampus bersama dapat berbagi batas ini. Login, MFA, dan pelacakan juga dibatasi. Respons pembatasan menyertakan waktu tunggu. Kontrol ini mengurangi penyalahgunaan, bukan jaminan bahwa spam mustahil terjadi.
 
-4. Buka `http://localhost:3000`.
+## Status layanan
 
-## Environment variable
+Website tersedia di Netlify. Alur utama mencakup pengiriman, pelacakan privat, pengelolaan laporan, informasi mahasiswa, dan publikasi advokasi. Lampiran bukti belum dibuka pada layanan saat ini; notifikasi email/WhatsApp dan penjadwalan retensi otomatis belum diaktifkan.
 
-| Nama                                                                                 | Wajib saat ini                | Keterangan                                                                                                      |
-| ------------------------------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`                                                                | Tidak untuk build lokal       | Kontrak URL publik aplikasi; template menggunakan `http://localhost:3000`. Nilai ini aman diekspos ke browser.  |
-| `DATABASE_URL`                                                                       | Saat runtime database dipakai | Pooled Neon connection string untuk server runtime; isi hanya di `.env.local` atau secret store.                |
-| `DATABASE_URL_UNPOOLED`                                                              | Saat migrate/seed             | Direct Neon connection string untuk migration dan seed terkontrol; isi hanya di `.env.local` atau secret store. |
-| `DATABASE_ENVIRONMENT`                                                               | Saat seed                     | `development`/`preview` untuk non-production; `production` hanya pada release owner.                            |
-| `BETTER_AUTH_SECRET`                                                                 | Saat admin auth dipakai       | Secret minimal 32 karakter untuk signing/encryption Better Auth; jangan gunakan placeholder.                    |
-| `BETTER_AUTH_URL`                                                                    | Saat admin auth dipakai       | Origin canonical auth, misalnya `http://localhost:3000`; sesuaikan per environment.                             |
-| `BETTER_AUTH_TRUSTED_ORIGINS`                                                        | Saat admin auth dipakai       | Daftar origin tepercaya dipisahkan koma; harus sesuai origin aplikasi.                                          |
-| `BEM_ALLOWED_EMAIL_DOMAINS`                                                          | Opsional M4                   | Allowlist domain email BEM untuk prosedur bootstrap; kosong berarti tidak menambah pembatasan domain.           |
-| `AUTH_BOOTSTRAP_NAME`                                                                | One-time bootstrap            | Nama admin pertama; hapus dari `.env.local` setelah bootstrap berhasil.                                         |
-| `AUTH_BOOTSTRAP_EMAIL`                                                               | One-time bootstrap            | Email admin pertama; hanya dipakai script bootstrap dan tidak boleh masuk repository.                           |
-| `AUTH_BOOTSTRAP_PASSWORD`                                                            | One-time bootstrap            | Password admin pertama minimal 12 karakter; hapus segera setelah bootstrap berhasil.                            |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`                                                     | Saat form M5 dibuka           | Site key Turnstile aman untuk browser; gunakan widget terpisah setiap environment.                              |
-| `TURNSTILE_SECRET_KEY`                                                               | Saat submission M5 aktif      | Secret server-only untuk Siteverify; tidak boleh memakai prefix `NEXT_PUBLIC_`.                                 |
-| `PUBLIC_ABUSE_SIGNAL_SECRET`                                                         | Saat endpoint publik M5 aktif | Salt HMAC terpisah untuk signal rate-limit/idempotency; berbeda untuk setiap environment.                       |
-| `R2_EVIDENCE_ENABLED`                                                                | Saat evidence dibuka          | `true` hanya bila empat variable R2 tersedia; `false` membuat upload tetap tertutup.                            |
-| `R2_ACCOUNT_ID` / `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` / `R2_EVIDENCE_BUCKET` | Saat R2 aktif                 | Konfigurasi server-only untuk private bucket; tidak boleh masuk repository.                                     |
-| `MFA_REQUIRED`                                                                       | Production                    | Wajib `true` untuk limited launch; admin tanpa TOTP diarahkan ke enrollment.                                    |
-| `NEXT_PUBLIC_BEM_PRIVACY_EMAIL`                                                      | Preview/production            | Mailbox BEM resmi untuk contact dan deletion request.                                                           |
-| `CSP_MODE`                                                                           | Preview/production            | `report-only` di UAT; `enforce` wajib sebelum production.                                                       |
-| `RETENTION_REVIEW_JOB_SECRET`                                                        | Internal ops                  | Secret runner kandidat retensi; jangan pernah expose ke browser atau repository.                                |
+Source pada branch revisi dapat mendahului deployment aktif. Pull request dan status deployment menjadi acuan apakah perubahan terbaru sudah tersedia di website.
 
-Cloudflare menyediakan dummy key resmi untuk localhost/automated testing; key tersebut hanya dipakai development/preview dan wajib diganti oleh widget/key asli sebelum production. Evidence memakai JPEG/PNG/PDF, maksimal tiga file, 5 MiB per file, dan 10 MiB total; object tetap private dan status awalnya quarantine. Aktifkan R2 hanya setelah bucket, CORS, lifecycle, dan credential organisasi diverifikasi. Jangan pernah memasukkan secret asli ke `.env.example` atau repository.
+## Source, aset, dan publikasi GitHub
 
-## Command proyek
+**Setiap file dan riwayat commit dalam repository publik dapat di-clone. GitHub tidak memiliki izin clone per folder.** `.gitignore`, `export-ignore`, dan pemberitahuan hak cipta tidak membatasi akses clone.
 
-| Kebutuhan            | Command                             | Catatan                                                                                                                                         |
-| -------------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Development          | `npm run dev`                       | Menjalankan Next.js development server.                                                                                                         |
-| Lint                 | `npm run lint`                      | Menjalankan ESLint dengan zero-warning policy.                                                                                                  |
-| Type-check           | `npm run typecheck`                 | Menjalankan TypeScript tanpa menghasilkan file build.                                                                                           |
-| Test                 | `npm test`                          | Menjalankan test satu kali dengan Vitest.                                                                                                       |
-| Test watch           | `npm run test:watch`                | Menjalankan Vitest dalam watch mode.                                                                                                            |
-| Format               | `npm run format`                    | Memformat file yang dikelola proyek dengan Prettier.                                                                                            |
-| Format check         | `npm run format:check`              | Memeriksa format tanpa mengubah file.                                                                                                           |
-| Check migration      | `npm run db:check`                  | Memeriksa konsistensi folder migration Drizzle tanpa koneksi database.                                                                          |
-| Generate migration   | `npm run db:generate`               | Membuat SQL migration reviewable dari `src/server/db/schema`; review SQL sebelum menerapkannya.                                                 |
-| Migration database   | `npm run db:migrate`                | Menerapkan migration dengan endpoint direct `DATABASE_URL_UNPOOLED`; command menolak URL kosong, invalid, atau hostname `-pooler`.              |
-| Seed database        | `npm run db:seed`                   | Mengisi data sintetis hanya saat `DATABASE_ENVIRONMENT=development` atau `preview`; tidak ada data mahasiswa nyata.                             |
-| Auth bootstrap       | `npm run auth:bootstrap`            | Membuat satu akun `ADMIN` dari environment one-time; hanya untuk development/preview dan harus dibersihkan setelah sukses.                      |
-| Production bootstrap | `npm run auth:bootstrap:production` | Prosedur satu kali untuk admin pertama production; membutuhkan konfirmasi eksplisit dan wajib menghapus semua input bootstrap setelah berhasil. |
-| Auth smoke           | `npm run auth:smoke`                | Menguji signup tertutup, origin, login, cookie, protected admin, revoke session, dan logout pada server lokal.                                  |
-| Auth integration     | `npm run test:auth-integration`     | Menguji role/status, session revocation, audit, dan self-lockout terhadap Neon development.                                                     |
-| M5 smoke             | `npm run m5:smoke`                  | Menguji submission/receipt/idempotency/tracking privat terhadap server lokal dan Neon non-production; membuat lalu membersihkan data sintetis.  |
-| M6 policy tests      | `npm test`                          | Mencakup state transition, filter queue, validasi tanggal/PIC, permission, submission, tracking, dan regression test lain.                      |
-| Browser smoke        | `npm run test:e2e`                  | Menjalankan smoke journey publik Playwright; instal Chromium bila runtime belum tersedia.                                                       |
-| Production build     | `npm run build`                     | Membuat build Next.js untuk production.                                                                                                         |
-| Production start     | `npm run start`                     | Menjalankan hasil production build secara lokal.                                                                                                |
+Repository operasional menyimpan aset asli kampus/BEM dan harus tetap privat selama aset itu ada di riwayatnya. Untuk membagikan kode, buat paket source terpisah:
 
-## Struktur utama
-
-```text
-.
-├── .github/workflows/ci.yml   # Baseline quality gate GitHub Actions
-├── docs/                      # Sumber kebenaran proyek dan aset referensi
-├── drizzle/                   # SQL migration Drizzle yang reviewable
-├── scripts/                   # Script operasional aman
-├── src/app/                   # Next.js App Router
-├── src/app/admin/             # Login, MFA, user management, publication, dan case management
-├── src/app/api/auth/          # Better Auth catch-all handler M4
-├── src/components/admin/      # Shell/login/MFA/user management dan queue/detail report
-├── src/server/auth/           # Auth instance, session, role, audit helper M4
-├── src/server/db/             # Client Neon, schema, repository, health, transaction
-├── src/lib/                   # Konfigurasi/domain shared yang belum terkait fitur bisnis
-├── .env.example               # Nama environment variable tanpa secret
-├── netlify.toml               # Build/development baseline Netlify
-└── package.json               # Dependency dan command proyek
+```sh
+npm run export:source
 ```
 
-Dokumen utama proyek berada di [`docs/PRD.md`](docs/PRD.md), [`docs/MILESTONE_ROADMAP.md`](docs/MILESTONE_ROADMAP.md), [`docs/IMPLEMENTATION_ROADMAP.md`](docs/IMPLEMENTATION_ROADMAP.md), dan [`docs/CODEX_HANDOFF.md`](docs/CODEX_HANDOFF.md). Progres implementasi terbaru dicatat di [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md).
+Perintah ini mengekspor **commit HEAD**, bukan perubahan lokal yang belum di-commit, ke `dist/muara-aspirasi-source.zip`. Paket tidak membawa `.git`/riwayat, dokumentasi operasional, gambar asli, `.env.local`, credential provider, atau data database. Aset pada `public/images` sengaja tidak disertakan: gunakan materi milik sendiri jika menjalankan source tersebut. Paket belum otomatis diunggah atau menjadi repository publik.
 
-## Status dan batas saat ini
+Gunakan paket yang sudah diperiksa sebagai awal repository publik baru tanpa riwayat repository operasional. Jangan mengubah repository operasional langsung menjadi public untuk mencoba menyembunyikan beberapa folder. Gambar yang ditampilkan website tetap dapat diunduh pengunjung website.
 
-- M4 auth foundation aktif di `/admin/login`, `/admin`, dan `/api/auth/*`; public signup tetap nonaktif dan permission diperiksa server-side. M6 menambahkan `/admin/laporan`, `/admin/laporan/[id]`, `/api/admin/reports`, dan `/api/admin/reports/[id]` dengan guard yang sama.
-- Neon project `muara-aspirasi` memiliki branch non-production `development` dan `preview`. Migration M3, M4, dan M5, serta akun ADMIN sintetis M4, telah diterapkan pada keduanya; migration M8 dan M9 juga sudah diterapkan ke `preview` pada 19 September 2026 setelah branch restore point dibuat. Branch Neon `main` belum disentuh.
-- `src/server/db` menyediakan schema Drizzle, repository awal, internal health probe, dan batas transaksi. Tidak ada Route Handler/API bisnis yang mengeksposnya.
-- Submission/tracking publik M5, dashboard kasus BEM M6, workflow publication M7, evidence boundary M8, serta retention/deletion workflow M9 sudah tersedia pada source. Evidence upload tetap dinonaktifkan untuk limited launch; UAT, mailbox resmi, recovery owner, domain, dan production deployment tetap menunggu gate owner.
-- Route `/aspirasi/kirim` dan `/aspirasi/lacak` memakai endpoint privat yang sudah dilindungi validasi, Turnstile, rate limit, idempotency, dan projection reporter-safe.
-- Arsip Update Advokasi dan Info Mahasiswa berisi contoh tampilan berlabel jelas, bukan data BEM atau kampus yang nyata.
-- Lima gambar di `docs/assets` telah disalin ke `public/images` atas persetujuan pengguna untuk UI lokal; sumbernya tidak dipindahkan atau diubah dan izin publikasi produksi tetap perlu dikonfirmasi.
-- PR #2 untuk M8 sudah merged ke `main` sebagai commit `9b93057`. PR #4 untuk M9 terbuka dari `codex/m9-limited-uat`; quality, secret scan, browser smoke, dan Netlify Deploy Preview hijau pada commit `3e768e5`. Preview masih dilindungi Netlify Team Protection, sedangkan Netlify production masih menunjuk deploy lama; limited launch production belum terjadi.
+Belum ada lisensi open-source yang diberikan. Lihat [pemberitahuan penggunaan](SOURCE_NOTICE.md); logo, foto, identitas institusi, dan materi kampanye tidak otomatis mendapat izin penggunaan ulang.
 
-Langkah berikutnya adalah **Deploy Preview terkontrol** dengan Neon preview, mailbox BEM, MFA, Turnstile, dan data sintetis. M9 source menyediakan workflow retensi/deletion yang diaudit; detail gate UAT dan production berada di `docs/M9_LIMITED_UAT_RUNBOOK.md`. Scheduler provider, notifikasi eksternal, malware scanner, evidence upload, dan public media tetap di luar launch ini.
+## Pengembangan lokal
+
+Stack: Next.js App Router, React, TypeScript, Tailwind CSS, Better Auth, Drizzle ORM, Neon PostgreSQL, Cloudflare Turnstile, dan Netlify.
+
+Gunakan Node.js sesuai `.nvmrc`, lalu:
+
+```sh
+npm ci
+```
+
+Salin `.env.example` menjadi `.env.local` dan isi konfigurasi untuk database development milik sendiri. Jangan memakai credential Production. `BEM_OWNER_EMAIL` adalah satu email yang boleh login; pada Preview/Production, konfigurasi kosong menolak akses. `BETTER_AUTH_SECRET` dan `PUBLIC_ABUSE_SIGNAL_SECRET` harus berbeda dan acak. Cloudflare test keys hanya untuk development/Preview.
+
+```sh
+npm run dev
+```
+
+Tanpa konfigurasi database, beberapa halaman publik dapat ditinjau tetapi pengiriman dan login tidak berfungsi. Migration dan bootstrap dijalankan terpisah oleh pengelola environment; meng-clone source tidak membuat akun admin atau memberi akses layanan asli.
+
+## Pemeriksaan perubahan
+
+```sh
+npm run lint
+npm run typecheck
+npm test
+npm run db:check
+npm run build
+npm run test:e2e
+```
+
+CI memeriksa kualitas source, browser smoke, dan pola secret di riwayat Git. Jangan memasukkan laporan mahasiswa, token pelacakan, atau credential ke issue, screenshot, log, dan pull request.

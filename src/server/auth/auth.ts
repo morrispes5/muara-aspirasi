@@ -12,6 +12,7 @@ import {
   twoFactor as twoFactorSchema,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
+import { isOwnerEmailAllowed } from "@/server/auth/owner-access";
 import { recordAuthAuditEvent } from "@/server/auth/audit";
 
 export class AuthConfigurationError extends Error {
@@ -124,7 +125,11 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
               : null;
             const status = (user as { status?: unknown } | null)?.status;
 
-            if (!user || status !== "ACTIVE") {
+            if (
+              !user ||
+              status !== "ACTIVE" ||
+              !isOwnerEmailAllowed(user.email)
+            ) {
               throw APIError.from("FORBIDDEN", {
                 code: "ACCOUNT_SUSPENDED",
                 message: "Akun BEM tidak aktif.",
@@ -176,6 +181,8 @@ export function createAuth(database: Database, secret = getAuthSecret()) {
       modelName: "bem_users",
     },
     session: {
+      expiresIn: 60 * 60 * 8,
+      updateAge: 60 * 30,
       additionalFields: {
         mfaVerifiedAt: {
           input: false,

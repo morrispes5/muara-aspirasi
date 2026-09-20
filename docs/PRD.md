@@ -47,6 +47,10 @@ Students may not know where to submit issues involving laboratories, classrooms,
 
 There is no student login in the MVP. BEM accounts are created by an admin only; public registration is disabled.
 
+### Owner revision — 20 September 2026
+
+The active deployment restricts administrative access to a single owner email configured server-side as `BEM_OWNER_EMAIL`. Existing roles remain in the code for later organizational use, but do not override this deployment restriction. Password plus authenticator verification remains required. Students receive one portable receipt containing the existing tracking code and secret, with copy/download controls; tracking accepts one pasted receipt or the original two fields. Secrets are never passed in URLs or automatically persisted in browser storage. Public source sharing uses a separate export without institutional assets or Git history; the operational repository remains private.
+
 ## 5. Student-facing information architecture
 
 | Route | Purpose | Main content |

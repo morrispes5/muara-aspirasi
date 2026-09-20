@@ -67,7 +67,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run public browser smoke
-        run: npm run test:e2e -- tests/e2e/public-journey.spec.ts
+        run: npm run test:e2e
 
   secret-scan:
     name: Secret scan
