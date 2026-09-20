@@ -44,7 +44,7 @@ export default function TentangPage() {
               Apa yang dapat kamu harapkan?
             </h2>
             <ul className="text-muted mt-5 grid gap-3 text-sm leading-6">
-              <li>• Bukti bahwa laporan diterima saat layanan aktif.</li>
+              <li>• Bukti bahwa laporan diterima setelah dikirim.</li>
               <li>• Status dan pesan progres yang aman untuk pelapor.</li>
               <li>• Update advokasi dan informasi mahasiswa yang terpisah.</li>
               <li>
@@ -57,15 +57,15 @@ export default function TentangPage() {
             <p className="mt-3 text-sm leading-6">
               Situasi bahaya langsung, kekerasan, pelecehan, risiko melukai
               diri, atau tindak pidana perlu memakai jalur darurat dan SOP
-              kampus yang sesuai. Kontak resmi masih menunggu persetujuan owner
-              sebelum public launch.
+              kampus yang sesuai. Jangan menunggu respons dari Muara Aspirasi
+              untuk situasi yang membutuhkan pertolongan segera.
             </p>
           </Card>
         </Container>
         <Container className="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href="/aspirasi/kirim">Pelajari alur aspirasi</ButtonLink>
           <ButtonLink href="/kebijakan-privasi" variant="outline">
-            Baca privacy draft
+            Baca kebijakan privasi
           </ButtonLink>
         </Container>
       </section>

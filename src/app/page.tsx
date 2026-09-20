@@ -14,7 +14,7 @@ const steps = [
   [
     "02",
     "Simpan jejak aman",
-    "Saat layanan dibuka, pelapor akan menerima cara khusus untuk melihat perkembangan tanpa membuka identitasnya.",
+    "Setelah mengirim, pelapor menerima kode dan token rahasia untuk melihat perkembangan tanpa membuka identitasnya.",
   ],
   [
     "03",
@@ -275,7 +275,7 @@ export default function HomePage() {
               {[
                 [
                   "Data seperlunya",
-                  "Rancangan layanan akan meminta informasi seperlunya agar aspirasi dapat dipahami tanpa mengumpulkan identitas secara berlebihan.",
+                  "Layanan meminta informasi seperlunya agar aspirasi dapat dipahami tanpa mengumpulkan identitas secara berlebihan.",
                 ],
                 [
                   "Akses yang proporsional",
@@ -314,8 +314,8 @@ export default function HomePage() {
               Transparansi yang tidak mengorbankan cerita pribadi.
             </h2>
             <p className="text-muted mt-5 max-w-md text-sm leading-6">
-              Format di samping menunjukkan bagaimana pembaruan bisa dibaca
-              kelak. Seluruh angka adalah contoh tampilan, bukan data nyata.
+              Format di samping menunjukkan bagaimana pembaruan dapat dibaca.
+              Seluruh angka adalah contoh tampilan, bukan data nyata.
             </p>
           </Reveal>
           <Reveal delay={120}>
