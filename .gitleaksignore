@@ -1,0 +1,4 @@
+# Exact historical false positive: a public UUID fixture used as an HTTP
+# idempotency key, not a credential. New requests generate random test UUIDs.
+# All other files, commits, values, and rules remain scanned.
+c70a16395e9cb1739c78b4543dfc18e5688921f4:src/server/aspirations/submission-route.test.ts:generic-api-key:52

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { randomUUID } from "node:crypto";
 const mocks = vi.hoisted(() => ({
   consume: vi.fn(),
   verify: vi.fn(),
@@ -49,7 +50,7 @@ const request = (overrides = {}) =>
     method: "POST",
     headers: {
       origin: "https://example.test",
-      "idempotency-key": "1ea889bc-f591-4d08-bf40-7d7d9f71fb0d",
+      "idempotency-key": randomUUID(),
     },
     body: JSON.stringify({ ...body, ...overrides }),
   });
