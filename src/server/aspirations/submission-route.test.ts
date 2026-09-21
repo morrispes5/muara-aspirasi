@@ -22,8 +22,12 @@ vi.mock("@/server/aspirations/evidence-service", async (original) => ({
   ...(await original<typeof import("./evidence-service")>()),
   prepareEvidenceForSubmission: mocks.evidence,
 }));
+import {
+  PublicRateLimitError,
+  submissionCircuitBreaker,
+  submissionRateLimit,
+} from "./rate-limit";
 import { POST } from "@/app/api/aspirasi/route";
-import { PublicRateLimitError } from "./rate-limit";
 import { TurnstileVerificationError } from "./turnstile";
 
 const body = {
@@ -66,6 +70,35 @@ describe("submission abuse boundary", () => {
     expect((await POST(request())).status).toBe(400);
     expect(mocks.submit).not.toHaveBeenCalled();
     expect(mocks.evidence).not.toHaveBeenCalled();
+    expect(mocks.consume).toHaveBeenCalledTimes(1);
+    expect(mocks.consume).toHaveBeenCalledWith(submissionRateLimit, "unknown");
+  });
+  it("charges global capacity only after a successful challenge", async () => {
+    mocks.submit.mockResolvedValue({
+      trackingCode: "synthetic",
+      trackingSecret: "synthetic",
+    });
+    mocks.verify.mockImplementation(() => {
+      expect(mocks.consume).not.toHaveBeenCalledWith(
+        submissionCircuitBreaker,
+        "all-submissions",
+      );
+    });
+    expect((await POST(request())).status).toBe(201);
+    expect(mocks.consume).toHaveBeenCalledWith(
+      submissionCircuitBreaker,
+      "all-submissions",
+    );
+  });
+  it("still rejects verified requests when global capacity is exhausted", async () => {
+    mocks.consume.mockImplementation((rule) => {
+      if (rule === submissionCircuitBreaker) throw new PublicRateLimitError(60);
+    });
+    const response = await POST(request());
+    expect(response.status).toBe(429);
+    expect(mocks.verify).toHaveBeenCalledOnce();
+    expect(mocks.evidence).not.toHaveBeenCalled();
+    expect(mocks.submit).not.toHaveBeenCalled();
   });
   it("returns Retry-After and never creates a throttled report", async () => {
     mocks.consume.mockRejectedValue(new PublicRateLimitError(180));

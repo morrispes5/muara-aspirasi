@@ -105,8 +105,8 @@ export async function POST(request: Request) {
 
     const networkSignal = getRequestNetworkSignal(request);
     await consumePublicRateLimit(submissionRateLimit, networkSignal);
-    await consumePublicRateLimit(submissionCircuitBreaker, "all-submissions");
     await verifyTurnstile(input.turnstileToken, new URL(request.url).hostname);
+    await consumePublicRateLimit(submissionCircuitBreaker, "all-submissions");
 
     const preparedEvidence = await prepareEvidenceForSubmission(
       input.evidence.map((item) => item.intentId),

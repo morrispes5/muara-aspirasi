@@ -4,4 +4,4 @@ Repository ini belum memberikan lisensi open-source atau izin umum untuk mendist
 
 Logo universitas/FTI/BEM, foto kampus, poster, dan materi kampanye memiliki pemegang hak masing-masing. Materi tersebut tidak disertakan dalam ekspor source. Dependensi pihak ketiga tetap mengikuti lisensinya masing-masing.
 
-Jangan memasukkan data pelapor, credential, atau bukti pelacakan ke repository. Repository operasional tetap privat; paket ekspor tanpa aset dan riwayat dapat diperiksa sebelum dipublikasikan terpisah.
+Jangan memasukkan data pelapor, credential, atau bukti pelacakan ke repository. Pemilik menyetujui repository publik setelah audit pada 21 September 2026. Source, dokumen, aset tracked, dan seluruh riwayat Git dapat disalin; pemberitahuan ini tidak mencegah clone/download. Paket ekspor tanpa aset dan riwayat tetap tersedia sebagai pilihan.

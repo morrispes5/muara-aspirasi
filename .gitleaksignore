@@ -4,3 +4,6 @@
 c70a16395e9cb1739c78b4543dfc18e5688921f4:src/server/aspirations/submission-route.test.ts:generic-api-key:52
 # Public localStorage identifier (not an authentication/tracking credential).
 b48950376086d61a83f2bb7233c5ad86a57ca3dd:src/lib/tracking-backup.ts:generic-api-key:7
+# Historical deterministic hexadecimal fixture in a release-preflight unit test.
+# Uses example hosts; this value is not a provider credential.
+53fc67240fd336232370c0ddf3b930b7b9a0898f:scripts/release-preflight.test.mjs:generic-api-key:9
