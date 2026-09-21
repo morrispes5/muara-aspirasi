@@ -51,6 +51,13 @@ export const evidenceIntentRateLimit: RateLimitRule = {
   windowSeconds: 60 * 60,
 };
 
+// Upload capacity must never consume the report-submission budget.
+export const evidenceIntentCircuitBreaker: RateLimitRule = {
+  limit: 150,
+  scope: "evidence-intent-global",
+  windowSeconds: 60 * 60,
+};
+
 export const trackingIpRateLimit: RateLimitRule = {
   limit: 20,
   scope: "tracking-ip",

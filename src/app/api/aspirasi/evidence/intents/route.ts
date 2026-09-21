@@ -2,10 +2,10 @@ import { NextResponse } from "next/server";
 
 import {
   consumePublicRateLimit,
+  evidenceIntentCircuitBreaker,
   evidenceIntentRateLimit,
   getRequestNetworkSignal,
   PublicRateLimitError,
-  submissionCircuitBreaker,
 } from "@/server/aspirations/rate-limit";
 import {
   createEvidenceUploadIntents,
@@ -14,11 +14,17 @@ import {
 import {
   type EvidenceFileDescriptor,
   EvidenceValidationError,
+  validateEvidenceFileDescriptors,
 } from "@/server/aspirations/evidence";
 import {
   publicError,
   publicSensitiveResponseHeaders,
 } from "@/server/aspirations/public-response";
+import {
+  readBoundedJson,
+  RequestBodyTooLargeError,
+} from "@/server/security/request-body";
+import { isR2EvidenceEnabled } from "@/server/storage/r2";
 import { isSameOriginRequest } from "@/server/security/origin";
 
 export const runtime = "nodejs";
@@ -73,22 +79,28 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!isR2EvidenceEnabled()) {
+    return evidenceError(new EvidenceUploadError("CONFIGURATION", ""));
+  }
+
   let body: unknown;
   try {
-    body = await request.json();
-  } catch {
+    body = await readBoundedJson(request, 8 * 1024);
+  } catch (error) {
     return publicError(
-      400,
+      error instanceof RequestBodyTooLargeError ? 413 : 400,
       "REQUEST_REJECTED",
       "Permintaan belum dapat diproses.",
     );
   }
 
   try {
-    const descriptors = parseDescriptors(body);
+    const { files: descriptors } = validateEvidenceFileDescriptors(
+      parseDescriptors(body),
+    );
     const networkSignal = getRequestNetworkSignal(request);
     await consumePublicRateLimit(evidenceIntentRateLimit, networkSignal);
-    await consumePublicRateLimit(submissionCircuitBreaker, "all-submissions");
+    await consumePublicRateLimit(evidenceIntentCircuitBreaker, "all-evidence");
 
     const result = await createEvidenceUploadIntents(descriptors);
 
@@ -110,6 +122,8 @@ export async function POST(request: Request) {
         429,
         "REQUEST_REJECTED",
         "Terlalu banyak percobaan. Coba lagi beberapa saat.",
+        null,
+        error.retryAfterSeconds,
       );
     }
 

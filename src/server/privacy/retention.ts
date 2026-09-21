@@ -4,10 +4,14 @@ import { randomBytes } from "node:crypto";
 import {
   aspirationReports,
   auditEvents,
+  evidenceUploadIntents,
+  internalNotes,
   privacyDeletionRequests,
+  reportAssignments,
   reporterIdentities,
   reportEvidence,
   reportRetentionHolds,
+  reportStatusEvents,
   retentionReviewQueue,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
@@ -377,6 +381,29 @@ export async function executeApprovedDeletion(
     await transaction
       .delete(reportEvidence)
       .where(eq(reportEvidence.reportId, request.reportId));
+    // Preserve minimal workflow metadata, never dependent free-form PII.
+    await transaction
+      .update(internalNotes)
+      .set({
+        body: "[Konten dihapus sesuai kebijakan retensi]",
+        deletionReason: null,
+        deletedAt,
+        updatedAt: deletedAt,
+      })
+      .where(eq(internalNotes.reportId, request.reportId));
+    await transaction
+      .update(reportStatusEvents)
+      .set({ reporterMessage: null })
+      .where(eq(reportStatusEvents.reportId, request.reportId));
+    await transaction
+      .update(reportAssignments)
+      .set({ reason: null, routeLabel: "[Dihapus]" })
+      .where(eq(reportAssignments.reportId, request.reportId));
+    // Keep opaque keys so deferred staging cleanup can still retry safely.
+    await transaction
+      .update(evidenceUploadIntents)
+      .set({ originalFilename: "[Dihapus]" })
+      .where(eq(evidenceUploadIntents.reportId, request.reportId));
     await transaction
       .update(aspirationReports)
       .set({

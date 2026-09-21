@@ -57,7 +57,7 @@ Source pada branch revisi dapat mendahului deployment aktif. Pull request dan st
 
 **Setiap file dan riwayat commit dalam repository publik dapat di-clone. GitHub tidak memiliki izin clone per folder.** `.gitignore`, `export-ignore`, dan pemberitahuan hak cipta tidak membatasi akses clone.
 
-Repository operasional menyimpan aset asli kampus/BEM dan harus tetap privat selama aset itu ada di riwayatnya. Untuk membagikan kode, buat paket source terpisah:
+Pemilik menyetujui publikasi repository pada 21 September 2026 setelah audit keamanan. Publikasi mencakup source, dokumen, aset yang dilacak Git, serta riwayat semua branch. Credential server dan data laporan berada di luar repository; meng-clone kode tidak memberi akses ke layanan asli. Untuk mengambil paket source tanpa aset dan riwayat, tersedia:
 
 ```sh
 npm run export:source
@@ -65,7 +65,7 @@ npm run export:source
 
 Perintah ini mengekspor **commit HEAD**, bukan perubahan lokal yang belum di-commit, ke `dist/muara-aspirasi-source.zip`. Paket tidak membawa `.git`/riwayat, dokumentasi operasional, gambar asli, `.env.local`, credential provider, atau data database. Aset pada `public/images` sengaja tidak disertakan: gunakan materi milik sendiri jika menjalankan source tersebut. Paket belum otomatis diunggah atau menjadi repository publik.
 
-Gunakan paket yang sudah diperiksa sebagai awal repository publik baru tanpa riwayat repository operasional. Jangan mengubah repository operasional langsung menjadi public untuk mencoba menyembunyikan beberapa folder. Gambar yang ditampilkan website tetap dapat diunduh pengunjung website.
+Paket ini opsional dan tidak mengubah apa yang dapat diakses melalui clone repository. Tidak ada folder tersembunyi dalam repository publik. Gambar yang ditampilkan website juga dapat diunduh pengunjung website.
 
 Belum ada lisensi open-source yang diberikan. Lihat [pemberitahuan penggunaan](SOURCE_NOTICE.md); logo, foto, identitas institusi, dan materi kampanye tidak otomatis mendapat izin penggunaan ulang.
 
