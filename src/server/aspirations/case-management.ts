@@ -420,21 +420,24 @@ function reportFilters(query: ReportQueueQuery, includeRestricted = false) {
   }
 
   if (query.search) {
-    const searchTerm = `%${query.search.replace(/[\\%_]/g, "\\$&")}%`;
-    filters.push(
-      or(
-        ilike(aspirationReports.title, searchTerm),
-        ilike(aspirationReports.location, searchTerm),
-        ilike(aspirationReports.trackingCode, searchTerm),
-        ...(includeRestricted
-          ? [
-              ilike(reporterIdentities.name, searchTerm),
-              ilike(reporterIdentities.nim, searchTerm),
-              ilike(reporterIdentities.email, searchTerm),
-            ]
-          : []),
-      ),
-    );
+    // Match every word, regardless of spacing/order; keep LIKE metacharacters literal.
+    for (const word of query.search.trim().split(/\s+/u)) {
+      const searchTerm = `%${word.replace(/[\\%_]/g, "\\$&")}%`;
+      filters.push(
+        or(
+          ilike(aspirationReports.title, searchTerm),
+          ilike(aspirationReports.location, searchTerm),
+          ilike(aspirationReports.trackingCode, searchTerm),
+          ...(includeRestricted
+            ? [
+                ilike(reporterIdentities.name, searchTerm),
+                ilike(reporterIdentities.nim, searchTerm),
+                ilike(reporterIdentities.email, searchTerm),
+              ]
+            : []),
+        ),
+      );
+    }
   }
 
   return filters.length ? and(...filters) : undefined;
@@ -451,7 +454,8 @@ export function parseReportQueueQuery(
   const urgency = params.get("urgency") || undefined;
   const categoryId = params.get("categoryId") || undefined;
   const fromDate = params.get("fromDate") || undefined;
-  const search = params.get("search")?.trim() || undefined;
+  const search =
+    params.get("search")?.trim().replace(/\s+/gu, " ") || undefined;
   const assignment = params.get("assignment") || "ALL";
   const archived = params.get("archived") || "ACTIVE";
   const assigneeUserId = params.get("assigneeUserId") || undefined;

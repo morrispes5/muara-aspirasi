@@ -40,3 +40,15 @@ Turnstile diverifikasi server-side, honeypot, idempotency, validasi ukuran/form,
 - Perpindahan halaman menampilkan status memuat dan loading di area konten, sambil mempertahankan menu admin. Transisi hanya warna, tanpa menggeser tata letak, dan menghormati reduced motion.
 - Di layar kecil menu dapat digeser mendatar; kontrol akun/sesi tersedia melalui Akun & sesi agar tabel tidak terdorong jauh ke bawah.
 - Verifikasi manual: buka tabel, Update advokasi, Tabel aspirasi, detail, lalu kembali; periksa satu menu aktif, fokus keyboard, status loading, dan tabel pada desktop serta ponsel. Tidak perlu mengubah laporan untuk pengujian ini.
+
+## Pencarian dan tindak lanjut admin - 22 September 2026
+
+- Pencarian nama menerima beberapa kata dengan urutan bebas dan merapikan spasi berlebih. Setiap kata harus ditemukan dalam nama, NIM, email, judul, lokasi atau kode yang boleh dilihat oleh peran pengguna. NIM mempertahankan digit dan nol di depan; salah atau kurang digit tidak dikoreksi otomatis. Laporan lama tanpa identitas perlu dicari melalui judul atau kode.
+- Tekan **Cari / terapkan** setelah mengubah isian. Ringkasan **Filter diterapkan** menunjukkan cakupan hasil, termasuk tanggal dan arsip. Hasil kosong menyediakan **Cari di semua status & arsip**, yang mempertahankan kata pencarian sambil melepas filter lain. Gangguan server ditampilkan sebagai kegagalan memuat, bukan hasil nol.
+- **Tindak lanjut** adalah satu formulir untuk mengubah status atau menambahkan kabar. Pilihan awal mempertahankan status saat ini; admin harus memilih tahap berikutnya secara sengaja. Mengirim pesan dengan status yang sama tetap menambah riwayat.
+- Setelah simpan berhasil, konfirmasi hijau tetap terlihat sesudah data diperbarui dan dapat ditutup. Saat menyimpan, pengiriman berikutnya dikunci. Jika gagal, pesan kesalahan tampil dan draft dipertahankan; pada konflik versi, gunakan **Muat data terbaru** sebelum meninjau dan mengirim ulang.
+- **Progres & riwayat tanggapan** selalu ditampilkan: status saat ini, petunjuk tindak lanjut, kabar terakhir, waktu WIB, pelaku, alasan, dan riwayat terbaru dahulu. Pesan tersedia pada halaman pelacakan mahasiswa; ini tidak membuktikan sudah dibaca dan tidak mengirim email/WhatsApp.
+- PIC, klasifikasi, catatan internal, arsip dan audit tetap tersedia di pengelolaan lanjutan. Catatan internal tetap privat. Koreksi laporan memiliki konfirmasi tersendiri tanpa menghapus persetujuan atau riwayat.
+- Regresi otomatis menggunakan identitas sintetis: SQL pencarian berizin dan count konsisten, spasi/kata/karakter literal, refresh halaman setelah simpan, draft saat gagal, konflik versi, klik ganda, koreksi, dan perluasan cakupan pencarian. Verifikasi Production dilakukan hanya dengan membaca data; tidak menambahkan tanggapan percobaan ke laporan mahasiswa.
+
+Validasi lokal perubahan ini: 365 tes lulus, 3 tes integrasi opsional dilewati; lint, pemeriksaan tipe, pemeriksaan migrasi dan build Production lulus. Tes penyimpanan memakai API mock dan tidak membuktikan pengiriman pesan Production.

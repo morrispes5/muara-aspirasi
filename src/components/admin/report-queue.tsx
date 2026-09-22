@@ -87,7 +87,12 @@ export function ReportQueue({ categories, initial }: Props) {
   function apply(event: FormEvent) {
     event.preventDefault();
     setPage(1);
-    setFilters({ ...draft });
+    const applied = {
+      ...draft,
+      search: draft.search.trim().replace(/\s+/gu, " "),
+    };
+    setDraft(applied);
+    setFilters(applied);
     setRevision((v) => v + 1);
   }
   async function exportExcel() {
@@ -234,6 +239,15 @@ export function ReportQueue({ categories, initial }: Props) {
             Cari / terapkan
           </button>
         </div>
+        <p className="text-muted text-xs">
+          Nama boleh sebagian atau beberapa kata. NIM harus sesuai digit
+          tersimpan; angka yang hilang tidak dicocokkan otomatis.
+        </p>
+        {JSON.stringify(draft) !== JSON.stringify(filters) && (
+          <p className="text-warning text-sm" role="status">
+            Isian berubah. Tekan Cari / terapkan untuk memperbarui hasil.
+          </p>
+        )}
         <details>
           <summary className="text-brand cursor-pointer py-2 text-sm font-bold">
             Filter tanggal, kategori & arsip
@@ -332,10 +346,26 @@ export function ReportQueue({ categories, initial }: Props) {
           </button>
         </p>
       )}
+      <p className="text-muted text-xs">
+        Filter diterapkan: {filters.search ? `“${filters.search}” · ` : ""}
+        {filters.archived === "ACTIVE"
+          ? "laporan aktif"
+          : filters.archived === "ARCHIVED"
+            ? "laporan arsip"
+            : "aktif dan arsip"}
+        {filters.status ? ` · ${statuses[filters.status]}` : " · semua status"}
+        {filters.categoryId
+          ? ` · ${categories.find((item) => item.id === filters.categoryId)?.name ?? "kategori dipilih"}`
+          : ""}
+        {filters.fromDate ? ` · dari ${filters.fromDate}` : ""}
+        {filters.toDate ? ` · sampai ${filters.toDate}` : ""}
+      </p>
       <p role="status" className="text-muted text-sm">
         {loading
           ? "Memuat laporan…"
-          : result.totalItems + " laporan sesuai filter"}
+          : error
+            ? "Hasil belum dapat dimuat. Coba muat ulang."
+            : result.totalItems + " laporan sesuai filter"}
       </p>
       {!error && (
         <div
@@ -428,7 +458,32 @@ export function ReportQueue({ categories, initial }: Props) {
               {!result.items.length && (
                 <tr>
                   <td colSpan={7} className="text-muted p-8 text-center">
-                    Belum ada laporan. Ubah filter atau tunggu aspirasi masuk.
+                    <p>
+                      Tidak ada laporan yang cocok dengan filter diterapkan.
+                    </p>
+                    <p className="mt-2 text-xs">
+                      {filters.search && /^\d+$/.test(filters.search)
+                        ? `NIM yang dicari: ${filters.search.length} digit. Cocokkan dengan NIM pada detail laporan atau cari sebagian nama.`
+                        : "Coba sebagian nama dan periksa status, tanggal, kategori, serta arsip."}
+                    </p>
+                    <button
+                      type="button"
+                      disabled={loading}
+                      className="text-brand mt-3 font-bold underline"
+                      onClick={() => {
+                        const next = {
+                          ...initialFilters,
+                          search: filters.search,
+                          archived: "ALL",
+                        };
+                        setDraft(next);
+                        setFilters(next);
+                        setPage(1);
+                        setRevision((v) => v + 1);
+                      }}
+                    >
+                      Cari di semua status & arsip
+                    </button>
                   </td>
                 </tr>
               )}
