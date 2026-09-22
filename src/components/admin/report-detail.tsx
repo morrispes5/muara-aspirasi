@@ -7,11 +7,12 @@ import type {
   ReportStatus,
   ReportUrgency,
 } from "@/server/aspirations/case-management";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { ReportEditor } from "@/components/admin/report-editor";
+import { ReportProgress } from "@/components/admin/report-progress";
 import { StateCard } from "@/components/ui/state-card";
 import { useRouter } from "next/navigation";
 
@@ -124,11 +125,14 @@ export function ReportDetailView({
   assignees,
 }: ReportDetailProps) {
   const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
+  const [saving, setIsSaving] = useState(false);
+  const [refreshing, startRefresh] = useTransition();
+  const isSaving = saving || refreshing;
+  const mutationLock = useRef(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusTarget, setStatusTarget] = useState<ReportStatus>(
-    nextStatusByStatus[initial.report.status][0] ?? initial.report.status,
+    initial.report.status,
   );
   const [statusReason, setStatusReason] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -146,14 +150,14 @@ export function ReportDetailView({
   );
   const [assignmentReason, setAssignmentReason] = useState("");
   const [noteBody, setNoteBody] = useState("");
-  const [reporterMessage, setReporterMessage] = useState("");
   const [lifecycleReason, setLifecycleReason] = useState<ReportReasonCode | "">(
     "",
   );
   const canMutate = canProcess && !initial.report.archivedAt;
 
   async function mutate(action: string, fields: Record<string, unknown>) {
-    if (isSaving) return;
+    if (isSaving || mutationLock.current) return false;
+    mutationLock.current = true;
     setIsSaving(true);
     setFeedback(null);
     setErrorMessage(null);
@@ -178,15 +182,45 @@ export function ReportDetailView({
         );
       }
 
-      setFeedback("Perubahan tersimpan.");
-      router.refresh();
+      const labels: Record<string, string> = {
+        status: fields.reporterMessage
+          ? "Tindak lanjut tersimpan. Kabar tersedia di pelacakan mahasiswa."
+          : "Status laporan berhasil diperbarui.",
+        "reporter-message":
+          "Kabar tersimpan dan tersedia di pelacakan mahasiswa.",
+        "internal-note":
+          "Catatan internal tersimpan. Catatan ini tidak terlihat mahasiswa.",
+        "delete-note": "Catatan internal berhasil dihapus.",
+        assign: "PIC dan rute penanganan berhasil diperbarui.",
+        "case-fields": "Kategori, urgensi, dan ringkasan berhasil diperbarui.",
+        archive:
+          "Laporan berhasil diarsipkan. Laporan tetap tersedia di filter arsip.",
+        reopen: "Laporan berhasil dibuka kembali untuk ditinjau.",
+      };
+      setFeedback(labels[action] ?? "Perubahan tersimpan.");
+      if (action === "status" || action === "reopen") {
+        setStatusMessage("");
+        setStatusReason("");
+        setStatusTarget(
+          action === "reopen"
+            ? "UNDER_REVIEW"
+            : (fields.toStatus as ReportStatus),
+        );
+      }
+      if (action === "internal-note") setNoteBody("");
+      startRefresh(() => router.refresh());
+      return true;
     } catch (error: unknown) {
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Perubahan belum dapat disimpan.",
+        error instanceof TypeError || error instanceof SyntaxError
+          ? "Hasil penyimpanan belum dapat dipastikan. Muat data terbaru sebelum mengirim ulang."
+          : error instanceof Error
+            ? error.message
+            : "Perubahan belum dapat disimpan.",
       );
+      return false;
     } finally {
+      mutationLock.current = false;
       setIsSaving(false);
     }
   }
@@ -196,7 +230,7 @@ export function ReportDetailView({
     void mutate("status", {
       reasonCode: statusReason || null,
       reporterMessage: statusMessage || null,
-      toStatus: statusTarget,
+      toStatus: selectedStatus,
     });
   }
 
@@ -221,13 +255,6 @@ export function ReportDetailView({
   function submitNote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     void mutate("internal-note", { body: noteBody });
-    setNoteBody("");
-  }
-
-  function submitReporterMessage(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void mutate("reporter-message", { message: reporterMessage });
-    setReporterMessage("");
   }
 
   function archive() {
@@ -284,6 +311,11 @@ export function ReportDetailView({
   }
 
   const nextStatuses = nextStatusByStatus[initial.report.status];
+  const selectedStatus = [initial.report.status, ...nextStatuses].includes(
+    statusTarget,
+  )
+    ? statusTarget
+    : initial.report.status;
 
   return (
     <div className="grid gap-6">
@@ -320,18 +352,35 @@ export function ReportDetailView({
       {feedback ? (
         <p
           aria-live="polite"
-          className="border-success/25 bg-success-soft text-success rounded-control border p-3 text-sm"
+          role="status"
+          className="border-success/25 bg-success-soft text-success rounded-control sticky top-24 z-20 border p-4 text-sm shadow-lg"
         >
           {feedback}
+          <button
+            type="button"
+            className="ml-3 font-bold underline"
+            onClick={() => setFeedback(null)}
+            aria-label="Tutup konfirmasi"
+          >
+            Tutup
+          </button>
         </p>
       ) : null}
       {errorMessage ? (
         <p
           aria-live="assertive"
-          className="border-danger bg-danger-soft text-danger rounded-control border p-3 text-sm"
+          className="border-danger bg-danger-soft text-danger rounded-control sticky top-24 z-20 border p-4 text-sm shadow-lg"
           role="alert"
         >
-          {errorMessage}
+          {errorMessage} Isian tetap disimpan di formulir.
+          <button
+            type="button"
+            className="ml-3 font-bold underline"
+            disabled={isSaving}
+            onClick={() => startRefresh(() => router.refresh())}
+          >
+            Muat data terbaru
+          </button>
         </p>
       ) : null}
 
@@ -360,7 +409,8 @@ export function ReportDetailView({
         <Card>
           <h2 className="text-ink text-xl font-bold">Tindak lanjut</h2>
           <p className="text-muted mt-2 text-sm">
-            Pilih status dan tulis kabar yang aman dibaca mahasiswa.
+            Status saat ini: {statusLabels[initial.report.status]}. Pertahankan
+            status untuk menambahkan kabar, atau pilih tahap berikutnya.
           </p>
           <form onSubmit={submitStatus} className="mt-4 grid gap-4">
             <label className="grid gap-2 text-sm font-bold">
@@ -368,7 +418,7 @@ export function ReportDetailView({
               <select
                 className={fieldClassName}
                 disabled={isSaving}
-                value={statusTarget}
+                value={selectedStatus}
                 onChange={(e) =>
                   setStatusTarget(e.target.value as ReportStatus)
                 }
@@ -383,10 +433,11 @@ export function ReportDetailView({
                 ))}
               </select>
             </label>
-            {statusTarget === "CANNOT_PROCESS" && (
+            {selectedStatus === "CANNOT_PROCESS" && (
               <label className="grid gap-2 text-sm font-bold">
                 Alasan
                 <select
+                  disabled={isSaving}
                   required
                   className={fieldClassName}
                   value={statusReason}
@@ -406,10 +457,11 @@ export function ReportDetailView({
               <textarea
                 className={fieldClassName}
                 rows={3}
+                disabled={isSaving}
                 maxLength={3000}
                 required={
-                  statusTarget === "NEEDS_CLARIFICATION" ||
-                  statusTarget === initial.report.status
+                  selectedStatus === "NEEDS_CLARIFICATION" ||
+                  selectedStatus === initial.report.status
                 }
                 value={statusMessage}
                 onChange={(e) => setStatusMessage(e.target.value)}
@@ -418,7 +470,11 @@ export function ReportDetailView({
             </label>
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={
+                isSaving ||
+                (selectedStatus === initial.report.status &&
+                  !statusMessage.trim())
+              }
               className="bg-brand rounded-control min-h-11 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
             >
               {isSaving ? "Menyimpan…" : "Simpan tindak lanjut"}
@@ -426,6 +482,7 @@ export function ReportDetailView({
           </form>
         </Card>
       )}
+      <ReportProgress detail={initial} />
       {canManageLifecycle && canMutate && initial.identity && (
         <details className="border-line rounded-card border p-5">
           <summary className="text-brand cursor-pointer font-bold">
@@ -433,7 +490,7 @@ export function ReportDetailView({
           </summary>
           <div className="mt-5">
             <ReportEditor
-              key={initial.report.updatedAt}
+              key={initial.report.id}
               reportId={initial.report.id}
               expectedUpdatedAt={initial.report.updatedAt}
               initial={{
@@ -453,7 +510,7 @@ export function ReportDetailView({
       )}
       <details>
         <summary className="text-brand cursor-pointer py-3 text-sm font-bold">
-          Detail lanjutan: riwayat, PIC, catatan internal & arsip
+          Pengelolaan lanjutan: PIC, catatan internal & arsip
         </summary>
         <div className="mt-4 grid gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(19rem,0.65fr)]">
           <div className="grid min-w-0 gap-6">
@@ -672,119 +729,6 @@ export function ReportDetailView({
             {canProcess ? (
               <Card>
                 <p className="text-brand text-xs font-bold tracking-[0.14em] uppercase">
-                  Workflow
-                </p>
-                <h2 className="text-ink mt-2 text-2xl font-bold">
-                  Ubah status dengan konteks
-                </h2>
-                <form className="mt-6 grid gap-5" onSubmit={submitStatus}>
-                  {nextStatuses.length ? (
-                    <label className="text-ink grid gap-2 text-sm font-bold">
-                      Status berikutnya
-                      <select
-                        className={fieldClassName}
-                        disabled={!canMutate || isSaving}
-                        onChange={(event) =>
-                          setStatusTarget(event.target.value as ReportStatus)
-                        }
-                        value={statusTarget}
-                      >
-                        {nextStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {statusLabels[status]}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : (
-                    <p className="text-muted rounded-control bg-brand-soft p-3 text-sm leading-6">
-                      Belum ada transisi status lanjutan. Tambahkan pesan
-                      pelapor bila ada informasi baru.
-                    </p>
-                  )}
-                  {statusTarget === "CANNOT_PROCESS" ? (
-                    <label className="text-ink grid gap-2 text-sm font-bold">
-                      Alasan wajib
-                      <select
-                        className={fieldClassName}
-                        disabled={!canMutate || isSaving}
-                        onChange={(event) =>
-                          setStatusReason(event.target.value)
-                        }
-                        required
-                        value={statusReason}
-                      >
-                        <option value="">Pilih alasan</option>
-                        {Object.entries(reasonLabels).map(([value, label]) => (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
-                  <label className="text-ink grid gap-2 text-sm font-bold">
-                    Pesan untuk pelapor{" "}
-                    <span className="text-muted font-normal">
-                      (wajib untuk klarifikasi, opsional lainnya)
-                    </span>
-                    <textarea
-                      className={`${fieldClassName} min-h-28 resize-y`}
-                      disabled={!canMutate || isSaving}
-                      maxLength={3000}
-                      onChange={(event) => setStatusMessage(event.target.value)}
-                      value={statusMessage}
-                    />
-                  </label>
-                  <button
-                    className="bg-brand hover:bg-brand-dark min-h-11 w-fit rounded-full px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!canMutate || isSaving || !nextStatuses.length}
-                    type="submit"
-                  >
-                    Simpan perubahan status
-                  </button>
-                </form>
-              </Card>
-            ) : null}
-
-            {canProcess ? (
-              <Card>
-                <p className="text-brand text-xs font-bold tracking-[0.14em] uppercase">
-                  Reporter-visible
-                </p>
-                <h2 className="text-ink mt-2 text-2xl font-bold">
-                  Tambah pesan tanpa mengubah status
-                </h2>
-                <form
-                  className="mt-6 grid gap-5"
-                  onSubmit={submitReporterMessage}
-                >
-                  <label className="text-ink grid gap-2 text-sm font-bold">
-                    Pesan progres aman
-                    <textarea
-                      className={`${fieldClassName} min-h-28 resize-y`}
-                      disabled={!canMutate || isSaving}
-                      maxLength={3000}
-                      onChange={(event) =>
-                        setReporterMessage(event.target.value)
-                      }
-                      value={reporterMessage}
-                    />
-                  </label>
-                  <button
-                    className="border-line text-brand hover:border-brand min-h-11 w-fit rounded-full border px-5 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-50"
-                    disabled={!canMutate || isSaving || !reporterMessage.trim()}
-                    type="submit"
-                  >
-                    Tambahkan pesan pelapor
-                  </button>
-                </form>
-              </Card>
-            ) : null}
-
-            {canProcess ? (
-              <Card>
-                <p className="text-brand text-xs font-bold tracking-[0.14em] uppercase">
                   Catatan internal
                 </p>
                 <h2 className="text-ink mt-2 text-2xl font-bold">
@@ -857,56 +801,6 @@ export function ReportDetailView({
                 </div>
               </Card>
             ) : null}
-
-            <Card>
-              <p className="text-brand text-xs font-bold tracking-[0.14em] uppercase">
-                Jejak status
-              </p>
-              <h2 className="text-ink mt-2 text-2xl font-bold">
-                Riwayat laporan
-              </h2>
-              <ol className="border-line mt-6 grid gap-5 border-l pl-5">
-                {initial.statusEvents.map((event, index) => (
-                  <li className="relative" key={`${event.createdAt}-${index}`}>
-                    <span
-                      aria-hidden="true"
-                      className="bg-brand absolute top-1 -left-[1.55rem] size-3 rounded-full"
-                    />
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="text-ink text-sm font-bold">
-                        {event.toStatus
-                          ? statusLabels[event.toStatus]
-                          : "Pembaruan"}
-                      </p>
-                      <time
-                        className="text-muted text-xs"
-                        dateTime={event.createdAt}
-                      >
-                        {formatDate(event.createdAt)}
-                      </time>
-                    </div>
-                    <p className="text-muted mt-1 text-xs">
-                      {event.actorName ?? "Sistem penerimaan"}
-                      {event.isReporterVisible
-                        ? " · terlihat pelapor"
-                        : " · internal"}
-                    </p>
-                    {event.reporterMessage ? (
-                      <p className="text-ink mt-2 text-sm leading-6 whitespace-pre-wrap">
-                        {event.reporterMessage}
-                      </p>
-                    ) : null}
-                    {event.reasonCode ? (
-                      <p className="text-muted mt-2 text-xs">
-                        Alasan:{" "}
-                        {reasonLabels[event.reasonCode as ReportReasonCode] ??
-                          event.reasonCode}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
-            </Card>
           </div>
 
           <aside className="grid h-fit gap-6 xl:sticky xl:top-28">

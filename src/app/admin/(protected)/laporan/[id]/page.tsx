@@ -144,7 +144,7 @@ export default async function ReportDetailPage({
       canProcess={pageData.canProcess}
       categories={pageData.categories}
       initial={pageData.report}
-      key={pageData.report.report.updatedAt}
+      key={pageData.report.report.id}
     />
   );
 }

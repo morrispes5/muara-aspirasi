@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useRef, useState, useTransition } from "react";
 import {
   reportFieldDefinitions,
   reportFieldError,
@@ -37,8 +37,12 @@ export function ReportEditor({
   const [reason, setReason] = useState("");
   const [consent, setConsent] = useState(false);
   const [contactAllowed, setContactAllowed] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [posting, setSaving] = useState(false);
+  const [refreshing, startRefresh] = useTransition();
+  const saving = posting || refreshing;
+  const submitLock = useRef(false);
   const [message, setMessage] = useState("");
+  const [failed, setFailed] = useState(false);
   const [receipt, setReceipt] = useState<
     (TrackingCredential & { reportId?: string }) | null
   >(null);
@@ -46,16 +50,19 @@ export function ReportEditor({
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (saving) return;
+    if (saving || submitLock.current) return;
     for (const field of reportFieldDefinitions) {
       const error = reportFieldError(field.key, fields[field.key]);
       if (error) {
+        setFailed(true);
         setMessage(field.label + ": " + error);
         return;
       }
     }
+    submitLock.current = true;
     setSaving(true);
     setMessage("");
+    setFailed(false);
     const key = requestKey || crypto.randomUUID();
     setRequestKey(key);
     try {
@@ -88,15 +95,18 @@ export function ReportEditor({
         setMessage(
           "Koreksi tersimpan. Token, persetujuan privasi dan riwayat status tidak berubah.",
         );
-        router.refresh();
+        setReason("");
+        startRefresh(() => router.refresh());
       } else setReceipt(body.receipt);
     } catch (error) {
+      setFailed(true);
       setMessage(
         error instanceof Error
           ? error.message
           : "Gagal menyimpan. Periksa tabel sebelum mengirim ulang.",
       );
     } finally {
+      submitLock.current = false;
       setSaving(false);
     }
   }
@@ -213,7 +223,10 @@ export function ReportEditor({
         </label>
       )}
       {message && (
-        <p role="status" className="text-brand text-sm">
+        <p
+          role={failed ? "alert" : "status"}
+          className={`rounded-control p-3 text-sm ${failed ? "bg-danger-soft text-danger" : "bg-success-soft text-success"}`}
+        >
           {message}
         </p>
       )}
