@@ -26,6 +26,10 @@ import {
   reportStatusEvents,
 } from "@/server/db/schema";
 import { type Database, getDatabase } from "@/server/db/client";
+import {
+  findIdentitySuggestions,
+  type IdentitySuggestions,
+} from "@/server/aspirations/identity-search";
 import { parseReportFields } from "@/server/aspirations/validation";
 
 export const reportStatuses = [
@@ -103,6 +107,7 @@ export type ReportQueueItem = {
 };
 
 export type ReportQueueResult = {
+  suggestions?: IdentitySuggestions;
   items: ReportQueueItem[];
   page: number;
   pageSize: number;
@@ -546,7 +551,7 @@ export function parseReportQueueQuery(
 export async function listReportQueue(
   query: ReportQueueQuery,
   database: Database = getDatabase(),
-  options: { includeRestricted?: boolean } = {},
+  options: { includeRestricted?: boolean; includeSuggestions?: boolean } = {},
 ): Promise<ReportQueueResult> {
   const where = reportFilters(query, options.includeRestricted);
   const [totalResult, rows] = await Promise.all([
@@ -617,6 +622,17 @@ export async function listReportQueue(
 
   const totalItems = Number(totalResult[0]?.value ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalItems / query.pageSize));
+  const suggestions =
+    totalItems === 0 &&
+    query.search &&
+    options.includeRestricted &&
+    options.includeSuggestions
+      ? await findIdentitySuggestions(
+          query.search,
+          reportFilters({ ...query, search: undefined }),
+          database,
+        )
+      : undefined;
 
   return {
     items: rows.map((row) => ({
@@ -647,6 +663,7 @@ export async function listReportQueue(
       updatedAt: row.updatedAt.toISOString(),
       urgency: row.urgency,
     })),
+    ...(suggestions ? { suggestions } : {}),
     page: query.page,
     pageSize: query.pageSize,
     totalItems,

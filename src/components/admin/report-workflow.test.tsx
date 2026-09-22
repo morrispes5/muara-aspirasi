@@ -43,7 +43,7 @@ const detail: ReportDetail = {
   internalNotes: [],
   identity: {
     name: "Mahasiswa Sintetis",
-    nim: "00123456789",
+    nim: "0012345678",
     email: "student@example.test",
     whatsapp: null,
     contactAllowed: false,
@@ -305,6 +305,51 @@ describe("admin search context", () => {
     expect(broad.get("status")).toBe("");
     expect(broad.get("search")).toBe("Sintetis Mahasiswa");
   });
+  it("presents typo candidates separately with only a review link", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          reports: {
+            ...empty,
+            suggestions: {
+              items: [
+                {
+                  id: "candidate-synthetic",
+                  name: "Mikantael Sintetis",
+                  nim: "25111500427",
+                  title: "Ruang uji",
+                  status: "UNDER_REVIEW",
+                  archived: false,
+                  matchedBy: "nim",
+                },
+              ],
+              totalMatches: 1,
+              truncated: false,
+            },
+          },
+        }),
+      }),
+    );
+    render(<ReportQueue initial={empty} assignees={[]} categories={[]} />);
+    fireEvent.change(screen.getByLabelText("Cari aspirasi"), {
+      target: { value: "2511500427" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cari / terapkan" }));
+    await screen.findByRole("heading", {
+      name: "Kemungkinan cocok — periksa identitas",
+    });
+    expect(
+      screen
+        .getByRole("link", { name: "Periksa laporan" })
+        .getAttribute("href"),
+    ).toBe("/admin/laporan/candidate-synthetic");
+    expect(screen.getByText(/1 kandidat mirip ditemukan/)).toBeTruthy();
+    expect(screen.getByText(/Format NIM perlu dikonfirmasi/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Hapus ke arsip" })).toBeNull();
+    expect(screen.queryByText("0 laporan sesuai filter")).toBeNull();
+  });
   it("does not present a failed request as zero matching reports", async () => {
     vi.stubGlobal(
       "fetch",
@@ -328,7 +373,7 @@ describe("admin search context", () => {
 describe("report correction feedback", () => {
   const fields = {
     name: "Mahasiswa Sintetis",
-    nim: "00123456789",
+    nim: "0012345678",
     email: "student@example.test",
     whatsapp: "08000000000",
     title: "Lampu ruang uji",

@@ -7,6 +7,7 @@ import type {
 } from "@/server/aspirations/case-management";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { nimPattern } from "@/lib/report-fields";
 
 type Props = {
   assignees: BemAssignee[];
@@ -240,8 +241,8 @@ export function ReportQueue({ categories, initial }: Props) {
           </button>
         </div>
         <p className="text-muted text-xs">
-          Nama boleh sebagian atau beberapa kata. NIM harus sesuai digit
-          tersimpan; angka yang hilang tidak dicocokkan otomatis.
+          Cari dengan NIM atau sebagian nama. Jika tidak ada hasil persis,
+          kemungkinan salah ketik ditampilkan terpisah untuk diperiksa.
         </p>
         {JSON.stringify(draft) !== JSON.stringify(filters) && (
           <p className="text-warning text-sm" role="status">
@@ -365,9 +366,11 @@ export function ReportQueue({ categories, initial }: Props) {
           ? "Memuat laporan…"
           : error
             ? "Hasil belum dapat dimuat. Coba muat ulang."
-            : result.totalItems + " laporan sesuai filter"}
+            : result.suggestions?.items.length
+              ? `${result.suggestions.totalMatches} kandidat mirip ditemukan; tidak ada kecocokan persis.`
+              : result.totalItems + " laporan sesuai filter"}
       </p>
-      {!error && (
+      {!error && !result.suggestions?.items.length && (
         <div
           className="border-line rounded-control max-w-full overflow-x-auto border"
           tabIndex={0}
@@ -407,6 +410,11 @@ export function ReportQueue({ categories, initial }: Props) {
                   </td>
                   <td className="border-line border-b px-3 py-4 font-mono">
                     {item.identity?.nim ?? "—"}
+                    {item.identity && !nimPattern.test(item.identity.nim) && (
+                      <p className="text-warning mt-1 text-xs">
+                        Periksa NIM: format bukan 10 angka.
+                      </p>
+                    )}
                   </td>
                   <td className="border-line border-b px-3 py-4 break-all">
                     {item.identity?.email ?? "—"}
@@ -463,7 +471,7 @@ export function ReportQueue({ categories, initial }: Props) {
                     </p>
                     <p className="mt-2 text-xs">
                       {filters.search && /^\d+$/.test(filters.search)
-                        ? `NIM yang dicari: ${filters.search.length} digit. Cocokkan dengan NIM pada detail laporan atau cari sebagian nama.`
+                        ? `NIM yang dicari: ${filters.search.length} digit. Periksa kandidat di bawah atau coba sebagian nama.`
                         : "Coba sebagian nama dan periksa status, tanggal, kategori, serta arsip."}
                     </p>
                     <button
@@ -491,6 +499,70 @@ export function ReportQueue({ categories, initial }: Props) {
           </table>
         </div>
       )}
+      {!loading &&
+        !error &&
+        result.suggestions &&
+        (result.suggestions.items.length > 0 ||
+          result.suggestions.truncated) && (
+          <section
+            aria-label="Kemungkinan cocok"
+            className="border-line rounded-card border bg-white p-5"
+          >
+            <h2 className="text-ink text-lg font-bold">
+              Kemungkinan cocok — periksa identitas
+            </h2>
+            <p className="text-muted mt-2 text-sm">
+              Nama atau NIM tersimpan mirip dengan pencarianmu. Buka laporan dan
+              konfirmasikan identitas sebelum mengoreksi data. Kandidat ini
+              belum dianggap hasil pasti.
+            </p>
+            <p className="text-muted mt-2 text-xs">
+              Menampilkan {result.suggestions.items.length} dari{" "}
+              {result.suggestions.totalMatches} kandidat dalam filter yang
+              diterapkan.
+            </p>
+            <ul className="mt-4 grid gap-3">
+              {result.suggestions.items.map((item) => (
+                <li
+                  key={item.id}
+                  className="border-line rounded-control border p-4"
+                >
+                  <p className="font-bold">{item.name}</p>
+                  <p className="mt-1 text-sm">
+                    NIM tersimpan: <span className="font-mono">{item.nim}</span>
+                  </p>
+                  {!nimPattern.test(item.nim) && (
+                    <p className="text-warning mt-1 text-xs">
+                      Format NIM perlu dikonfirmasi: seharusnya 10 angka.
+                    </p>
+                  )}
+                  <p className="text-muted mt-2 text-sm">
+                    {item.title} · {statuses[item.status]}
+                    {item.archived ? " · Diarsipkan" : ""}
+                  </p>
+                  <p className="text-muted mt-1 text-xs">
+                    {item.matchedBy === "nim"
+                      ? "NIM berbeda satu pengetikan (angka berlebih, kurang, berbeda atau tertukar)."
+                      : "Ejaan nama mirip dengan pencarian."}
+                  </p>
+                  <Link
+                    href={"/admin/laporan/" + item.id}
+                    className="text-brand mt-3 inline-block font-bold underline"
+                  >
+                    Periksa laporan
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {result.suggestions.truncated && (
+              <p role="status" className="text-warning mt-3 text-sm">
+                Kandidat awal terlalu banyak; pemeriksaan dibatasi 1.000
+                laporan. Tambahkan nama lain atau persempit filter untuk
+                memeriksa sisanya.
+              </p>
+            )}
+          </section>
+        )}
       <nav
         aria-label="Halaman tabel"
         className="flex items-center justify-between gap-3"

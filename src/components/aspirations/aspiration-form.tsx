@@ -415,10 +415,10 @@ export function AspirationForm({
             <input
               className={inputClassName()}
               maxLength={20}
-              minLength={7}
+              minLength={10}
               inputMode="numeric"
-              pattern="[0-9]{7,20}"
-              placeholder="Contoh: 2411500001 (7–20 angka)"
+              pattern="[0-9]{10}"
+              placeholder="Contoh: 2411500001 (10 angka)"
               onChange={(event) => setValue("nim", event.target.value)}
               required
               value={values.nim}

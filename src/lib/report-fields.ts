@@ -1,4 +1,4 @@
-export const nimPattern = /^[0-9]{7,20}$/;
+export const nimPattern = /^[0-9]{10}$/;
 export const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const whatsappPattern = /^\+?[0-9 ()-]+$/;
 
@@ -20,7 +20,7 @@ export const reportFieldDefinitions = [
     key: "nim",
     label: "NIM",
     max: 20,
-    placeholder: "Contoh format: 2411500001 (7–20 angka)",
+    placeholder: "Contoh format: 2411500001 (tepat 10 angka)",
   },
   {
     key: "email",
@@ -70,7 +70,7 @@ export type ReportFields = Record<
 export function reportFieldError(key: keyof ReportFields, value: string) {
   if (!value.trim()) return "Kolom ini wajib diisi.";
   if (key === "nim" && !nimPattern.test(value.trim()))
-    return "NIM harus 7–20 angka, tanpa spasi atau tanda baca.";
+    return "NIM harus tepat 10 angka, tanpa spasi atau tanda baca.";
   if (key === "email" && !emailPattern.test(value.trim()))
     return "Masukkan email yang valid.";
   if (key === "whatsapp" && !isValidWhatsapp(value.trim()))
