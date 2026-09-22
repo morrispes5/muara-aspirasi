@@ -32,3 +32,11 @@ Tidak ada akun mahasiswa. Bukti memuat kunci akses privat. File tidak diunggah s
 ## Anti-spam dan batasnya
 
 Turnstile diverifikasi server-side, honeypot, idempotency, validasi ukuran/form, serta rate limit database tetap aktif. Pengiriman publik dibatasi 5 percobaan/jaringan/jam dan circuit breaker global; login/MFA/pelacakan punya batas tersendiri. Jaringan kampus bersama dapat berbagi kuota. Ini bukan bukti identitas mahasiswa dan bukan jaminan nol spam. NIM/email berformat valid belum berarti telah diverifikasi. Admin meninjau isi sebelum menindaklanjuti.
+
+## Perbaikan navigasi admin - 22 September 2026
+
+- `/admin` tetap mengarah ke `/admin/laporan`. Menu duplikat Beranda admin dihapus agar tidak terlihat seperti dua halaman berbeda.
+- Tabel aspirasi ditandai aktif saat tabel, tambah, atau detail laporan dibuka. Menu lain mengikuti alamat halaman, termasuk navigasi kembali/maju browser. Penanda tidak berpindah hanya karena hover.
+- Perpindahan halaman menampilkan status memuat dan loading di area konten, sambil mempertahankan menu admin. Transisi hanya warna, tanpa menggeser tata letak, dan menghormati reduced motion.
+- Di layar kecil menu dapat digeser mendatar; kontrol akun/sesi tersedia melalui Akun & sesi agar tabel tidak terdorong jauh ke bawah.
+- Verifikasi manual: buka tabel, Update advokasi, Tabel aspirasi, detail, lalu kembali; periksa satu menu aktif, fokus keyboard, status loading, dan tabel pada desktop serta ponsel. Tidak perlu mengubah laporan untuk pengujian ini.
