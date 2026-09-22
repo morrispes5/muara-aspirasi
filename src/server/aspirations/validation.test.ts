@@ -26,14 +26,20 @@ const validSubmission = {
 };
 
 describe("public aspiration validation", () => {
-  it.each(["123456", "abc1234567", "123456-7", "123456789012345678901"])(
-    "rejects invalid NIM %s",
-    (nim) => {
-      expect(() => parseSubmissionInput({ ...validSubmission, nim })).toThrow(
-        PublicInputError,
-      );
-    },
-  );
+  it.each([
+    "123456",
+    "1234567",
+    "123456789",
+    "12345678901",
+    "12345678901234567890",
+    "abc1234567",
+    "123456-7",
+    "123456789012345678901",
+  ])("rejects invalid NIM %s", (nim) => {
+    expect(() => parseSubmissionInput({ ...validSubmission, nim })).toThrow(
+      PublicInputError,
+    );
+  });
   it.each([
     "name",
     "nim",
@@ -49,7 +55,7 @@ describe("public aspiration validation", () => {
       parseSubmissionInput({ ...validSubmission, [field]: " " }),
     ).toThrow(PublicInputError);
   });
-  it.each(["1234567", "0012345678", "12345678901234567890"])(
+  it.each(["0012345678", "2312500095", "2411500001"])(
     "preserves numeric NIM %s as text",
     (nim) => {
       expect(parseSubmissionInput({ ...validSubmission, nim }).nim).toBe(nim);

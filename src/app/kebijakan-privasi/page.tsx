@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 const privacySections = [
   [
     "Data yang dikumpulkan",
-    "Nama, NIM (7–20 angka), email, WhatsApp, detail aspirasi dan usulan solusi wajib untuk laporan baru. Izin dihubungi dan berbagi identitas tetap pilihan; bukti lampiran opsional bila tersedia. Data lama tidak dilengkapi secara otomatis.",
+    "Nama, NIM (10 angka), email, WhatsApp, detail aspirasi dan usulan solusi wajib untuk laporan baru. Izin dihubungi dan berbagi identitas tetap pilihan; bukti lampiran opsional bila tersedia. Data lama tidak dilengkapi secara otomatis.",
   ],
   [
     "Tujuan penggunaan",

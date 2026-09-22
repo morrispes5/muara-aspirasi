@@ -53,6 +53,7 @@ export async function GET(request: Request) {
     );
     const query = parseReportQueueQuery(new URL(request.url).searchParams);
     const reports = await listReportQueue(query, undefined, {
+      includeSuggestions: true,
       includeRestricted: hasPermission(
         session.user.role,
         "VIEW_CONFIDENTIAL_REPORT",

@@ -2,7 +2,7 @@
 
 ## Alur mahasiswa
 
-1. Buka **Kirim Aspirasi**. Isi nama, NIM 7–20 angka (biasanya 10), email dan WhatsApp. Semua kolom isian wajib; contoh bukan data otomatis.
+1. Buka **Kirim Aspirasi**. Isi nama, NIM tepat 10 angka, email dan WhatsApp. Semua kolom isian wajib; contoh bukan data otomatis.
 2. Pilih kategori, tulis judul, lokasi, kronologi, dampak dan usulan. Jika belum tahu solusinya, tulis bahwa kamu meminta bantuan BEM menentukan solusi.
 3. Pilih privasi. Default identitas hanya untuk BEM. Izin dihubungi dan berbagi terbatas tidak wajib dicentang. Setujui etika, periksa ulang, lalu verifikasi anti-spam dan kirim sekali.
 4. Simpan bukti `.txt`. Opsional: pilih **Simpan di perangkat pribadi ini** (jangan pada komputer bersama).
@@ -23,7 +23,7 @@ Tidak ada akun mahasiswa. Bukti memuat kunci akses privat. File tidak diunggah s
 ## Cek manual sebelum soft launch
 
 - Incognito: `/admin` menuju login; akses API admin tanpa sesi ditolak, termasuk ekspor/tambah/edit.
-- Form: NIM 6 angka, huruf, email kosong/salah dan solusi kosong harus ditolak. NIM 7/10/20 angka diterima; angka nol di depan dipertahankan. Uji dengan data sintetis pada Preview yang diizinkan, bukan identitas nyata.
+- Form: NIM kosong, bukan angka, 9 atau 11 angka, email kosong/salah dan solusi kosong harus ditolak. NIM tepat 10 angka diterima; angka nol di depan dipertahankan. Uji dengan data sintetis pada Preview yang diizinkan, bukan identitas nyata.
 - Setelah satu kiriman sintetis: file bukti dapat membuka progres; tidak ada token di alamat URL. Tanpa memilih simpan, browser tidak otomatis memiliki cadangan. Cadangan yang sengaja disimpan bisa dipilih dan dihapus tanpa menghapus laporan di BEM.
 - Admin: cari laporan sintetis, koreksi sesuai konfirmasi pelapor, tambahkan pesan, lalu baca pesan lewat pelacakan. Catatan internal tidak terlihat mahasiswa.
 - Ekspor: periksa nama/NIM/email dan filter pada Excel. NIM panjang/berawalan nol tetap sama. Teks yang diawali `=` tetap teks, bukan rumus.
@@ -52,3 +52,13 @@ Turnstile diverifikasi server-side, honeypot, idempotency, validasi ukuran/form,
 - Regresi otomatis menggunakan identitas sintetis: SQL pencarian berizin dan count konsisten, spasi/kata/karakter literal, refresh halaman setelah simpan, draft saat gagal, konflik versi, klik ganda, koreksi, dan perluasan cakupan pencarian. Verifikasi Production dilakukan hanya dengan membaca data; tidak menambahkan tanggapan percobaan ke laporan mahasiswa.
 
 Validasi lokal perubahan ini: 365 tes lulus, 3 tes integrasi opsional dilewati; lint, pemeriksaan tipe, pemeriksaan migrasi dan build Production lulus. Tes penyimpanan memakai API mock dan tidak membuktikan pengiriman pesan Production.
+
+## Identitas dan pencarian salah ketik - 22 September 2026
+
+- NIM wajib tepat **10 angka** pada pengiriman mahasiswa, pencatatan admin, dan koreksi identitas. Aturan panjang mengikuti [petunjuk resmi E-Learning Budi Luhur](https://elearning.budiluhur.ac.id/). Nol di depan tetap disimpan. Arti kode jurusan/kampus tidak disimpulkan; format bukan bukti keaktifan mahasiswa. Input lebih panjang ditolak, bukan dipotong otomatis menjadi NIM lain.
+- Nama/NIM yang cocok tetap dicari pada seluruh laporan sesuai filter sebelum pagination. Jika hasil pasti kosong, API admin mencoba kandidat identitas mirip: NIM berbeda satu pengetikan, atau setiap kata nama berbeda sedikit (maksimal dua untuk kata tujuh huruf atau lebih). Hasil muncul sebagai **Kemungkinan cocok — periksa identitas**, disertai nilai tersimpan dan tautan laporan, bukan sebagai kecocokan pasti atau perubahan data otomatis.
+- Kandidat diproses server-side dengan izin identitas privat, mengikuti filter status, kategori, tanggal, assignment dan arsip. Pencarian kandidat mengambil maksimum 1.000 laporan dari database setelah penyaringan awal, bukan 25 baris halaman tabel; tampil maksimal 10 kandidat terdekat. Jika batas pemeriksaan tercapai, UI meminta filter dipersempit dan tidak mengklaim seluruh data sudah diperiksa. Kandidat tidak masuk ekspor Excel atau pelacakan publik.
+- NIM lama dengan format berbeda tetap dapat dibaca/dicari dan ditandai **perlu dikonfirmasi**. Admin dapat memeriksa identitas dengan pelapor dan memakai koreksi beralasan yang diaudit. Tidak ada perbaikan massal, penyatuan identitas, perubahan nama/NIM asli, atau migrasi data otomatis.
+- Regresi mencakup kandidat sesudah 300 laporan sintetis, digit hilang/berlebih/tertukar, dua salah ketik berdekatan pada nama, izin, filter, batas pemeriksaan, pemisahan hasil pasti/kandidat, serta validasi NIM di klien dan server. Identitas nyata tidak dipakai sebagai fixture publik.
+
+Validasi lokal perbaikan identitas: 386 tes lulus, 3 integrasi opsional dilewati; lint, TypeScript dan build Production lulus. Pemeriksaan browser dengan input masalah dan bukti deploy dicatat pada PR rilis.

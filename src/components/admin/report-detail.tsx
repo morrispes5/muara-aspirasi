@@ -11,6 +11,7 @@ import { FormEvent, useRef, useState, useTransition } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import { nimPattern } from "@/lib/report-fields";
 import { ReportEditor } from "@/components/admin/report-editor";
 import { ReportProgress } from "@/components/admin/report-progress";
 import { StateCard } from "@/components/ui/state-card";
@@ -390,6 +391,13 @@ export function ReportDetailView({
           <p className="text-muted mt-3 text-sm">
             {initial.identity.name} · NIM {initial.identity.nim} ·{" "}
             {initial.identity.email ?? "Email belum diisi"}
+          </p>
+        )}
+        {initial.identity && !nimPattern.test(initial.identity.nim) && (
+          <p className="bg-warning-soft text-warning rounded-control mt-3 p-3 text-sm">
+            NIM tersimpan belum sesuai format 10 angka. Konfirmasikan dengan
+            pelapor, lalu koreksi melalui Edit data laporan & identitas.
+            Tanggapan dan riwayat tetap dapat dikelola.
           </p>
         )}
         <dl className="mt-5 grid gap-4 text-sm leading-6">

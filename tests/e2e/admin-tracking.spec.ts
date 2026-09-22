@@ -106,7 +106,13 @@ test("student form blocks short NIM and missing contact before moving on", async
   await page.getByLabel("Nama lengkap", { exact: true }).fill("Mahasiswa QA");
   await page.getByLabel("NIM", { exact: true }).fill("123456");
   await page.getByRole("button", { name: /Lanjut/ }).click();
-  await expect(page.getByText(/NIM harus 7–20 angka/)).toBeVisible();
+  await expect(page.getByText(/NIM harus tepat 10 angka/)).toBeVisible();
+  await page.getByLabel("NIM", { exact: true }).fill("00123456789");
+  await expect(page.getByLabel("NIM", { exact: true })).toHaveValue(
+    "00123456789",
+  );
+  await page.getByRole("button", { name: "Lanjut", exact: true }).click();
+  await expect(page.getByText(/NIM harus tepat 10 angka/)).toBeVisible();
   await page.getByLabel("NIM", { exact: true }).fill("0012345678");
   await page.getByRole("button", { name: /Lanjut/ }).click();
   await expect(page.getByText(/Email: Kolom ini wajib diisi/)).toBeVisible();
